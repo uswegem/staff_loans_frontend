@@ -11,6 +11,12 @@ import Home from './features/home/Home';
 import MyAccess from './features/account/MyAccess';
 import UsersPage from './features/admin/users/UsersPage';
 import RolesPage from './features/admin/roles/RolesPage';
+import ProductsPage from './features/admin/products/ProductsPage';
+import NewProductPage from './features/admin/products/NewProductPage';
+import ProductHistoryPage from './features/admin/products/ProductHistoryPage';
+import VersionPage from './features/admin/products/VersionPage';
+
+const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
 
 function NotFound() {
   return (
@@ -41,6 +47,11 @@ export default function App() {
           <Route path="account/access" element={<MyAccess />} />
           <Route path="admin/users" element={<RequirePermission any={['admin.users']}><UsersPage /></RequirePermission>} />
           <Route path="admin/roles" element={<RequirePermission any={['admin.roles']}><RolesPage /></RequirePermission>} />
+          <Route path="admin/products" element={<RequirePermission any={PRODUCT_PERMS}><ProductsPage /></RequirePermission>} />
+          <Route path="admin/products/new" element={<RequirePermission any={['products.make']}><NewProductPage /></RequirePermission>} />
+          <Route path="admin/products/:id" element={<RequirePermission any={PRODUCT_PERMS}><ProductHistoryPage /></RequirePermission>} />
+          <Route path="admin/products/versions/:vid" element={<RequirePermission any={PRODUCT_PERMS}><VersionPage kind="product" key="product" /></RequirePermission>} />
+          <Route path="admin/pricing/versions/:vid" element={<RequirePermission any={PRODUCT_PERMS}><VersionPage kind="pricing" key="pricing" /></RequirePermission>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>

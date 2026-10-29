@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import AccountMenu from './AccountMenu';
+import NotificationBell from './NotificationBell';
 import useSessionKeeper from '../lib/useSessionKeeper';
 import { visibleNav } from './nav';
 import logo from '../assets/lfb-logo.png';
@@ -26,6 +27,7 @@ export default function AppShell() {
         <img className={s.logo} src={logo} alt="Letshego Faidika Bank" />
         <span className={s.appname}>Staff Loans</span>
         <span className={s.spacer} />
+        <NotificationBell />
         <AccountMenu />
       </header>
       <div className={s.layout}>

@@ -10,6 +10,7 @@ export const NAV = [
   {
     group: 'Administration',
     items: [
+      { to: '/admin/products', label: 'Products and pricing', any: ['products.view', 'products.make', 'products.check'] },
       { to: '/admin/users', label: 'Users and roles', any: ['admin.users'] },
       { to: '/admin/roles', label: 'Roles and permissions', any: ['admin.roles'] },
     ],

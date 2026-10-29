@@ -1,0 +1,237 @@
+// A product or pricing version through maker-checker (BRD 5.1, FR-58 to FR-63).
+// The maker edits and submits; a different user, the checker, sees the full version
+// with the comparison and approves, or rejects with a reason. The API enforces who
+// may do what; the buttons only reflect it.
+
+import { useCallback, useEffect, useState } from 'react';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { Alert, AlertTitle, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { versionsApi } from '../../../api/products';
+import { apiError } from '../../../api/client';
+import { formatDate, formatDateTime } from '../../../lib/format';
+import { todayEat } from '../../../lib/dates';
+import StateChip from '../../../components/StateChip';
+import ProductForm from './ProductForm';
+import PricingForm from './PricingForm';
+import { formatCompareValue } from './compareFormat';
+import s from './products.module.css';
+
+function Comparison({ comparison }) {
+  const { changes, liveVersion, scheduledVersion } = comparison;
+  return (
+    <Card>
+      <CardContent sx={{ p: 3 }}>
+        <h3 style={{ marginBottom: 4 }}>What changes</h3>
+        <p className="small muted">
+          {liveVersion ? `Compared with version ${liveVersion.version}, in force since ${formatDate(liveVersion.liveFrom)}.` : 'Nothing is live yet: every value is new.'}
+          {scheduledVersion ? ` Version ${scheduledVersion.version} is scheduled for ${formatDate(scheduledVersion.liveFrom)}.` : ''}
+        </p>
+        {changes.length === 0 ? (
+          <p className="small" style={{ margin: 0 }}>No values differ from the live version.</p>
+        ) : (
+          <div className="tablewrap">
+            <Table size="small" aria-label="Changes against the live version">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Value</TableCell>
+                  <TableCell>Live</TableCell>
+                  <TableCell>Proposed</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {changes.map((c) => (
+                  <TableRow key={c.field} className={s.changed}>
+                    <TableCell sx={{ fontWeight: 600 }}>{c.label}</TableCell>
+                    <TableCell className="small" sx={{ textDecoration: 'line-through', color: 'var(--ink-3)' }}>{formatCompareValue(c.field, c.before)}</TableCell>
+                    <TableCell className="small">{formatCompareValue(c.field, c.after)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RejectDialog({ onClose, onReject }) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState(null);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (reason.trim().length < 5) return setError('Give a reason the maker can act on.');
+    try {
+      await onReject(reason.trim());
+    } catch (err) {
+      setError(apiError(err).message);
+    }
+    return undefined;
+  };
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+      <form onSubmit={submit} noValidate>
+        <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>Reject and return to the maker</DialogTitle>
+        <DialogContent>
+          <TextField label="Reason" required multiline minRows={3} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} error={!!error} helperText={error || 'The maker sees this and can correct the draft.'} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="contained">Reject</Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+}
+
+const CHANGE_TYPE = { create: 'New product', change: 'Change', deactivate: 'Deactivation' };
+
+export default function VersionPage({ kind }) {
+  const { vid } = useParams();
+  const navigate = useNavigate();
+  const vapi = versionsApi(kind);
+  const [v, setV] = useState(null);
+  const [values, setValues] = useState(null);
+  const [effectiveFrom, setEffectiveFrom] = useState('');
+  const [note, setNote] = useState('');
+  const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+
+  const show = useCallback((data) => {
+    setV(data);
+    setValues(data.values);
+    setEffectiveFrom(data.effectiveFrom);
+    setNote(data.note || '');
+  }, []);
+
+  useEffect(() => {
+    vapi.get(vid).then(show).catch((err) => setError(apiError(err).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vid]);
+
+  const act = async (fn, done) => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const data = await fn();
+      if (data) show(data);
+      setErrors({});
+      if (done) setMessage(done);
+      return data;
+    } catch (err) {
+      const x = apiError(err);
+      setErrors(x.details || {});
+      setError(x.message);
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const save = () => act(() => vapi.update(vid, { ...(v.changeType === 'deactivate' ? {} : { values }), effectiveFrom, note }), 'Draft saved. Check what changes, then submit it for approval.');
+  const submit = async () => {
+    const saved = await act(() => vapi.update(vid, { ...(v.changeType === 'deactivate' ? {} : { values }), effectiveFrom, note }));
+    if (saved) await act(() => vapi.submit(vid), 'Submitted. Checkers have been notified.');
+  };
+
+  if (error && !v) return <div className="page"><Alert severity="error">{error}</Alert></div>;
+  if (!v) return <p className="muted" role="status">Loading…</p>;
+
+  const title = kind === 'pricing' ? `Pricing version ${v.version}` : `${v.values.name} version ${v.version}`;
+  const back = kind === 'pricing' ? '/admin/products' : `/admin/products/${v.product.id}`;
+  const readOnly = !v.canEdit || v.changeType === 'deactivate';
+
+  return (
+    <div className="page">
+      <div className="small muted" style={{ marginBottom: 8 }}>
+        <Link component={RouterLink} to="/admin/products" color="inherit">Products and pricing</Link>
+        {kind === 'product' && <> / <Link component={RouterLink} to={back} color="inherit">{v.product.code}</Link></>}
+      </div>
+      <div className="pagehead">
+        <div>
+          <h1>{title}</h1>
+          <p>
+            {CHANGE_TYPE[v.changeType] || 'Change'} <StateChip state={v.state} />
+          </p>
+        </div>
+      </div>
+
+      <div className="stack">
+        {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
+        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+        {v.state === 'rejected' && (
+          <Alert severity="warning">
+            <AlertTitle>Rejected by {v.checker?.name}</AlertTitle>
+            {v.rejectionReason} Edit the draft and submit it again, or discard it.
+          </Alert>
+        )}
+        {v.state === 'pending_approval' && v.isEditor && <Alert severity="info">Waiting for a checker. You prepared or edited this change, so someone else must approve it.</Alert>}
+        {v.state === 'approved_scheduled' && <Alert severity="info">Approved. It goes live on {formatDate(v.liveFrom)}; the current version stays in force until then.</Alert>}
+        {v.changeType === 'deactivate' && ['draft', 'rejected', 'pending_approval'].includes(v.state) && (
+          <Alert severity="warning">From the effective date this product is hidden from new applications. Applications already in progress continue.</Alert>
+        )}
+
+        <Card>
+          <dl className={s.headerCard} style={{ margin: 0 }}>
+            <div><dt>Effective from</dt><dd>{formatDate(v.effectiveFrom)}</dd></div>
+            <div><dt>Live from</dt><dd>{v.liveFrom ? formatDateTime(v.liveFrom) : '—'}</dd></div>
+            <div><dt>Maker</dt><dd>{v.maker?.name || '—'}</dd></div>
+            <div><dt>Submitted</dt><dd>{v.submittedAt ? formatDateTime(v.submittedAt) : '—'}</dd></div>
+            <div><dt>Checker</dt><dd>{v.checker?.name || '—'}</dd></div>
+            <div><dt>Decided</dt><dd>{v.decidedAt ? formatDateTime(v.decidedAt) : '—'}</dd></div>
+          </dl>
+          {v.note && <p className="small" style={{ padding: '0 24px 16px', margin: 0 }}><b>Why:</b> {v.note}</p>}
+        </Card>
+
+        <div className={s.layout}>
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              {kind === 'pricing' ? <PricingForm values={values} onChange={setValues} errors={errors} readOnly={readOnly} /> : <ProductForm values={values} onChange={setValues} errors={errors} readOnly={readOnly} />}
+            </CardContent>
+          </Card>
+          <div className={`${s.sticky} stack`}>
+            <Comparison comparison={v.comparison} />
+            {(v.canEdit || v.canRecall || v.canCheck) && (
+              <Card>
+                <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
+                  {v.canEdit && (
+                    <>
+                      <TextField label="Effective from" type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
+                      <TextField label="Why this change" multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+                      <Button onClick={save} disabled={busy}>Save draft</Button>
+                      <Button variant="contained" onClick={submit} disabled={busy}>Submit for approval</Button>
+                      <Button variant="text" onClick={() => act(() => vapi.discard(vid)).then((d) => d && navigate(back))} disabled={busy}>Discard draft</Button>
+                    </>
+                  )}
+                  {v.canRecall && <Button onClick={() => act(() => vapi.recall(vid), 'Taken back to draft.')} disabled={busy}>Take back to draft</Button>}
+                  {v.canCheck && (
+                    <>
+                      <p className="small" style={{ margin: 0 }}>Check every value and the comparison. Approval puts it live on the effective date.</p>
+                      <Button variant="contained" onClick={() => act(() => vapi.approve(vid), 'Approved.')} disabled={busy}>Approve</Button>
+                      <Button onClick={() => setRejecting(true)} disabled={busy}>Reject</Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+      {rejecting && (
+        <RejectDialog
+          onClose={() => setRejecting(false)}
+          onReject={async (reason) => {
+            const data = await vapi.reject(vid, reason);
+            show(data);
+            setRejecting(false);
+            setMessage('Rejected and returned to the maker.');
+          }}
+        />
+      )}
+    </div>
+  );
+}
