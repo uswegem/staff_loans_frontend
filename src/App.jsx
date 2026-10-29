@@ -19,6 +19,11 @@ import ProfilePage from './features/profile/ProfilePage';
 import StaffListPage from './features/staff/StaffListPage';
 import StaffDetailPage, { NewStaffPage } from './features/staff/StaffDetailPage';
 import StaffImportPage from './features/staff/StaffImportPage';
+import ApplyChoosePage from './features/apply/ApplyChoosePage';
+import ApplyWizardPage from './features/apply/ApplyWizardPage';
+import MyApplicationsPage from './features/applications/MyApplicationsPage';
+import ApplicationPage from './features/applications/ApplicationPage';
+import AgreementPage from './features/agreement/AgreementPage';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
@@ -51,6 +56,11 @@ export default function App() {
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="account/access" element={<MyAccess />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="apply" element={<RequirePermission any={['loan.apply']}><ApplyChoosePage /></RequirePermission>} />
+          <Route path="apply/:id" element={<RequirePermission any={['loan.apply']}><ApplyWizardPage /></RequirePermission>} />
+          <Route path="applications" element={<RequirePermission any={['loan.viewOwn']}><MyApplicationsPage /></RequirePermission>} />
+          <Route path="applications/:id" element={<RequirePermission any={['loan.viewOwn']}><ApplicationPage /></RequirePermission>} />
+          <Route path="agreement/:id" element={<AgreementPage />} />
           <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
           <Route path="staff/new" element={<RequirePermission any={['staff.manage']}><NewStaffPage /></RequirePermission>} />
           <Route path="staff/import" element={<RequirePermission any={['staff.manage']}><StaffImportPage /></RequirePermission>} />

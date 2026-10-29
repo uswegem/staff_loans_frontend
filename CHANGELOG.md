@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 – Milestone 4: Apply (29 Oct 2026)
+
+- Apply wizard in the prototype's five steps: product cards with limits and closure reasons, loan details with the live calculator (same module as the API), documents, review with the route, and read-and-sign with the scroll gate, Swahili consents and password.
+- My applications, application page with route chevrons and history, agreement page with evidence and PDF download; Home lists open applications.
+
 ## 0.3.0 – Milestone 3: Staff records (29 Oct 2026)
 
 - My profile in five tabs with the completeness meter, missing counts per tab, server messages next to fields, and the jump to the next incomplete tab.

@@ -7,7 +7,10 @@ import { useSelector } from 'react-redux';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, CardContent, Chip, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { profileApi } from '../../api/staff';
-import { formatDate, formatDateTime } from '../../lib/format';
+import { applicationsApi } from '../../api/applications';
+import AppStatusChip from '../../components/AppStatusChip';
+import { OPEN } from '../../lib/statuses';
+import { formatDate, formatDateTime, formatTzs } from '../../lib/format';
 import Meter from '../../components/Meter';
 
 function Eligibility({ data }) {
@@ -55,10 +58,12 @@ export default function Home() {
   const { user, roles, permissions, mfaRequired } = useSelector((st) => st.auth);
   const canApply = permissions.includes('loan.apply');
   const [elig, setElig] = useState(null);
+  const [apps, setApps] = useState([]);
   const firstName = user.fullName.split(' ')[0];
 
   useEffect(() => {
     if (canApply) profileApi.eligibility().then(setElig).catch(() => setElig(null));
+    if (canApply) applicationsApi.list().then(setApps).catch(() => setApps([]));
   }, [canApply]);
 
   const c = elig?.profile;
@@ -73,6 +78,7 @@ export default function Home() {
             {user.department ? `, ${user.department}` : ''}
           </p>
         </div>
+        {canApply && <Button variant="contained" component={RouterLink} to="/apply">Apply for a loan</Button>}
       </div>
       <div className="stack">
         {c && !c.complete && (
@@ -93,6 +99,24 @@ export default function Home() {
                   <Meter value={c.done} max={c.total} label={`${c.done} of ${c.total} required details`} />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+        {apps.filter((a) => OPEN.includes(a.status)).length > 0 && (
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+                <h3>Open applications</h3>
+                <Link component={RouterLink} to="/applications">All my applications</Link>
+              </div>
+              {apps.filter((a) => OPEN.includes(a.status)).map((a) => (
+                <div key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--line-2)' }}>
+                  <span>
+                    <Link component={RouterLink} to={a.status === 'draft' ? `/apply/${a.id}` : `/applications/${a.id}`} sx={{ fontWeight: 600 }}>{a.ref}</Link> {a.product}{a.amount ? `, ${formatTzs(a.amount)}` : ''}
+                  </span>
+                  <AppStatusChip status={a.status} />
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

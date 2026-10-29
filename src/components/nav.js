@@ -7,6 +7,8 @@ export const NAV = [
     group: 'My loans',
     items: [
       { to: '/', label: 'Home', end: true },
+      { to: '/apply', label: 'Apply for a loan', any: ['loan.apply'] },
+      { to: '/applications', label: 'My applications', any: ['loan.viewOwn'] },
       { to: '/profile', label: 'My profile', any: ['loan.apply'] },
     ],
   },
