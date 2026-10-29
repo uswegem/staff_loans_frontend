@@ -5,7 +5,14 @@
 export const NAV = [
   {
     group: 'My loans',
-    items: [{ to: '/', label: 'Home', end: true }],
+    items: [
+      { to: '/', label: 'Home', end: true },
+      { to: '/profile', label: 'My profile', any: ['loan.apply'] },
+    ],
+  },
+  {
+    group: 'People and Culture',
+    items: [{ to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] }],
   },
   {
     group: 'Administration',

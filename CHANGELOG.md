@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 – Milestone 3: Staff records (29 Oct 2026)
+
+- My profile in five tabs with the completeness meter, missing counts per tab, server messages next to fields, and the jump to the next incomplete tab.
+- Home shows profile completeness and, per product, whether you can apply now or in how many days, including the top-up countdown (NS-03).
+- Staff records: searchable and filterable list, detail page with employment form, salary history, status change, and profile summary; Add staff.
+- Upload from Excel: template download, drop zone, checked-row preview with filters, error-row download, and apply valid rows.
+
 ## 0.2.0 – Milestone 2: Products and pricing (29 Oct 2026)
 
 - Products and pricing screen in the prototype layout: pricing figures and PAYE bands, the sample-values banner, the products table with status and open changes, and the waiting-for-approval banner.

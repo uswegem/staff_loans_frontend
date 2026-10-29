@@ -1,0 +1,25 @@
+.form { display: flex; flex-direction: column; gap: var(--s5); }
+.form h3 { margin-bottom: var(--s3); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+.kv { display: grid; grid-template-columns: 180px 1fr; gap: var(--s2) var(--s4); margin: 0; }
+.kv dt { color: var(--ink-3); font-size: var(--fs-sm); }
+.kv dd { margin: 0; font-weight: 600; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--s5); align-items: start; }
+
+.figures { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s3); margin: var(--s4) 0; }
+.figure { border: 1px solid var(--line-2); border-radius: var(--r-md); padding: var(--s3) var(--s4); }
+.figure b { display: block; font-size: var(--fs-xl); color: var(--brand-900); font-variant-numeric: tabular-nums; }
+.figure span { font-size: var(--fs-sm); color: var(--ink-3); }
+
+.drop { display: block; position: relative; cursor: pointer; border: 2px dashed var(--line); border-radius: var(--r-lg); padding: var(--s6) var(--s5); text-align: center; color: var(--ink-3); background: var(--brand-050); }
+.drop:hover, .drop.over { border-color: #000; }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop:focus-within { outline: 3px solid #000; box-shadow: 0 0 0 6px var(--y); }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .grid, .kv { grid-template-columns: 1fr; }
+  .figures { grid-template-columns: 1fr 1fr; }
+}

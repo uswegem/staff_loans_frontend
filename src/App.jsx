@@ -15,8 +15,13 @@ import ProductsPage from './features/admin/products/ProductsPage';
 import NewProductPage from './features/admin/products/NewProductPage';
 import ProductHistoryPage from './features/admin/products/ProductHistoryPage';
 import VersionPage from './features/admin/products/VersionPage';
+import ProfilePage from './features/profile/ProfilePage';
+import StaffListPage from './features/staff/StaffListPage';
+import StaffDetailPage, { NewStaffPage } from './features/staff/StaffDetailPage';
+import StaffImportPage from './features/staff/StaffImportPage';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
+const STAFF_PERMS = ['staff.view', 'staff.manage'];
 
 function NotFound() {
   return (
@@ -45,6 +50,11 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="account/access" element={<MyAccess />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
+          <Route path="staff/new" element={<RequirePermission any={['staff.manage']}><NewStaffPage /></RequirePermission>} />
+          <Route path="staff/import" element={<RequirePermission any={['staff.manage']}><StaffImportPage /></RequirePermission>} />
+          <Route path="staff/:id" element={<RequirePermission any={STAFF_PERMS}><StaffDetailPage /></RequirePermission>} />
           <Route path="admin/users" element={<RequirePermission any={['admin.users']}><UsersPage /></RequirePermission>} />
           <Route path="admin/roles" element={<RequirePermission any={['admin.roles']}><RolesPage /></RequirePermission>} />
           <Route path="admin/products" element={<RequirePermission any={PRODUCT_PERMS}><ProductsPage /></RequirePermission>} />
