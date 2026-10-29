@@ -1,0 +1,52 @@
+/* =========================================================
+   SLAS design tokens, copied from the prototype :root block
+   (docs/LFB_Staff_Loans_Prototype.html). Brand values are
+   provisional: confirm against the official Letshego Faidika
+   Bank brand guide and change them here only.
+   The MUI theme (src/theme.js) reads the same values.
+   ========================================================= */
+:root {
+  /* brand: Letshego yellow and black */
+  --y: #FFC20E;           /* primary actions, active nav, the current stage */
+  --y-600: #E8AE00;       /* hover on yellow */
+  --y-200: #FFE38A;
+  --brand-900: #000000;   /* navigation, headings */
+  --brand-700: #000000;   /* borders of selected items, references */
+  --brand-500: #1A1A1A;   /* links */
+  --brand-100: #FFF3C4;   /* soft yellow fill */
+  --brand-050: #FFFAE8;   /* faint yellow hover */
+  --accent-600: #6E5000;  /* text on completed stages */
+  --accent-100: #FFEFB3;  /* completed stages */
+
+  /* neutrals */
+  --ink: #1B1B1B;
+  --ink-2: #4A4A47;
+  --ink-3: #6B6B66;
+  --line: #DDDCD6;
+  --line-2: #ECEBE6;
+  --surface: #FFFFFF;
+  --canvas: #F5F4F0;
+
+  /* status */
+  --ok: #2E7D4F;     --ok-bg: #E6F3EA;
+  --warn: #B4500A;   --warn-bg: #FCEBDD;
+  --bad: #B8342A;    --bad-bg: #FBE9E7;
+  --info: #1B1B1B;   --info-bg: #ECEBE6;
+  --idle: #5A5A55;   --idle-bg: #EFEEEA;
+
+  /* type */
+  --font: "Source Sans 3", "Source Sans Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --fs-xs: 12.5px;
+  --fs-sm: 14px;
+  --fs-md: 15.5px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+
+  /* space & shape */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --r-sm: 4px; --r-md: 8px; --r-lg: 12px;
+  --shadow-pop: 0 8px 28px rgba(0, 0, 0, .18);
+  --topbar-h: 60px;
+  --nav-w: 236px;
+}
