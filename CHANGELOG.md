@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 – Milestone 6: Disbursement and notifications (30 Oct 2026)
+
+- Disbursements for OPS: ready and disbursed tabs, Outside SLA flags, confirm dialog with the summary, checklist, date, reference and comment, details view, and the disbursed register export.
+- Notifications inbox; the bell links to it.
+- Application page shows the disbursement and the repayment schedule.
+
 ## 0.5.0 – Milestone 5: Review (30 Oct 2026)
 
 - Review queue with waiting, overdue and handled tabs and the working-hours clock; limited rows show only the name.

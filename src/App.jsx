@@ -28,6 +28,8 @@ import AcceptRevisedPage from './features/agreement/AcceptRevisedPage';
 import QueuePage from './features/review/QueuePage';
 import ReviewPage from './features/review/ReviewPage';
 import DelegationPage from './features/review/DelegationPage';
+import DisbursementsPage from './features/disburse/DisbursementsPage';
+import NotificationsPage from './features/notifications/NotificationsPage';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
@@ -69,6 +71,8 @@ export default function App() {
           <Route path="queue" element={<QueuePage />} />
           <Route path="review/:id" element={<ReviewPage />} />
           <Route path="delegation" element={<RequirePermission any={['review.delegate']}><DelegationPage /></RequirePermission>} />
+          <Route path="disburse" element={<RequirePermission any={['disb.confirm']}><DisbursementsPage /></RequirePermission>} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
           <Route path="staff/new" element={<RequirePermission any={['staff.manage']}><NewStaffPage /></RequirePermission>} />
           <Route path="staff/import" element={<RequirePermission any={['staff.manage']}><StaffImportPage /></RequirePermission>} />

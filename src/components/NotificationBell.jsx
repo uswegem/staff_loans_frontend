@@ -1,5 +1,5 @@
 // Bell and inbox (BRD 12: in-app only). Polls the unread count; each item links to
-// the screen that needs action. The full inbox screen arrives with milestone 6.
+// the screen that needs action; the full inbox is at /notifications.
 
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -68,6 +68,10 @@ export default function NotificationBell() {
             <div className="xs muted">{formatDateTime(n.createdAt)}</div>
           </MenuItem>
         ))}
+        <Divider />
+        <MenuItem onClick={() => { setAnchor(null); navigate('/notifications'); }} sx={{ justifyContent: 'center' }}>
+          <span className="small" style={{ color: 'var(--link, inherit)' }}>See all notifications</span>
+        </MenuItem>
       </Menu>
     </>
   );

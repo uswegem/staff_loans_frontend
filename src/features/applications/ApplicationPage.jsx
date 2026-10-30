@@ -1,13 +1,14 @@
 // One of my applications (prototype #/applications/:id; FR-11, 7.3): progress route,
-// history with comments, the terms, agreement, documents, correct or withdraw.
+// history with comments, the terms, agreement, documents, the repayment schedule
+// (FR-25), correct or withdraw.
 
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
-import { formatDate, formatDateTime, formatTzs } from '../../lib/format';
+import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
 import s from '../apply/apply.module.css';
@@ -24,6 +25,48 @@ const ACTIONS = {
   decline_revised: ['Declined revised terms', 'bad'],
   disburse: ['Disbursement confirmed', 'ok'],
 };
+
+function Schedule({ app }) {
+  const [all, setAll] = useState(false);
+  const rows = all ? app.schedule : app.schedule.slice(0, 6);
+  return (
+    <Card>
+      <CardContent sx={{ p: 3 }}>
+        <h3 style={{ marginBottom: 4 }}>Repayment schedule</h3>
+        <p className="small muted" style={{ margin: '0 0 12px' }}>
+          {app.scheduleBasis === 'disbursement' ? `From the disbursement date, ${formatDate(app.disbursement?.date)}.` : 'From final approval. It is set again from the date OPS disburses the loan.'}
+        </p>
+        <div className="tablewrap">
+          <Table size="small" aria-label="Repayment schedule">
+            <TableHead>
+              <TableRow>
+                <TableCell>No.</TableCell>
+                <TableCell>Due</TableCell>
+                <TableCell align="right">Principal</TableCell>
+                <TableCell align="right">Interest</TableCell>
+                <TableCell align="right">Instalment</TableCell>
+                <TableCell align="right">Balance</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.n}>
+                  <TableCell>{r.n}</TableCell>
+                  <TableCell>{formatDate(r.due)}</TableCell>
+                  <TableCell align="right" className="num">{formatNumber(r.principal)}</TableCell>
+                  <TableCell align="right" className="num">{formatNumber(r.interest)}</TableCell>
+                  <TableCell align="right" className="num">{formatNumber(r.payment)}</TableCell>
+                  <TableCell align="right" className="num">{formatNumber(r.balance)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        {app.schedule.length > 6 && <Button variant="text" size="small" sx={{ mt: 1 }} onClick={() => setAll((v) => !v)}>{all ? 'Show the first 6' : `Show all ${app.schedule.length} instalments`}</Button>}
+      </CardContent>
+    </Card>
+  );
+}
 
 function WithdrawDialog({ onClose, onConfirm }) {
   const [reason, setReason] = useState('');
@@ -82,6 +125,12 @@ export default function ApplicationPage() {
           <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to={`/accept/${app.id}`}>Review revised terms</Button>}>
             <AlertTitle>Approved at revised terms</AlertTitle>
             {formatTzs(app.approved?.amount)} over {app.approved?.tenor} months. Read and accept the revised agreement so OPS can disburse.
+          </Alert>
+        )}
+        {app.status === 'disbursed' && app.disbursement && (
+          <Alert severity="success">
+            <AlertTitle>Disbursed on {formatDate(app.disbursement.date)}</AlertTitle>
+            {formatTzs(app.approved?.amount)} was paid out{app.disbursement.transactionRef ? ` (reference ${app.disbursement.transactionRef})` : ''}. Your first instalment of {formatTzs(app.schedule?.[0]?.payment)} is due on {formatDate(app.schedule?.[0]?.due)}.
           </Alert>
         )}
         {returned && app.status === 'returned' && (
@@ -163,6 +212,7 @@ export default function ApplicationPage() {
             </Card>
           </div>
         </div>
+        {app.schedule && <Schedule app={app} />}
       </div>
       {withdrawing && (
         <WithdrawDialog

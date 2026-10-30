@@ -20,6 +20,10 @@ export const NAV = [
     ],
   },
   {
+    group: 'Operations',
+    items: [{ to: '/disburse', label: 'Disbursements', any: ['disb.confirm'] }],
+  },
+  {
     group: 'People and Culture',
     items: [{ to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] }],
   },
