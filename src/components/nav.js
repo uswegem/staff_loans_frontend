@@ -1,6 +1,5 @@
 // Side navigation. Each item shows only to users holding one of its permissions
 // (the API enforces the same permissions; hiding is a convenience, not the control).
-// Items are added here as each milestone ships its screens.
 
 export const NAV = [
   {
@@ -24,6 +23,10 @@ export const NAV = [
     items: [{ to: '/disburse', label: 'Disbursements', any: ['disb.confirm'] }],
   },
   {
+    group: 'Reports',
+    items: [{ to: '/reports', label: 'Reports', any: ['reports.view', 'admin.users', 'admin.roles', 'audit.view'] }],
+  },
+  {
     group: 'People and Culture',
     items: [{ to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] }],
   },
@@ -33,6 +36,9 @@ export const NAV = [
       { to: '/admin/products', label: 'Products and pricing', any: ['products.view', 'products.make', 'products.check'] },
       { to: '/admin/users', label: 'Users and roles', any: ['admin.users'] },
       { to: '/admin/roles', label: 'Roles and permissions', any: ['admin.roles'] },
+      { to: '/admin/workflow', label: 'Workflow and calendar', any: ['admin.workflow'] },
+      { to: '/admin/templates', label: 'Agreement templates', any: ['admin.templates'] },
+      { to: '/admin/audit', label: 'Audit log', any: ['audit.view'] },
     ],
   },
 ];

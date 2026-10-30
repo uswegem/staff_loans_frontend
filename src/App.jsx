@@ -30,6 +30,10 @@ import ReviewPage from './features/review/ReviewPage';
 import DelegationPage from './features/review/DelegationPage';
 import DisbursementsPage from './features/disburse/DisbursementsPage';
 import NotificationsPage from './features/notifications/NotificationsPage';
+import ReportsPage from './features/reports/ReportsPage';
+import WorkflowPage from './features/admin/workflow/WorkflowPage';
+import TemplatesPage from './features/admin/templates/TemplatesPage';
+import AuditPage from './features/admin/audit/AuditPage';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
@@ -73,6 +77,10 @@ export default function App() {
           <Route path="delegation" element={<RequirePermission any={['review.delegate']}><DelegationPage /></RequirePermission>} />
           <Route path="disburse" element={<RequirePermission any={['disb.confirm']}><DisbursementsPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="reports" element={<RequirePermission any={['reports.view', 'admin.users', 'admin.roles', 'audit.view']}><ReportsPage /></RequirePermission>} />
+          <Route path="admin/workflow" element={<RequirePermission any={['admin.workflow']}><WorkflowPage /></RequirePermission>} />
+          <Route path="admin/templates" element={<RequirePermission any={['admin.templates']}><TemplatesPage /></RequirePermission>} />
+          <Route path="admin/audit" element={<RequirePermission any={['audit.view']}><AuditPage /></RequirePermission>} />
           <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
           <Route path="staff/new" element={<RequirePermission any={['staff.manage']}><NewStaffPage /></RequirePermission>} />
           <Route path="staff/import" element={<RequirePermission any={['staff.manage']}><StaffImportPage /></RequirePermission>} />

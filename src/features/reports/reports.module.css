@@ -1,0 +1,16 @@
+/* Overview figures and bars from the prototype (.figure, .bars, .bar, .track, .tgt). */
+.figures { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: var(--s5); }
+.figure { display: flex; flex-direction: column; }
+.figure .v { font-size: var(--fs-xl); font-weight: 700; color: var(--brand-900); font-variant-numeric: tabular-nums; }
+.figure .k { font-size: var(--fs-sm); color: var(--ink-3); }
+.two { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.bars { display: grid; gap: var(--s3); }
+.bar { display: grid; grid-template-columns: 170px 1fr 90px; gap: var(--s3); align-items: center; font-size: var(--fs-sm); }
+.track { height: 14px; background: var(--line-2); border-radius: 7px; position: relative; overflow: hidden; }
+.track i { position: absolute; inset: 0 auto 0 0; background: var(--y); border-radius: 7px; }
+.track i.over { background: var(--bad); }
+.tgt { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--bad); }
+.filters { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; padding: var(--s4); border-bottom: 1px solid var(--line-2); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.limited { color: var(--ink-3); font-style: italic; }
+@media (max-width: 600px) { .bar { grid-template-columns: 110px 1fr 70px; } }

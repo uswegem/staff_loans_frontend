@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0 – Milestone 7: Reports, admin screens and exports (30 Oct 2026)
+
+- Reports: overview with time per stage and disbursed by product, report tabs with filters, CSV, Excel and PDF export, and notes when rows are limited.
+- Workflow and calendar, Agreement templates (preview before loading, Legal approval) and Audit log (filters, paging, before and after values) screens.
+
 ## 0.6.0 – Milestone 6: Disbursement and notifications (30 Oct 2026)
 
 - Disbursements for OPS: ready and disbursed tabs, Outside SLA flags, confirm dialog with the summary, checklist, date, reference and comment, details view, and the disbursed register export.
