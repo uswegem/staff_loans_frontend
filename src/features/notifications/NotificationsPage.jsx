@@ -7,6 +7,7 @@ import { Alert, Button, Card } from '@mui/material';
 import { notificationsApi } from '../../api/products';
 import { apiError } from '../../api/client';
 import { formatDateTime } from '../../lib/format';
+import { safePath } from '../../lib/safePath';
 import styles from './Notifications.module.css';
 
 export default function NotificationsPage() {
@@ -20,7 +21,7 @@ export default function NotificationsPage() {
 
   const open = async (n) => {
     if (!n.read) await notificationsApi.markRead(n.id).catch(() => {});
-    if (n.href) navigate(n.href);
+    if (n.href) navigate(safePath(n.href));
     else setData((d) => ({ ...d, unread: Math.max(0, d.unread - (n.read ? 0 : 1)), items: d.items.map((x) => (x.id === n.id ? { ...x, read: true } : x)) }));
   };
 

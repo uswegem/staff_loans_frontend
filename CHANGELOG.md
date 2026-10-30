@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 – Milestone 8: Hardening (30 Oct 2026)
+
+- Playwright end-to-end runs: the guided journey, the management, CEO and Head of P&C routes, return and resubmit, revised terms, and product maker-checker.
+- `safePath` keeps data-driven navigation inside the app (React Router advisory GHSA-wrjc-x8rr-h8h6).
+- README: e2e runs and production headers.
+
 ## 0.7.0 – Milestone 7: Reports, admin screens and exports (30 Oct 2026)
 
 - Reports: overview with time per stage and disbursed by product, report tabs with filters, CSV, Excel and PDF export, and notes when rows are limited.

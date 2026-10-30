@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Divider, IconButton, Menu, MenuItem } from '@mui/material';
 import { notificationsApi } from '../api/products';
 import { formatDateTime } from '../lib/format';
+import { safePath } from '../lib/safePath';
 
 const POLL_MS = 60 * 1000;
 
@@ -36,7 +37,7 @@ export default function NotificationBell() {
     setAnchor(null);
     if (!n.read) await notificationsApi.markRead(n.id).catch(() => {});
     refreshCount();
-    if (n.href) navigate(n.href);
+    if (n.href) navigate(safePath(n.href));
   };
 
   const readAll = async () => {

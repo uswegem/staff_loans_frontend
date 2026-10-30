@@ -12,6 +12,7 @@ import { sessionStarted } from '../../store/authSlice';
 import OtpInput from './OtpInput';
 import logo from '../../assets/lfb-logo.png';
 import s from './SignIn.module.css';
+import { safePath } from '../../lib/safePath';
 
 const STAFF_NO = /^LFB\d{4}$/;
 
@@ -288,12 +289,12 @@ export default function SignIn() {
   const [step, setStep] = useState({ name: 'creds' });
   const [notice, setNotice] = useState(endedReason ? ENDED[endedReason] : null);
 
-  if (status === 'signedIn') return <Navigate to={location.state?.from || '/'} replace />;
+  if (status === 'signedIn') return <Navigate to={safePath(location.state?.from)} replace />;
 
   const finish = (session) => {
     setAccessToken(session.accessToken);
     dispatch(sessionStarted(session));
-    navigate(session.user.mustChangePassword ? '/change-password' : location.state?.from || '/', { replace: true });
+    navigate(session.user.mustChangePassword ? '/change-password' : safePath(location.state?.from), { replace: true });
   };
   const back = (message) => {
     setNotice(message || null);
