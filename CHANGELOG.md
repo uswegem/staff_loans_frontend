@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 – Milestone 5: Review (30 Oct 2026)
+
+- Review queue with waiting, overdue and handled tabs and the working-hours clock; limited rows show only the name.
+- Review screen: full view (request, signed agreement, affordability steps, rule checks, applicant, documents, history) and the limited view for the Credit Analyst on management routes; decision panel per stage (bureau check, recommendation, staff-record checks, probation verification, CEO recommendations).
+- My delegation; accept or decline revised terms with the revised agreement; revised-terms banner on the application page.
+
 ## 0.4.0 – Milestone 4: Apply (29 Oct 2026)
 
 - Apply wizard in the prototype's five steps: product cards with limits and closure reasons, loan details with the live calculator (same module as the API), documents, review with the route, and read-and-sign with the scroll gate, Swahili consents and password.

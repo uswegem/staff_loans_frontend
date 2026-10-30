@@ -24,6 +24,10 @@ import ApplyWizardPage from './features/apply/ApplyWizardPage';
 import MyApplicationsPage from './features/applications/MyApplicationsPage';
 import ApplicationPage from './features/applications/ApplicationPage';
 import AgreementPage from './features/agreement/AgreementPage';
+import AcceptRevisedPage from './features/agreement/AcceptRevisedPage';
+import QueuePage from './features/review/QueuePage';
+import ReviewPage from './features/review/ReviewPage';
+import DelegationPage from './features/review/DelegationPage';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
@@ -61,6 +65,10 @@ export default function App() {
           <Route path="applications" element={<RequirePermission any={['loan.viewOwn']}><MyApplicationsPage /></RequirePermission>} />
           <Route path="applications/:id" element={<RequirePermission any={['loan.viewOwn']}><ApplicationPage /></RequirePermission>} />
           <Route path="agreement/:id" element={<AgreementPage />} />
+          <Route path="accept/:id" element={<RequirePermission any={['loan.viewOwn']}><AcceptRevisedPage /></RequirePermission>} />
+          <Route path="queue" element={<QueuePage />} />
+          <Route path="review/:id" element={<ReviewPage />} />
+          <Route path="delegation" element={<RequirePermission any={['review.delegate']}><DelegationPage /></RequirePermission>} />
           <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
           <Route path="staff/new" element={<RequirePermission any={['staff.manage']}><NewStaffPage /></RequirePermission>} />
           <Route path="staff/import" element={<RequirePermission any={['staff.manage']}><StaffImportPage /></RequirePermission>} />

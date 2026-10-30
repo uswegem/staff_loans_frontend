@@ -78,6 +78,12 @@ export default function ApplicationPage() {
             Your agreement {current?.number} is signed. It takes effect when the application gets final approval on these terms.
           </Alert>
         )}
+        {app.status === 'pending_reaccept' && (
+          <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to={`/accept/${app.id}`}>Review revised terms</Button>}>
+            <AlertTitle>Approved at revised terms</AlertTitle>
+            {formatTzs(app.approved?.amount)} over {app.approved?.tenor} months. Read and accept the revised agreement so OPS can disburse.
+          </Alert>
+        )}
         {returned && app.status === 'returned' && (
           <Alert severity="warning">
             <AlertTitle>Returned for correction</AlertTitle>

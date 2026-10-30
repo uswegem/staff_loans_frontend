@@ -13,6 +13,13 @@ export const NAV = [
     ],
   },
   {
+    group: 'Reviews',
+    items: [
+      { to: '/queue', label: 'Review queue', any: ['review.credit', 'review.pcm', 'review.hr', 'review.ceo'] },
+      { to: '/delegation', label: 'My delegation', any: ['review.delegate'] },
+    ],
+  },
+  {
     group: 'People and Culture',
     items: [{ to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] }],
   },
