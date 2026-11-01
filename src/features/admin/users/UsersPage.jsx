@@ -42,7 +42,7 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{intro}</p>
           {error && <Alert severity="error">{error}</Alert>}
-          {staffNoField && <TextField label="Staff number" placeholder="LFB0000" required value={staffNo} onChange={(e) => setStaffNo(e.target.value)} helperText="The staff record must already exist in People and Culture's records." />}
+          {staffNoField && <TextField label="Staff number" placeholder="AT637" required value={staffNo} onChange={(e) => setStaffNo(e.target.value)} helperText="The staff record must already exist in People and Culture's records." />}
           <TextField label="Temporary password" required value={password} onChange={(e) => setPassword(e.target.value)} helperText="At least 8 characters with three of: lower case, capitals, numbers, symbols. Give it to the person directly; they change it at first sign-in." autoComplete="off" />
         </DialogContent>
         <DialogActions>

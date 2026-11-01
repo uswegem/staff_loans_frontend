@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 – Staff numbers are employee codes (1 Nov 2026)
+
+- Sign-in, Users and Staff records accept the employee code on the payslip (for example AT637) as the staff number (D-81).
+
 ## 0.9.0 – Affordability from the payslip (31 Oct 2026)
 
 - Loan details: attach the latest payslip; see the Basic Pay and LFB deductions read from it, the new calculator steps, and the maximum amount over the longest tenor and the chosen one.

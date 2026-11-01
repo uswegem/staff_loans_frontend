@@ -45,8 +45,8 @@ describe('Sign in (FR-53)', () => {
   it('validates the staff number format before calling the API', async () => {
     const calls = stubHttp({});
     renderSignIn();
-    await fill('LFB41', '');
-    expect(screen.getByText('Staff numbers look like LFB0412.')).toBeInTheDocument();
+    await fill('AT-637', '');
+    expect(screen.getByText('Enter your staff number as on your payslip (employee code), for example AT637.')).toBeInTheDocument();
     expect(screen.getByText('Enter your password.')).toBeInTheDocument();
     expect(calls).toHaveLength(0);
   });

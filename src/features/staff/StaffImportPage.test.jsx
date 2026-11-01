@@ -14,7 +14,7 @@ const preview = {
     { rowNo: 2, staffNo: 'LFB0412', name: 'Neema Mushi', outcome: 'update', problems: [], changes: ['salary from 2026-11-01: basic 1,850,000 → 1,950,000'] },
     { rowNo: 3, staffNo: 'LFB0612', name: 'Baraka Mwakyusa', outcome: 'new', problems: [], changes: ['Teller, Mbeya Branch; Non-management; basic 1,150,000'] },
     { rowNo: 4, staffNo: 'LFB0188', name: 'Faraji Nyoni', outcome: 'unchanged', problems: [], changes: [] },
-    { rowNo: 5, staffNo: 'LFB06O2', name: 'Zawadi Said', outcome: 'error', problems: ['Staff number must be LFB followed by 4 digits'], changes: [] },
+    { rowNo: 5, staffNo: 'LFB06O2', name: 'Zawadi Said', outcome: 'error', problems: ['Staff number must be the employee code on the payslip, for example AT637'], changes: [] },
   ],
 };
 
@@ -28,7 +28,7 @@ describe('Upload staff records (FR-02)', () => {
     const file = new File(['x'], 'Staff_records_Nov_2026.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     await userEvent.upload(screen.getByLabelText('Choose an Excel file'), file);
     expect(await screen.findByText('4 rows checked')).toBeInTheDocument();
-    expect(screen.getByText('Staff number must be LFB followed by 4 digits')).toBeInTheDocument();
+    expect(screen.getByText('Staff number must be the employee code on the payslip, for example AT637')).toBeInTheDocument();
     expect(screen.getByText(/basic 1,850,000 → 1,950,000/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download them with the reasons' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Apply 2 valid rows' }));

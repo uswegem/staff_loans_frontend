@@ -38,7 +38,7 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
       <section>
         <h3>Person</h3>
         <div className={s.grid}>
-          {isNew && f('staffNo', 'Staff number', { required: true, hint: 'LFB followed by 4 digits.', inputProps: { autoCapitalize: 'characters', maxLength: 7 } })}
+          {isNew && f('staffNo', 'Staff number', { required: true, hint: 'The employee code on the payslip, for example AT637.', inputProps: { autoCapitalize: 'characters', maxLength: 12 } })}
           {f('firstName', 'First name', { required: true })}
           {f('middleName', 'Middle name')}
           {f('lastName', 'Last name', { required: true })}
@@ -53,7 +53,7 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
           {f('title', 'Job title', { required: true })}
           {f('department', 'Department')}
           {f('station', 'Work station', { required: true, hint: 'Branch or Head Office.' })}
-          {f('lineManagerStaffNo', 'Line manager staff number', { hint: 'LFB0000' })}
+          {f('lineManagerStaffNo', 'Line manager staff number', { hint: 'Employee code, for example AT637' })}
           <TextField label="Head of station" value={values.stationHead?.name || ''} onChange={(e) => onChange({ ...values, stationHead: { ...values.stationHead, name: e.target.value } })} disabled={readOnly} />
           <TextField label="Head of station phone" type="tel" value={values.stationHead?.phone || ''} onChange={(e) => onChange({ ...values, stationHead: { ...values.stationHead, phone: e.target.value } })} disabled={readOnly} />
           {f('category', 'Employee category', {

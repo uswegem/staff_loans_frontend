@@ -13,8 +13,8 @@ import OtpInput from './OtpInput';
 import logo from '../../assets/lfb-logo.png';
 import s from './SignIn.module.css';
 import { safePath } from '../../lib/safePath';
+import { STAFF_NO, STAFF_NO_EXAMPLE, STAFF_NO_MESSAGE } from '../../lib/staffNo';
 
-const STAFF_NO = /^LFB\d{4}$/;
 
 function BrandPanel() {
   return (
@@ -71,7 +71,7 @@ function CredentialsStep({ onResult }) {
     const sn = staffNo.trim().toUpperCase();
     const errs = {};
     if (!sn) errs.staffNo = 'Enter your staff number.';
-    else if (!STAFF_NO.test(sn)) errs.staffNo = 'Staff numbers look like LFB0412.';
+    else if (!STAFF_NO.test(sn)) errs.staffNo = STAFF_NO_MESSAGE;
     if (!password) errs.password = 'Enter your password.';
     setErrors(errs);
     setFormError(null);
@@ -111,11 +111,11 @@ function CredentialsStep({ onResult }) {
         <TextField
           id="sn"
           label="Staff number"
-          placeholder="LFB0000"
+          placeholder={STAFF_NO_EXAMPLE}
           value={staffNo}
           onChange={(e) => setStaffNo(e.target.value)}
           error={!!errors.staffNo}
-          helperText={errors.staffNo || 'LFB followed by 4 digits, as on your staff ID.'}
+          helperText={errors.staffNo || 'Your employee code, as on your payslip.'}
           inputProps={{ autoCapitalize: 'characters', spellCheck: false }}
         />
         <TextField
