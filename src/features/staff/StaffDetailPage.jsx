@@ -11,6 +11,7 @@ import { formatDate, formatDateTime, formatNumber } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import Meter from '../../components/Meter';
 import StaffForm, { EMPTY_STAFF, toBody } from './StaffForm';
+import StaffDobCard from './StaffDobCard';
 import s from './staff.module.css';
 
 const toForm = (d) => ({
@@ -203,6 +204,7 @@ export default function StaffDetailPage() {
             </CardContent>
           </Card>
           <div className="stack">
+            <StaffDobCard staffId={id} canManage={canManage} />
             <Card>
               <CardContent sx={{ p: 3 }}>
                 <div className="row" style={{ justifyContent: 'space-between' }}>

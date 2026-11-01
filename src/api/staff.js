@@ -43,3 +43,13 @@ export async function downloadFile(url, name) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
+
+/** Date of birth verification by People and Culture (D-82). */
+export const dobApi = {
+  queue: (status = 'pending') => data(api.get('/dob-verifications', { params: { status } })),
+  approve: (id) => api.post(`/dob-verifications/${id}/approve`).then((r) => r.data),
+  reject: (id, reason) => api.post(`/dob-verifications/${id}/reject`, { reason }).then((r) => r.data),
+  withdraw: (id) => api.post(`/dob-verifications/${id}/withdraw`).then((r) => r.data),
+  forStaff: (staffId) => data(api.get(`/staff/${staffId}/date-of-birth`)),
+  propose: (staffId, dob) => data(api.post(`/staff/${staffId}/date-of-birth`, { dob })),
+};

@@ -9,7 +9,7 @@ import { applicationsApi } from '../../api/applications';
 import { apiError } from '../../api/client';
 import { quote as calcQuote } from '../../lib/calc/loanCalculator';
 import { todayEat } from '../../lib/dates';
-import { formatNumber, formatTzs } from '../../lib/format';
+import { formatNumber, formatTzs, formatDate } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import LoanRoute from '../../components/LoanRoute';
 import CalculatorPanel from './CalculatorPanel';
@@ -108,6 +108,9 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
   const p = app.product;
   const q = useLiveQuote(app, form);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
+  const r = app.retirement || {};
+  const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
   const hint = app.payslip ? `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(q.maxAmount)} (up to ${q.maxTenor} months)` : `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(p.maxAmount)}; attach your payslip to see your maximum`;
   return (
     <div className={s.split}>
@@ -117,11 +120,16 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
         </div>
         <form style={{ padding: 24 }} noValidate onSubmit={(e) => { e.preventDefault(); onNext(); }}>
           <PayslipCard app={app} error={errors.payslip} onChanged={onAppChanged} />
+          {r.cutoff && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Your last instalment must fall on or before <b>{formatDate(r.cutoff)}</b> ({r.bufferDays} days before you turn {r.age}, from your verified date of birth). You can take up to <b>{maxTenor} months</b>{maxTenor < p.maxTenor ? ` (the product allows ${p.maxTenor})` : ''}.
+            </Alert>
+          )}
           <div className={s.grid}>
             <MoneyInput label="Amount" required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || hint} />
             <div>
-              <TextField label="Tenor (months)" required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || `${p.minTenor} to ${p.maxTenor} months`} inputProps={{ min: p.minTenor, max: p.maxTenor, inputMode: 'numeric' }} />
-              <Slider aria-label="Tenor slider" min={p.minTenor} max={p.maxTenor} value={Math.min(p.maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: '#000' }} />
+              <TextField label="Tenor (months)" required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || `${p.minTenor} to ${maxTenor} months`} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
+              <Slider aria-label="Tenor slider" min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: '#000' }} />
             </div>
             <TextField label="Purpose of the loan" required className={s.full} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} error={!!errors.purpose} helperText={errors.purpose} />
             {p.fields.map((f) => (

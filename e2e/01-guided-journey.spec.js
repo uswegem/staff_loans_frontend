@@ -35,6 +35,17 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   // Pay figures now come from the payslip attached when applying (D-80).
   await expect(rehema.getByText('Profile complete. You can now apply for a loan.')).toBeVisible();
 
+  // People and Culture verify the date of birth she entered before she can apply (D-82).
+  await rehema.goto('/apply');
+  await expect(rehema.getByText(/waiting for People and Culture to verify it/).first()).toBeVisible();
+  const hr = await as(browser, 'LFB0051');
+  await hr.goto('/staff/dob-verifications');
+  const row = hr.getByRole('row').filter({ hasText: 'LFB0596' });
+  await expect(row).toContainText('17 Apr 1998');
+  await row.getByRole('button', { name: 'Approve' }).click();
+  await expect(hr.getByText(/Rehema Ally: Date of birth 1998-04-17 verified\./)).toBeVisible();
+  await hr.context().close();
+
   // 2. Apply for a Personal Loan of TZS 3,000,000 over 12 months: attach the payslip,
   //    see the limit worked out from it, and sign the agreement.
   await startApplication(rehema, { staffNo: 'LFB0596', product: 'Personal Loan', amount: 3000000, tenor: 12, purpose: 'Furniture for a new home' });

@@ -5,10 +5,11 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
-import { profileApi } from '../../api/staff';
+import { dobApi, profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
 import { apiError } from '../../api/client';
 import { formatDate, formatTzs } from '../../lib/format';
+import DobStatus from '../../components/DobStatus';
 import MoneyInput from '../../components/MoneyInput';
 import Meter from '../../components/Meter';
 import s from './profile.module.css';
@@ -33,7 +34,10 @@ function Field({ label, value, onChange, error, required, helperText, ...rest })
 
 function PersonalTab({ profile, missing, onSave }) {
   const p = profile.personal || {};
-  const [v, on] = useForm({ maritalStatus: p.maritalStatus || '', dob: p.dob || '', nida: p.nida || '', nationality: p.nationality || '', mobile: p.mobile || '', workPhone: profile.workPhone || '', poBox: p.poBox || '', residence: p.residence || '' });
+  const dob = profile.dateOfBirth || {};
+  const myId = useSelector((st) => st.auth.user?.id);
+  // D-82: the field starts from the proposed date while one waits, so saving other details does not resend it.
+  const [v, on] = useForm({ maritalStatus: p.maritalStatus || '', dob: dob.pending?.proposed || dob.verified || '', nida: p.nida || '', nationality: p.nationality || '', mobile: p.mobile || '', workPhone: profile.workPhone || '', poBox: p.poBox || '', residence: p.residence || '' });
   const err = (k) => (missing.has(`personal.${k}`) ? 'Required to apply.' : undefined);
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
@@ -42,7 +46,20 @@ function PersonalTab({ profile, missing, onSave }) {
         <Field select label="Marital status" required value={v.maritalStatus} onChange={on('maritalStatus')} error={err('maritalStatus')}>
           {['Single', 'Married', 'Divorced', 'Widowed'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
         </Field>
-        <Field label="Date of birth" type="date" required value={v.dob} onChange={on('dob')} error={err('dob')} />
+        <Field
+          label="Date of birth"
+          type="date"
+          required
+          value={v.dob}
+          onChange={on('dob')}
+          error={profile.errors?.dob || err('dob')}
+          disabled={!!dob.pending}
+          InputLabelProps={{ shrink: true }}
+          helperText={dob.pending ? 'Waiting for People and Culture. Withdraw it below to change it.' : 'A new date is checked by People and Culture before it is used for loans.'}
+        />
+        <div className={s.full}>
+          <DobStatus status={dob} canWithdraw={!!dob.pending && dob.pending.submittedById === myId} onWithdraw={() => onSave(() => dobApi.withdraw(dob.pending.id).then(() => profileApi.get()))} />
+        </div>
         <Field label="NIDA number" required value={v.nida} onChange={on('nida')} error={profile.errors?.nida || err('nida')} helperText="20 digits as on your national ID card, for example 19890712-14112-00004-21" inputProps={{ inputMode: 'numeric' }} />
         <Field label="Nationality" required value={v.nationality} onChange={on('nationality')} error={err('nationality')} />
         <Field label="Mobile phone" type="tel" required value={v.mobile} onChange={on('mobile')} error={profile.errors?.mobile || err('mobile')} />

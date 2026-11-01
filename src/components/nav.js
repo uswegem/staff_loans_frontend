@@ -28,7 +28,10 @@ export const NAV = [
   },
   {
     group: 'People and Culture',
-    items: [{ to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] }],
+    items: [
+      { to: '/staff', label: 'Staff records', any: ['staff.view', 'staff.manage'] },
+      { to: '/staff/dob-verifications', label: 'Date of birth checks', any: ['staff.verifyDob'] },
+    ],
   },
   {
     group: 'Administration',

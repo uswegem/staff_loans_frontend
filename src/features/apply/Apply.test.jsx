@@ -95,6 +95,15 @@ async function toSignStep() {
 }
 
 describe('apply wizard', () => {
+  it('shows the retirement cutoff and the longest tenor allowed (D-82)', async () => {
+    stubHttp({ 'GET /applications/a1': () => [200, { data: { ...app, retirement: { dateOfBirth: '1969-01-29', cutoff: '2028-11-30', maxTenor: 24, age: 60, bufferDays: 60 } } }] });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+    expect(await screen.findByText('30 Nov 2028')).toBeInTheDocument();
+    expect(screen.getByText('24 months')).toBeInTheDocument();
+    expect(screen.getByText(/the product allows 60/)).toBeInTheDocument();
+    expect(screen.getByText('6 to 24 months')).toBeInTheDocument();
+  });
+
   it('shows the live instalment for the request', async () => {
     stubHttp({ 'GET /applications/a1': () => [200, { data: app }] });
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });

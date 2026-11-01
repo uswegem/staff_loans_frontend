@@ -60,6 +60,18 @@ describe('My profile (decision 7, FR-05)', () => {
     expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/personal').config.data).nida).toBe('19980520-41108-00031-26');
   });
 
+  it('a new date of birth waits for People and Culture; the verified one stays in use (D-82)', async () => {
+    const dateOfBirth = { verified: '1989-07-12', verifiedAt: '2026-10-01T08:00:00Z', verifiedBy: 'Grace Mollel', pending: { id: 'c1', proposed: '1990-01-10', submittedAt: '2026-11-01T08:00:00Z', submittedBy: 'Asha Mfinanga', submittedById: 'u-test' }, lastRejection: null };
+    const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile({ dateOfBirth }) }], 'POST /dob-verifications/c1/withdraw': () => [200, {}] });
+    renderAt('/profile', '/profile', <ProfilePage />);
+    expect(await screen.findByText('Waiting for People and Culture')).toBeInTheDocument();
+    expect(screen.getByText('12 Jul 1989')).toBeInTheDocument();
+    expect(screen.getByText(/The verified date above stays in use until it is approved./)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Date of birth/)).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Withdraw' }));
+    expect(calls.some((c) => c.key === 'POST /dob-verifications/c1/withdraw')).toBe(true);
+  });
+
   it('keeps only existing staff loans: the limit comes from the payslip (D-80)', async () => {
     const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], 'GET /products': () => [200, { data: [] }], 'PATCH /me/profile/pay': () => [200, { data: profile() }] });
     renderAt('/profile', '/profile', <ProfilePage />);

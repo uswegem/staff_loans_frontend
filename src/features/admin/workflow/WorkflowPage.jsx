@@ -24,6 +24,10 @@ const NUMBERS = [
   ['probationMonths', 'Probation (months after joining)'],
   ['firstDueDay', 'First instalment day of the month'],
   ['payslipMaxAgeDays', 'Payslip must not be older than (days)'],
+  ['retirementAge', 'Retirement age (years)'],
+  ['retirementBufferDays', 'Last instalment at least this many days before it'],
+  ['dobMinAge', 'Youngest age a date of birth may give'],
+  ['dobMaxAge', 'Oldest age a date of birth may give'],
   ['maxUploadMb', 'Largest upload (MB)'],
   ['inactivityTimeoutMin', 'Sign out after inactivity (minutes)'],
   ['lockoutThreshold', 'Lock after failed sign-ins'],
@@ -187,6 +191,8 @@ export default function WorkflowPage() {
               <dt>Probation</dt><dd>{st.probationMonths} months after joining</dd>
               <dt>First instalment</dt><dd>Day {st.firstDueDay} of the month after</dd>
               <dt>Payslip</dt><dd>Not older than {st.payslipMaxAgeDays} days at submission</dd>
+              <dt>Retirement cutoff</dt><dd>Last instalment by {st.retirementBufferDays} days before age {st.retirementAge} (verified date of birth)</dd>
+              <dt>Date of birth</dt><dd>Age {st.dobMinAge} to {st.dobMaxAge} when entered; verified by People and Culture</dd>
             </dl>
             <h4 style={{ margin: '20px 0 8px' }}>Public holidays</h4>
             <Table size="small" aria-label="Public holidays">

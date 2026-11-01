@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 – Date of birth verification and retirement cutoff (2 Nov 2026)
+
+- My profile and staff records show the verified date of birth and any change waiting for People and Culture; the submitter can withdraw it.
+- Date of birth checks: People and Culture's queue with approve and reject (reason required).
+- The application form shows the retirement cutoff and the longest tenor allowed; the tenor slider stops there.
+- Workflow and calendar: retirement age, buffer days and the allowed age range for a date of birth.
+
 ## 0.9.1 – Staff numbers are employee codes (1 Nov 2026)
 
 - Sign-in, Users and Staff records accept the employee code on the payslip (for example AT637) as the staff number (D-81).
