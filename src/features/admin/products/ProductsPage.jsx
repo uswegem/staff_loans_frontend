@@ -133,7 +133,7 @@ export default function ProductsPage() {
         )}
         <Alert severity="warning">
           <AlertTitle>Some product values are still samples</AlertTitle>
-          Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Salary multiple, tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).
+          Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).
         </Alert>
         <PricingCard pricing={pricing} canMake={canMake} onChange={() => setDialog({ kind: 'pricing' })} />
         <Card>
@@ -147,7 +147,6 @@ export default function ProductsPage() {
                   <TableCell>Product</TableCell>
                   <TableCell align="right">Min (TZS)</TableCell>
                   <TableCell align="right">Max (TZS)</TableCell>
-                  <TableCell align="right">Salary multiple</TableCell>
                   <TableCell>Tenor (months)</TableCell>
                   <TableCell>Min service</TableCell>
                   <TableCell>Top-up</TableCell>
@@ -171,7 +170,6 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell align="right" className="num">{v ? formatNumber(v.minAmount) : '—'}</TableCell>
                       <TableCell align="right" className="num">{v ? formatNumber(v.maxAmount) : '—'}</TableCell>
-                      <TableCell align="right">{v ? `${v.salaryMultiple}×` : '—'}</TableCell>
                       <TableCell>{v ? `${v.minTenor} to ${v.maxTenor}` : '—'}</TableCell>
                       <TableCell>{v ? `${v.minServiceMonths} m` : '—'}</TableCell>
                       <TableCell>{v ? (v.topUpAllowed ? 'Allowed' : 'No') : '—'}</TableCell>

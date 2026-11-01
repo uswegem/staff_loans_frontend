@@ -17,6 +17,12 @@ export const applicationsApi = {
     if (label) form.append('label', label);
     return data(api.post(`/applications/${id}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
   },
+  /** The latest payslip PDF; the API reads Basic Pay, LFB deductions and the pay date (D-79). */
+  setPayslip: (id, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return data(api.post(`/applications/${id}/payslip`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
+  },
   removeDocument: (id, fileId) => api.delete(`/applications/${id}/documents/${fileId}`),
   agreement: (id) => data(api.get(`/agreements/${id}`)),
 };

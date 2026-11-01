@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Alert, AlertTitle, Button, Card, CardContent, Checkbox, FormControlLabel, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
 import { profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
 import { apiError } from '../../api/client';
@@ -18,7 +18,7 @@ const TABS = [
   ['employment', 'Employment'],
   ['bank', 'Bank details'],
   ['kin', 'Next of kin'],
-  ['pay', 'Pay and deductions'],
+  ['pay', 'Pay and staff loans'],
 ];
 
 /** Form state initialised once; the page remounts a tab (new key) after each save. */
@@ -127,77 +127,38 @@ function KinTab({ profile, missing, onSave }) {
   );
 }
 
-const LOAN_TYPES = [
-  ['personal', 'Personal'],
-  ['mortgage', 'Mortgage'],
-  ['vehicle', 'Vehicle'],
-  ['other', 'Other'],
-];
-
+/**
+ * Existing staff loans taken outside Staff Loans (decision 19). They count towards the
+ * running loans per product (BR-07) and start the reapply wait (NS-02). The limit itself
+ * is worked out from the payslip attached to each application (D-78, D-80).
+ */
 function PayTab({ profile, onSave }) {
-  const [deductions, setDeductions] = useState(profile.deductions || { medical: 0, other: 0 });
-  const [otherLoans, setOtherLoans] = useState(profile.otherLoans || []);
   const [lfb, setLfb] = useState(profile.existingLfbLoans || []);
-  const [confirm, setConfirm] = useState(!!profile.payDeclaredAt);
-  const [confirmError, setConfirmError] = useState(null);
   const [products, setProducts] = useState([]);
   useEffect(() => {
     productsApi.live().then(setProducts).catch(() => setProducts([]));
   }, []);
-
-  const changed = () => setConfirm(false);
-  const setRow = (list, set) => (i, patch) => {
-    set(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-    changed();
-  };
-  const setOther = setRow(otherLoans, setOtherLoans);
-  const setL = setRow(lfb, setLfb);
+  const setL = (i, patch) => setLfb(lfb.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const submit = (e) => {
     e.preventDefault();
-    if (!confirm) return setConfirmError('Tick the confirmation to save.');
-    setConfirmError(null);
     return onSave(() =>
       profileApi.savePay({
-        deductions: { medical: deductions.medical || 0, other: deductions.other || 0 },
-        otherLoans: otherLoans.map((l) => ({ lender: l.lender, type: l.type || 'other', instalment: l.instalment || 0 })),
-        existingLfbLoans: lfb.map((l) => ({ description: l.description || '', instalment: l.instalment || 0, productId: l.productId || null, disbursedOn: l.disbursedOn || null })),
-        confirm,
+        existingLfbLoans: lfb.map((l) => ({ description: l.description || '', instalment: l.instalment ?? null, productId: l.productId || null, disbursedOn: l.disbursedOn || null })),
       })
     );
   };
 
   return (
     <form onSubmit={submit} noValidate>
-      <h4>From your payslip</h4>
-      <p className="small muted">Basic salary comes from People and Culture. Pension and PAYE are worked out from it when you apply.</p>
+      <h4>Your pay</h4>
+      <p className="small muted">When you apply, you attach your latest payslip. Your limit is worked out from its Basic Pay and LFB deductions: pension (10%) and PAYE come off Basic Pay, LFB deductions are added back, and you can borrow up to half of that a month.</p>
       <dl className={s.kv}>
-        <dt>Basic salary</dt><dd>{formatTzs(profile.salary?.basic)}</dd>
-        <dt>Allowances</dt><dd>{formatTzs(profile.salary?.allowances)} <span className="small muted">(not counted for loans)</span></dd>
+        <dt>Basic salary on record</dt><dd>{formatTzs(profile.salary?.basic)} <span className="small muted">(People and Culture check it against your payslip)</span></dd>
       </dl>
-      <h4 style={{ marginTop: 20 }}>Other deductions on your payslip</h4>
-      <div className={s.grid}>
-        <MoneyInput label="Medical aid" value={deductions.medical} onChange={(v) => { setDeductions((d) => ({ ...d, medical: v })); changed(); }} />
-        <MoneyInput label="Other deductions" value={deductions.other} onChange={(v) => { setDeductions((d) => ({ ...d, other: v })); changed(); }} />
-      </div>
-
-      <h4 style={{ marginTop: 24 }}>Loans with other banks or lenders</h4>
-      <p className="small muted">Add every loan repaid from your salary or account, so your limit is right.</p>
-      {otherLoans.map((l, i) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <div key={i} className={s.loanRow}>
-          <TextField label="Lender" value={l.lender || ''} onChange={(e) => setOther(i, { lender: e.target.value })} />
-          <TextField select label="Type" value={l.type || 'other'} onChange={(e) => setOther(i, { type: e.target.value })}>
-            {LOAN_TYPES.map(([k, lbl]) => <MenuItem key={k} value={k}>{lbl}</MenuItem>)}
-          </TextField>
-          <MoneyInput label="Monthly instalment" value={l.instalment} onChange={(v) => setOther(i, { instalment: v })} />
-          <IconButton aria-label={`Remove loan ${i + 1}`} onClick={() => { setOtherLoans(otherLoans.filter((_, j) => j !== i)); changed(); }}>×</IconButton>
-        </div>
-      ))}
-      <Button size="small" onClick={() => { setOtherLoans([...otherLoans, { lender: '', type: 'personal', instalment: null }]); changed(); }}>Add a loan</Button>
 
       <h4 style={{ marginTop: 24 }}>Existing LFB staff loans from before Staff Loans</h4>
-      <p className="small muted">Loans taken on paper are not in this system. Add their monthly instalment. If you know the product and the date it was paid out, add them too; you can apply for the same product again six months after that.</p>
+      <p className="small muted">Loans taken on paper are not in this system. If you know the product and the date it was paid out, add them; they count towards the loans you may have per product, and you can apply for the same product again six months after that date.</p>
       {lfb.map((l, i) => (
         // eslint-disable-next-line react/no-array-index-key
         <div key={i} className={s.loanRow4}>
@@ -206,18 +167,13 @@ function PayTab({ profile, onSave }) {
             <MenuItem value="">Not sure</MenuItem>
             {products.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          <TextField label="Paid out on (optional)" type="date" value={l.disbursedOn || ''} onChange={(e) => setL(i, { disbursedOn: e.target.value || null })} />
+          <TextField label="Paid out on (optional)" type="date" value={l.disbursedOn || ''} onChange={(e) => setL(i, { disbursedOn: e.target.value || null })} InputLabelProps={{ shrink: true }} />
           <MoneyInput label="Monthly instalment" value={l.instalment} onChange={(v) => setL(i, { instalment: v })} />
-          <IconButton aria-label={`Remove staff loan ${i + 1}`} onClick={() => { setLfb(lfb.filter((_, j) => j !== i)); changed(); }}>×</IconButton>
+          <IconButton aria-label={`Remove staff loan ${i + 1}`} onClick={() => setLfb(lfb.filter((_, j) => j !== i))}>×</IconButton>
         </div>
       ))}
-      <Button size="small" onClick={() => { setLfb([...lfb, { description: 'Staff loan (paper)', instalment: null }]); changed(); }}>Add a staff loan</Button>
-
-      <div style={{ marginTop: 20 }}>
-        <FormControlLabel control={<Checkbox checked={confirm} onChange={(e) => setConfirm(e.target.checked)} />} label="I confirm these deductions and loans are complete and match my latest payslip." />
-        {confirmError && <div className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600 }}>{confirmError}</div>}
-      </div>
-      <div className="row" style={{ marginTop: 16 }}><Button type="submit" variant="contained">Save pay and deductions</Button></div>
+      <Button size="small" onClick={() => setLfb([...lfb, { description: 'Staff loan (paper)', instalment: null }])}>Add a staff loan</Button>
+      <div className="row" style={{ marginTop: 16 }}><Button type="submit" variant="contained">Save existing staff loans</Button></div>
     </form>
   );
 }

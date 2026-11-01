@@ -26,8 +26,8 @@ const PRICING = {
 
 describe('calculator copy (same module as the API)', () => {
   it('matches the prototype worked example', () => {
-    const q = quote({ amount: 4500000, tenor: 36, pay: { basic: 1850000, allowances: 220000 }, pricing: PRICING, startDay: '2026-10-29' });
-    expect([q.instalment, q.maxInstalment, q.totalInterest, q.processingFee, q.insuranceFee]).toEqual([136900, 668750, 428351, 45000, 81000]);
+    const q = quote({ amount: 4500000, tenor: 36, pay: { basic: 1850000, lfbDeductions: 0 }, pricing: PRICING, startDay: '2026-10-29', maxTenor: 60, maxAmountCap: 300000000 });
+    expect([q.instalment, q.maxInstalment, q.totalInterest, q.processingFee, q.insuranceFee, q.maxAmount]).toEqual([136900, 668750, 428351, 45000, 81000, 34588000]);
   });
 });
 
@@ -56,9 +56,11 @@ const app = {
   statusLabel: 'Draft',
   editable: true,
   route: { key: 'nonmgmt', stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] },
-  product: { name: 'Personal Loan', available: true, minAmount: 500000, maxAmount: 300000000, salaryMultiple: 8, minTenor: 6, maxTenor: 60, topUpAllowed: true, repaymentMethods: ['payroll', 'account'], fields: [], requiredDocuments: [], optionalDocuments: ['Latest salary slip'] },
+  product: { name: 'Personal Loan', available: true, minAmount: 500000, maxAmount: 300000000, minTenor: 6, maxTenor: 60, topUpAllowed: true, repaymentMethods: ['payroll', 'account'], fields: [], requiredDocuments: [], optionalDocuments: [] },
   pricing: PRICING,
-  payInputs: { basic: 1850000, allowances: 220000 },
+  payInputs: { basic: 1850000, lfbDeductions: 0 },
+  payslip: { fileId: 'f1', originalName: 'payslip-oct.pdf', payDate: '2026-10-25', basic: 1850000, lfbDeductions: 0, lfbLines: [] },
+  payslipMaxAgeDays: 45,
   firstDueDay: 25,
   amount: 4500000,
   tenor: 36,
@@ -72,7 +74,7 @@ const app = {
   history: [],
   bank: { bank: 'Letshego Faidika Bank', branch: 'Mwanza', accountNo: '4010 2283 1170' },
   checks: { eligibility: [], fieldErrors: {}, checks: [], canSubmit: true },
-  quote: {},
+  quote: { maxTenor: 60 },
 };
 
 const preview = {
@@ -98,6 +100,25 @@ describe('apply wizard', () => {
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('136,900')).toBeInTheDocument();
     expect(screen.getByText('TZS 531,850 below your limit')).toBeInTheDocument();
+    expect(screen.getByText('TZS 34,588,000 over 60 months')).toBeInTheDocument();
+    expect(screen.getByText('payslip-oct.pdf')).toBeInTheDocument();
+  });
+
+  it('asks for the payslip before showing a limit, and shows what the API read from it', async () => {
+    const noSlip = { ...app, payslip: null, payInputs: { basic: 0, lfbDeductions: 0 }, checks: { ...app.checks, fieldErrors: { payslip: 'Attach your latest payslip. Basic Pay and LFB deductions are read from it.' } } };
+    const calls = stubHttp({
+      'GET /applications/a1': () => [200, { data: noSlip }],
+      'POST /applications/a1/payslip': () => [201, { data: { ...app, payslip: { ...app.payslip, lfbDeductions: 150000, lfbLines: [{ label: 'LFB Staff Loan', amount: 150000 }] }, payInputs: { basic: 1850000, lfbDeductions: 150000 } } }],
+    });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+    expect(await screen.findByText('Attach your latest payslip to see your limit.')).toBeInTheDocument();
+    expect(screen.getByText('Attach your latest payslip. Basic Pay and LFB deductions are read from it.')).toBeInTheDocument();
+    const file = new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' });
+    await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), file);
+    expect(await screen.findByText('TZS 150,000')).toBeInTheDocument();
+    // Adjusted net pay 1,337,500 + 150,000 = 1,487,500; limit 743,750.
+    expect(screen.getByText('Limit 743,750')).toBeInTheDocument();
+    expect(calls.some((c) => c.key === 'POST /applications/a1/payslip')).toBe(true);
   });
 
   it('consents unlock only after reading to the end; signing sends the fingerprint read', async () => {

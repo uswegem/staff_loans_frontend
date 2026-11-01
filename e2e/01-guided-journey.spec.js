@@ -32,15 +32,12 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await rehema.getByLabel(/^Phone/).fill('+255 754 330 112');
   await rehema.getByLabel(/Residential address/).fill('Kikuyu, Dodoma');
   await rehema.getByRole('button', { name: 'Save next of kin' }).click();
-  await expect(rehema.getByText('Saved.', { exact: true })).toBeVisible();
-
-  await rehema.getByRole('tab', { name: /Pay and deductions/ }).click();
-  await rehema.getByRole('checkbox', { name: /I confirm these deductions/ }).check();
-  await rehema.getByRole('button', { name: 'Save pay and deductions' }).click();
+  // Pay figures now come from the payslip attached when applying (D-80).
   await expect(rehema.getByText('Profile complete. You can now apply for a loan.')).toBeVisible();
 
-  // 2. Apply for a Personal Loan of TZS 3,000,000 over 12 months and sign the agreement.
-  await startApplication(rehema, { product: 'Personal Loan', amount: 3000000, tenor: 12, purpose: 'Furniture for a new home' });
+  // 2. Apply for a Personal Loan of TZS 3,000,000 over 12 months: attach the payslip,
+  //    see the limit worked out from it, and sign the agreement.
+  await startApplication(rehema, { staffNo: 'LFB0596', product: 'Personal Loan', amount: 3000000, tenor: 12, purpose: 'Furniture for a new home' });
   await expect(rehema.getByText(/below your limit/).first()).toBeVisible();
   const { ref, url } = await signAndSubmit(rehema);
   await expect(rehema.getByText('Pending Credit Review').first()).toBeVisible();

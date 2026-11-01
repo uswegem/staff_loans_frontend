@@ -24,27 +24,27 @@ export function Meter({ q }) {
   );
 }
 
+/** The affordability steps (D-78), all from the payslip's Basic Pay and LFB deductions. */
 export function Breakdown({ q }) {
   const ps = q.payslip;
   return (
     <div className={s.calc}>
-      <div className={s.line}><span>Basic salary</span><b>{formatNumber(ps.basic)}</b></div>
-      <div className={s.line}><span>Less pension ({pct(q.rates.pensionBps, 0)} of basic)</span><b>−{formatNumber(ps.pension)}</b></div>
-      <div className={s.line}><span>Less PAYE</span><b>−{formatNumber(ps.tax)}</b></div>
-      {ps.existingLfb > 0 && <div className={s.line}><span>Less existing LFB staff loans</span><b>−{formatNumber(ps.existingLfb)}</b></div>}
-      {ps.declared > 0 && <div className={s.line}><span>Less medical aid and other deductions</span><b>−{formatNumber(ps.declared)}</b></div>}
-      <div className={s.line}><span>Less other bank loans</span><b>{ps.otherBank ? '−' : ''}{formatNumber(ps.otherBank)}</b></div>
-      <div className={`${s.line} ${s.total}`}><span>Net pay</span><b>{formatNumber(ps.net)}</b></div>
-      {q.addBack > 0 && <div className={s.line}><span>Add back instalment of loan being topped up</span><b>+{formatNumber(q.addBack)}</b></div>}
-      <div className={s.line}><span>Adjusted net pay</span><b>{formatNumber(q.adjusted)}</b></div>
-      <div className={`${s.line} ${s.total}`}><span>Maximum instalment ({pct(q.rates.affordabilityBps, 0)})</span><b>{formatNumber(q.maxInstalment)}</b></div>
-      {ps.allowances > 0 && <p className="xs muted" style={{ margin: '6px 0 0' }}>Allowances of TZS {formatNumber(ps.allowances)} are not counted.</p>}
+      <div className={s.line}><span>Basic Pay</span><b>{formatNumber(ps.basic)}</b></div>
+      <div className={s.line}><span>Pension ({pct(q.rates.pensionBps, 0)} of Basic Pay)</span><b>{formatNumber(ps.pension)}</b></div>
+      <div className={s.line}><span>Taxable Pay (Basic Pay − Pension)</span><b>{formatNumber(ps.taxable)}</b></div>
+      <div className={s.line}><span>PAYE</span><b>{formatNumber(ps.tax)}</b></div>
+      <div className={s.line}><span>Total Deductions (Pension + PAYE)</span><b>{formatNumber(ps.totalDeductions)}</b></div>
+      <div className={`${s.line} ${s.total}`}><span>Net Pay (Basic Pay − Total Deductions)</span><b>{formatNumber(ps.net)}</b></div>
+      <div className={s.line}><span>Add LFB deductions</span><b>+{formatNumber(ps.lfbDeductions)}</b></div>
+      <div className={s.line}><span>Adjusted Net Pay</span><b>{formatNumber(ps.adjusted)}</b></div>
+      <div className={`${s.line} ${s.total}`}><span>Maximum instalment ({pct(q.rates.affordabilityBps, 0)} of Adjusted Net Pay)</span><b>{formatNumber(q.maxInstalment)}</b></div>
+      <div className={s.line}><span>Maximum amount over {q.maxTenor} months at {pct(q.rates.interestBps)}</span><b>{formatNumber(q.maxAmount)}</b></div>
     </div>
   );
 }
 
-export default function CalculatorPanel({ q, amount, tenor, topUp }) {
-  const ready = amount && tenor;
+export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = true }) {
+  const ready = amount && tenor && hasPayslip;
   const years = tenor ? Number.parseFloat((tenor / 12).toFixed(2)) : 0;
   return (
     <div>
@@ -55,7 +55,13 @@ export default function CalculatorPanel({ q, amount, tenor, topUp }) {
       <div style={{ padding: 24 }} aria-live="polite">
         <div className="small muted">Monthly instalment</div>
         <div className={s.big}>{ready ? formatNumber(q.instalment) : '—'}</div>
-        {ready ? <Meter q={q} /> : <p className="small muted">Enter an amount and tenor to see your instalment.</p>}
+        {ready ? <Meter q={q} /> : <p className="small muted">{hasPayslip ? 'Enter an amount and tenor to see your instalment.' : 'Attach your latest payslip to see your limit.'}</p>}
+        {hasPayslip && (
+          <div className={s.calc} style={{ marginTop: 12 }}>
+            <div className={s.line}><span>You can borrow up to</span><b>TZS {formatNumber(q.maxAmount)} over {q.maxTenor} months</b></div>
+            {ready && tenor !== q.maxTenor && <div className={s.line}><span>Over {tenor} months, up to</span><b>TZS {formatNumber(q.maxAmountAtTenor)}</b></div>}
+          </div>
+        )}
         <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', margin: '16px 0' }} />
         <div className={s.calc}>
           <div className={s.line}><span>Total interest</span><b>{formatNumber(q.totalInterest)}</b></div>
@@ -64,10 +70,12 @@ export default function CalculatorPanel({ q, amount, tenor, topUp }) {
           <div className={s.line}><span>Insurance ({pct(q.rates.insuranceBps)} × {years} years)</span><b>{formatNumber(q.insuranceFee)}</b></div>
           {q.firstDueDate && ready && <div className={s.line}><span>First instalment</span><b>{q.firstDueDate.split('-').reverse().join('/')}</b></div>}
         </div>
-        <details style={{ marginTop: 12 }}>
-          <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>How your limit is worked out</summary>
-          <div style={{ marginTop: 8 }}><Breakdown q={q} /></div>
-        </details>
+        {hasPayslip && (
+          <details style={{ marginTop: 12 }}>
+            <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>How your limit is worked out</summary>
+            <div style={{ marginTop: 8 }}><Breakdown q={q} /></div>
+          </details>
+        )}
       </div>
     </div>
   );

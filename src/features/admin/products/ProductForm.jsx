@@ -20,7 +20,6 @@ export const EMPTY_PRODUCT = {
   description: '',
   minAmount: 500000,
   maxAmount: 300000000,
-  salaryMultiple: 1,
   minTenor: 1,
   maxTenor: 12,
   minServiceMonths: 6,
@@ -103,7 +102,6 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
       <Section title="Limits" hint="Amounts are whole shillings. The salary multiple and the affordability test still cap what each applicant can borrow.">
         <MoneyInput label="Minimum amount" required value={values.minAmount} onChange={set('minAmount')} error={!!errors.minAmount} helperText={err('minAmount')} disabled={readOnly} />
         <MoneyInput label="Maximum amount" required value={values.maxAmount} onChange={set('maxAmount')} error={!!errors.maxAmount} helperText={err('maxAmount')} disabled={readOnly} />
-        {num('salaryMultiple', 'Maximum salary multiple (× basic)', { step: 0.5, hint: 'Up to two decimals.' })}
         {num('maxConcurrent', 'Running loans allowed', { min: 1 })}
         {num('minTenor', 'Minimum tenor (months)', { min: 1 })}
         {num('maxTenor', 'Maximum tenor (months)', { min: 1 })}

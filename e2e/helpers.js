@@ -6,9 +6,24 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { expect } from '@playwright/test';
 
 export const PASSWORD = process.env.E2E_PASSWORD || 'Sample#2026';
+
+// The backend's fictional people and payslip generator, so each applicant attaches a
+// payslip that matches their seeded salary (D-79).
+const backend = createRequire(path.join(process.env.E2E_BACKEND_DIR || path.resolve('..', 'staff_loans_backend'), 'package.json'));
+const { PEOPLE } = backend('./seed/data/people.js');
+const { PRICING } = backend('./seed/products.js');
+const { samplePayslip } = backend('./seed/samplePayslip.js');
+
+/** A payslip PDF for a seeded person, dated a few days ago. */
+export async function payslipFor(staffNo, { lfbLines = [] } = {}) {
+  const p = PEOPLE.find((x) => x.staffNo === staffNo);
+  const payDate = new Date(Date.now() - 5 * 86400000 + 3 * 3600000).toISOString().slice(0, 10);
+  return samplePayslip({ staff: { fullName: p.name, staffNo, title: p.title, department: p.department }, basic: p.pay.basic, allowances: p.pay.allowances || 0, payDate, lfbLines, pricing: PRICING });
+}
 const STORE = path.join(os.tmpdir(), `slas-e2e-mfa-${process.env.E2E_API_PORT || 4100}.json`);
 
 // ---------- TOTP ----------
@@ -95,15 +110,22 @@ export async function signIn(page, staffNo, password = PASSWORD) {
 
 // ---------- apply ----------
 
-/** From Apply: chooses a product, fills the loan details and returns the draft URL. */
-export async function startApplication(page, { product, amount, tenor, purpose, reason }) {
+/** From Apply: chooses a product, attaches the payslip and fills the loan details. */
+export async function startApplication(page, { staffNo, product, amount, tenor, purpose, reason }) {
   await page.goto('/apply');
   await page.getByRole('button', { name: new RegExp(`^${product}`) }).click();
   await expect(page).toHaveURL(/\/apply\/[0-9a-f]{24}/);
+  await attachPayslip(page, staffNo);
   await page.getByLabel('Amount').fill(String(amount));
   await page.getByLabel('Tenor (months)').fill(String(tenor));
   await page.getByLabel('Purpose of the loan').fill(purpose);
   if (reason) await page.getByLabel('Reason for applying during probation').fill(reason);
+}
+
+/** Attaches the person's latest payslip on the loan details step and waits for it to be read. */
+export async function attachPayslip(page, staffNo) {
+  await page.getByLabel('Choose payslip PDF').setInputFiles({ name: 'payslip.pdf', mimeType: 'application/pdf', buffer: await payslipFor(staffNo) });
+  await expect(page.getByRole('button', { name: 'Attach a newer payslip' })).toBeVisible({ timeout: 30_000 });
 }
 
 /** From the loan details step to a signed, submitted application; returns its reference. */
@@ -155,7 +177,7 @@ export async function decide(page, { action = 'approve', comment, crb, hrChecks,
     await page.getByLabel('Why').fill(recommend.reason);
   }
   if (hrChecks) {
-    for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Category is|Basic salary of|I have verified the probation reason)/ }).all()) await box.check();
+    for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Category is|Basic Pay of|I have verified the probation reason)/ }).all()) await box.check();
   }
   const radio = { approve: /^Approve/, return: /^Return for correction/, reject: /^Reject/ }[action];
   await page.getByRole('radio', { name: radio }).check();

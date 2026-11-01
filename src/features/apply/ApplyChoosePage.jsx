@@ -16,16 +16,14 @@ export default function ApplyChoosePage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState(null);
   const [elig, setElig] = useState(null);
-  const [basic, setBasic] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    Promise.all([productsApi.live(), profileApi.eligibility(), profileApi.get()])
-      .then(([p, e, prof]) => {
+    Promise.all([productsApi.live(), profileApi.eligibility()])
+      .then(([p, e]) => {
         setProducts(p);
         setElig(e);
-        setBasic(prof.salary?.basic || 0);
       })
       .catch((err) => setError(apiError(err).message));
   }, []);
@@ -74,14 +72,13 @@ export default function ApplyChoosePage() {
       <div className={s.prods}>
         {products.map((p) => {
           const reason = reasonFor(p);
-          const cap = Math.min(p.maxAmount, Math.floor(basic * p.salaryMultiple));
           return (
             <button key={p.id} type="button" className={s.prod} disabled={!!reason || busy} onClick={() => choose(p)} aria-describedby={reason ? `why_${p.id}` : undefined}>
               <span className={s.mark} />
               <h3>{p.name}</h3>
               <div className="muted small">{p.description}</div>
               <div className={s.lim}>
-                TZS {formatNumber(p.minAmount)} to TZS {formatNumber(cap)}
+                TZS {formatNumber(p.minAmount)} to TZS {formatNumber(p.maxAmount)}
                 <br />
                 {p.minTenor} to {p.maxTenor} months
               </div>
@@ -90,7 +87,7 @@ export default function ApplyChoosePage() {
           );
         })}
       </div>
-      <p className="xs muted" style={{ marginTop: 16 }}>Every product lends TZS 500,000 to 300,000,000, capped by your salary multiple. Tenor ranges are sample values until confirmed from the Staff Loan Policy.</p>
+      <p className="xs muted" style={{ marginTop: 16 }}>Your own maximum is worked out from the payslip you attach on the next step: up to half of your Basic Pay after pension and PAYE, plus your LFB deductions, a month. Tenor ranges are sample values until confirmed from the Staff Loan Policy.</p>
     </div>
   );
 }

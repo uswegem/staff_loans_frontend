@@ -19,8 +19,6 @@ const profile = (over = {}) => ({
   workPhone: '',
   bank: { bank: 'Letshego Faidika Bank', branch: 'Dodoma', accountName: 'Rehema Ally', accountNo: '' },
   nextOfKin: [],
-  deductions: { medical: 0, other: 0 },
-  otherLoans: [],
   existingLfbLoans: [],
   payDeclaredAt: null,
   employment: { title: 'Teller', station: 'Dodoma Branch', category: 'Non-management', employmentType: 'Permanent', dateJoined: '2026-02-02', retirementDate: '2061-05-20', probation: { onProbation: true, endsOn: '2026-08-02' } },
@@ -62,13 +60,14 @@ describe('My profile (decision 7, FR-05)', () => {
     expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/personal').config.data).nida).toBe('19980520-41108-00031-26');
   });
 
-  it('pay needs the confirmation tick', async () => {
-    const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], 'GET /products': () => [200, { data: [] }] });
+  it('keeps only existing staff loans: the limit comes from the payslip (D-80)', async () => {
+    const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], 'GET /products': () => [200, { data: [] }], 'PATCH /me/profile/pay': () => [200, { data: profile() }] });
     renderAt('/profile', '/profile', <ProfilePage />);
-    await userEvent.click(await screen.findByRole('tab', { name: /Pay and deductions/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save pay and deductions' }));
-    expect(screen.getByText('Tick the confirmation to save.')).toHaveAttribute('role', 'alert');
-    expect(calls.some((c) => c.key === 'PATCH /me/profile/pay')).toBe(false);
+    await userEvent.click(await screen.findByRole('tab', { name: /Pay and staff loans/ }));
+    expect(screen.queryByLabelText('Medical aid')).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Save existing staff loans' }));
+    expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/pay').config.data)).toEqual({ existingLfbLoans: [] });
   });
 });
 

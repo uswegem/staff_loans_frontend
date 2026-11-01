@@ -112,7 +112,7 @@ export default function DecisionPanel({ app, onDone }) {
             <h4>Confirm the staff record</h4>
             <FormControlLabel control={<Checkbox checked={checks.employment} onChange={(e) => setChecks({ ...checks, employment: e.target.checked })} />} label={`Employment status is ${app.applicant.employmentType.toLowerCase()} and active`} />
             <FormControlLabel control={<Checkbox checked={checks.category} onChange={(e) => setChecks({ ...checks, category: e.target.checked })} />} label={`Category is ${app.applicant.category}`} />
-            <FormControlLabel control={<Checkbox checked={checks.salary} onChange={(e) => setChecks({ ...checks, salary: e.target.checked })} />} label={`Basic salary of ${formatTzs(app.applicant.salaryAtSubmission?.basic)} matches payroll`} />
+            <FormControlLabel control={<Checkbox checked={checks.salary} onChange={(e) => setChecks({ ...checks, salary: e.target.checked })} />} label={`Basic Pay of ${formatTzs(app.payslip?.basic ?? app.applicant.salaryAtSubmission?.basic)} on the payslip matches payroll`} />
             {p.needsProbationCheck && (
               <Alert severity="warning" icon={false}>
                 <AlertTitle>Applied during probation</AlertTitle>

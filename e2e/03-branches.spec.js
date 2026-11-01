@@ -5,7 +5,7 @@ import { as, startApplication, signAndSubmit, openFromQueue, decide, approveAll,
 
 test('returned for correction, corrected and resubmitted with a new agreement', async ({ browser }) => {
   const salma = await as(browser, 'LFB0377');
-  await startApplication(salma, { product: 'Personal Loan', amount: 5000000, tenor: 24, purpose: 'Kitchen renovation' });
+  await startApplication(salma, { staffNo: 'LFB0377', product: 'Personal Loan', amount: 5000000, tenor: 24, purpose: 'Kitchen renovation' });
   const { ref, url } = await signAndSubmit(salma);
 
   const juma = await as(browser, 'LFB0233');
@@ -30,7 +30,7 @@ test('returned for correction, corrected and resubmitted with a new agreement', 
 
 test('approved at revised terms: the applicant accepts a revised agreement, then OPS disburses', async ({ browser }) => {
   const faraji = await as(browser, 'LFB0188');
-  await startApplication(faraji, { product: 'Personal Loan', amount: 8000000, tenor: 36, purpose: 'Plot purchase in Arusha' });
+  await startApplication(faraji, { staffNo: 'LFB0188', product: 'Personal Loan', amount: 8000000, tenor: 36, purpose: 'Plot purchase in Arusha' });
   const { ref, url } = await signAndSubmit(faraji);
 
   const juma = await as(browser, 'LFB0233');

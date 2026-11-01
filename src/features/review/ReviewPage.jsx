@@ -160,10 +160,20 @@ function FullReview({ app, onDone, onError }) {
               <dt>Retirement</dt><dd>{formatDate(a.retirementDate)}</dd>
               <dt>Mobile</dt><dd>{a.mobile}</dd>
               <dt>Next of kin</dt><dd>{a.nextOfKin ? `${a.nextOfKin.name} (${a.nextOfKin.relationship}), ${a.nextOfKin.phone}` : '—'}</dd>
-              <dt>Other loans declared</dt><dd>{[...a.otherLoans.map((l) => `${l.lender} ${l.type}: ${formatTzs(l.instalment)} a month`), ...a.existingLfbLoans.map((l) => `LFB ${l.description || 'staff loan'}: ${formatTzs(l.instalment)} a month`)].join('; ') || 'None'}</dd>
+              <dt>Staff loans declared</dt><dd>{a.existingLfbLoans.map((l) => `${l.description || 'Staff loan'}${l.instalment ? `: ${formatTzs(l.instalment)} a month` : ''}`).join('; ') || 'None'}</dd>
               <dt>Staff loans in this system</dt><dd>{a.runningLoans.map((r) => `${r.ref}, ${formatTzs(r.amount)}`).join('; ') || 'None'}</dd>
             </dl>
           </Panel>
+          {app.payslip && (
+            <Panel title="Payslip">
+              <dl className={s.kv}>
+                <dt>File</dt><dd><Link component="button" type="button" onClick={() => dl(`/files/${app.payslip.fileId}`, app.payslip.originalName)}>{app.payslip.originalName}</Link>, dated {formatDate(app.payslip.payDate)}</dd>
+                <dt>Basic Pay read</dt><dd>{formatTzs(app.payslip.basic)}{a.salaryAtSubmission?.basic && a.salaryAtSubmission.basic !== app.payslip.basic ? <span className="small" style={{ color: 'var(--bad)' }}> (staff record: {formatTzs(a.salaryAtSubmission.basic)})</span> : null}</dd>
+                <dt>LFB deductions read</dt><dd>{formatTzs(app.payslip.lfbDeductions)}{app.payslip.lfbLines.length ? <span className="small muted"> ({app.payslip.lfbLines.map((l) => `${l.label} ${formatTzs(l.amount)}`).join('; ')})</span> : null}</dd>
+              </dl>
+              <p className="xs muted" style={{ margin: '8px 0 0' }}>Read from the PDF when it was attached. Open it to confirm the figures before you decide.</p>
+            </Panel>
+          )}
           <Panel title="Documents">
             {app.documents.length ? app.documents.map((d) => <div key={d.id}><Link component="button" type="button" onClick={() => dl(`/files/${d.id}`, d.originalName)}>{d.originalName}</Link></div>) : <p className="muted small" style={{ margin: 0 }}>No documents attached. Documents are optional.</p>}
             {app.crbReport && <p className="small" style={{ margin: '12px 0 0' }}>Credit bureau report: <Link component="button" type="button" onClick={() => dl(`/files/${app.crbReport.id}`, app.crbReport.originalName)}>{app.crbReport.originalName}</Link></p>}

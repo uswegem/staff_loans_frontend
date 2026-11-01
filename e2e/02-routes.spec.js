@@ -23,7 +23,7 @@ async function limitedCredit(browser, ref, { amount, purpose }) {
 
 async function apply(browser, staffNo, terms) {
   const page = await as(browser, staffNo);
-  await startApplication(page, terms);
+  await startApplication(page, { staffNo, ...terms });
   const out = await signAndSubmit(page);
   return { ...out, page };
 }

@@ -13,6 +13,7 @@ import { formatNumber, formatTzs } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import LoanRoute from '../../components/LoanRoute';
 import CalculatorPanel from './CalculatorPanel';
+import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
 import s from './apply.module.css';
 
@@ -44,7 +45,7 @@ function formOf(app) {
     purpose: app.purpose || '',
     productFields: app.productFields || {},
     repaymentMethod: app.repayment?.method || 'payroll',
-    topUp: { on: !!app.topUp?.on, loanRef: app.topUp?.loanRef || '', instalment: app.topUp?.instalment ?? null },
+    topUp: { on: !!app.topUp?.on, loanRef: app.topUp?.loanRef || '' },
     probationReason: app.probation?.reason || '',
   };
 }
@@ -56,7 +57,7 @@ function bodyOf(form, app) {
     purpose: form.purpose,
     productFields: form.productFields,
     repaymentMethod: form.repaymentMethod,
-    topUp: form.topUp.on ? { on: true, loanRef: form.topUp.loanRef, instalment: form.topUp.instalment } : { on: false },
+    topUp: form.topUp.on ? { on: true, loanRef: form.topUp.loanRef } : { on: false },
   };
   if (app.probation.onProbation) body.probationReason = form.probationReason;
   return body;
@@ -70,11 +71,12 @@ function useLiveQuote(app, form) {
         amount: form.amount || 0,
         tenor: form.tenor || 0,
         topUp: form.topUp.on,
-        topUpInstalment: form.topUp.instalment || 0,
         pay: app.payInputs,
         pricing: app.pricing,
         startDay: todayEat(),
         dueDay: app.firstDueDay,
+        maxTenor: app.quote.maxTenor,
+        maxAmountCap: app.product.maxAmount,
       }),
     [app, form]
   );
@@ -102,11 +104,11 @@ function FieldInput({ f, value, onChange, error }) {
   );
 }
 
-function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy }) {
+function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy, onAppChanged }) {
   const p = app.product;
   const q = useLiveQuote(app, form);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
-  const cap = Math.min(p.maxAmount, Math.floor((app.payInputs.basic || 0) * p.salaryMultiple));
+  const hint = app.payslip ? `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(q.maxAmount)} (up to ${q.maxTenor} months)` : `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(p.maxAmount)}; attach your payslip to see your maximum`;
   return (
     <div className={s.split}>
       <Card>
@@ -114,8 +116,9 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy 
           <h3>{p.name}</h3>
         </div>
         <form style={{ padding: 24 }} noValidate onSubmit={(e) => { e.preventDefault(); onNext(); }}>
+          <PayslipCard app={app} error={errors.payslip} onChanged={onAppChanged} />
           <div className={s.grid}>
-            <MoneyInput label="Amount" required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(cap)}`} />
+            <MoneyInput label="Amount" required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || hint} />
             <div>
               <TextField label="Tenor (months)" required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || `${p.minTenor} to ${p.maxTenor} months`} inputProps={{ min: p.minTenor, max: p.maxTenor, inputMode: 'numeric' }} />
               <Slider aria-label="Tenor slider" min={p.minTenor} max={p.maxTenor} value={Math.min(p.maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: '#000' }} />
@@ -149,14 +152,13 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy 
                   <span>
                     <b>This tops up an existing staff loan</b>
                     <br />
-                    <span className="small muted">The old loan&apos;s instalment is added back for affordability, and its balance is settled from the new loan. OPS confirms the balance from core banking.</span>
+                    <span className="small muted">Its balance is settled from the new loan; OPS confirms it from core banking. Its instalment is already among the LFB deductions on your payslip.</span>
                   </span>
                 }
               />
               {form.topUp.on && (
                 <div className={s.grid} style={{ margin: '8px 0 8px 32px' }}>
                   <TextField label="Loan being topped up" value={form.topUp.loanRef} onChange={(e) => set({ topUp: { ...form.topUp, loanRef: e.target.value } })} error={!!errors['topUp.loanRef']} helperText={errors['topUp.loanRef'] || 'Reference or description'} />
-                  <MoneyInput label="Its monthly instalment" value={form.topUp.instalment} onChange={(v) => set({ topUp: { ...form.topUp, instalment: v } })} error={!!errors['topUp.instalment']} helperText={errors['topUp.instalment']} />
                 </div>
               )}
             </div>
@@ -196,7 +198,7 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy 
         </form>
       </Card>
       <Card className={s.sticky}>
-        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} />
+        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} hasPayslip={!!app.payslip} />
       </Card>
     </div>
   );
@@ -518,7 +520,7 @@ export default function ApplyWizardPage() {
       <Steps step={step} />
       {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>This product is no longer available for new applications.</Alert>}
-      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...app.checks.eligibility, ...app.checks.checks]} busy={busy} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} />}
+      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...app.checks.eligibility, ...app.checks.checks]} busy={busy} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={setApp} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 – Affordability from the payslip (31 Oct 2026)
+
+- Loan details: attach the latest payslip; see the Basic Pay and LFB deductions read from it, the new calculator steps, and the maximum amount over the longest tenor and the chosen one.
+- Product cards and editor no longer use a salary multiple; the review screen shows the payslip; the HR check confirms its Basic Pay.
+- Profile Pay tab keeps only existing staff loans; Workflow and calendar edits the payslip age limit and the labels the reader looks for.
+- E2E runs attach a fictional payslip through the real upload control.
+
 ## 0.8.0 – Milestone 8: Hardening (30 Oct 2026)
 
 - Playwright end-to-end runs: the guided journey, the management, CEO and Head of P&C routes, return and resubmit, revised terms, and product maker-checker.

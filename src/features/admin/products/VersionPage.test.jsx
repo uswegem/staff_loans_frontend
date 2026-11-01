@@ -11,7 +11,6 @@ const baseValues = {
   description: '',
   minAmount: 500000,
   maxAmount: 300000000,
-  salaryMultiple: 8,
   minTenor: 6,
   maxTenor: 72,
   minServiceMonths: 6,

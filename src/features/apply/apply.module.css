@@ -112,3 +112,6 @@
   .doc { padding: var(--s4); }
   .kv { grid-template-columns: 1fr; }
 }
+
+/* Latest payslip (D-79) above the loan details */
+.payslip { border: 1px solid var(--line); border-radius: var(--r-md, 8px); padding: var(--s4); margin-bottom: var(--s5); background: var(--canvas); }

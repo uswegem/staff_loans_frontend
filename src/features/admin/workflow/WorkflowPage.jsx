@@ -23,6 +23,7 @@ const NUMBERS = [
   ['approvalSlaDays', 'Outside SLA after (days pending disbursement)'],
   ['probationMonths', 'Probation (months after joining)'],
   ['firstDueDay', 'First instalment day of the month'],
+  ['payslipMaxAgeDays', 'Payslip must not be older than (days)'],
   ['maxUploadMb', 'Largest upload (MB)'],
   ['inactivityTimeoutMin', 'Sign out after inactivity (minutes)'],
   ['lockoutThreshold', 'Lock after failed sign-ins'],
@@ -72,6 +73,41 @@ function EditDialog({ settings, onClose, onSaved }) {
         </DialogActions>
       </form>
     </Dialog>
+  );
+}
+
+const RULES = [
+  ['basicLabels', 'Basic Pay', 'Words before the Basic Pay amount'],
+  ['lfbLabels', 'LFB deductions', 'Every line with one of these words is an LFB deduction; the amounts are added up'],
+  ['dateLabels', 'Pay date', 'Words before the pay date or pay month'],
+];
+
+/** The labels the payslip reader looks for (D-79): one per line, first match wins. */
+function PayslipRulesCard({ rules, onSaved, onError }) {
+  const [form, setForm] = useState(() => Object.fromEntries(RULES.map(([k]) => [k, rules[k].join('\n')])));
+  const save = async (e) => {
+    e.preventDefault();
+    const body = Object.fromEntries(RULES.map(([k]) => [k, form[k].split('\n').map((x) => x.trim()).filter(Boolean)]));
+    try {
+      await settingsApi.update({ payslipRules: body });
+      onSaved('Payslip labels saved. They apply to payslips attached from now on.');
+    } catch (err) {
+      onError(apiError(err).message);
+    }
+  };
+  return (
+    <Card sx={{ mt: 2 }}>
+      <CardContent sx={{ p: 3 }}>
+        <h3 style={{ marginBottom: 4 }}>Reading payslips</h3>
+        <p className="small muted" style={{ marginTop: 0 }}>Basic Pay, LFB deductions and the pay date are read from the payslip PDF staff attach. If Payroll changes the payslip layout, change the words here. One per line.</p>
+        <form onSubmit={save} style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          {RULES.map(([k, label, hint]) => (
+            <TextField key={k} label={label} multiline minRows={4} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} helperText={hint} />
+          ))}
+          <div style={{ gridColumn: '1 / -1' }}><Button type="submit" variant="contained">Save payslip labels</Button></div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -150,6 +186,7 @@ export default function WorkflowPage() {
               <dt>Outside SLA after</dt><dd>{st.approvalSlaDays} days pending disbursement (no expiry)</dd>
               <dt>Probation</dt><dd>{st.probationMonths} months after joining</dd>
               <dt>First instalment</dt><dd>Day {st.firstDueDay} of the month after</dd>
+              <dt>Payslip</dt><dd>Not older than {st.payslipMaxAgeDays} days at submission</dd>
             </dl>
             <h4 style={{ margin: '20px 0 8px' }}>Public holidays</h4>
             <Table size="small" aria-label="Public holidays">
@@ -174,6 +211,7 @@ export default function WorkflowPage() {
           </CardContent>
         </Card>
       </div>
+      <PayslipRulesCard key={st.version} rules={st.payslipRules} onSaved={(m) => { setToast(m); setError(null); load(); }} onError={setError} />
       {editing && (
         <EditDialog
           settings={st}
