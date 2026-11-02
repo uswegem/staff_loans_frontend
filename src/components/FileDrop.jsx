@@ -4,12 +4,14 @@
 import { useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import s from './FileDrop.module.css';
+import { useT } from '../i18n';
 
 /**
  * accept: e.g. '.pdf'; label: what to drop; hint: helper text under the box;
  * onFile(file): called with the chosen or dropped file; busy: shows "Reading…".
  */
-export default function FileDrop({ accept, label, hint, buttonLabel = 'Choose file', onFile, busy = false, error, inputLabel }) {
+export default function FileDrop({ accept, label, hint, buttonLabel, onFile, busy = false, error, inputLabel }) {
+  const t = useT();
   const input = useRef(null);
   const [over, setOver] = useState(false);
   const exts = (accept || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
@@ -18,7 +20,7 @@ export default function FileDrop({ accept, label, hint, buttonLabel = 'Choose fi
   const take = (file, setError) => {
     if (!file) return;
     if (!allowed(file)) {
-      setError?.(`Only ${exts.join(', ').toUpperCase()} files.`);
+      setError?.(t('Only {types} files.', { types: exts.join(', ').toUpperCase() }));
       return;
     }
     onFile(file);
@@ -48,10 +50,10 @@ export default function FileDrop({ accept, label, hint, buttonLabel = 'Choose fi
           <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
         </svg>
         <div className="small">
-          {busy ? 'Reading…' : <>Drag and drop {label.toLowerCase()} here, or</>}
+          {busy ? t('Reading…') : t('Drag and drop {what} here, or', { what: label.toLowerCase() })}
         </div>
         <Button size="small" variant="outlined" disabled={busy} onClick={() => input.current?.click()}>
-          {buttonLabel}
+          {buttonLabel || t('Choose file')}
         </Button>
         <input
           ref={input}

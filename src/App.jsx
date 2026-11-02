@@ -35,15 +35,17 @@ import WorkflowPage from './features/admin/workflow/WorkflowPage';
 import TemplatesPage from './features/admin/templates/TemplatesPage';
 import AuditPage from './features/admin/audit/AuditPage';
 import DobVerificationsPage from './features/staff/DobVerificationsPage';
+import { useT } from './i18n';
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.approveCredit', 'products.approveRisk'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
 
 function NotFound() {
+  const t = useT();
   return (
     <div className="page">
-      <h1>Page not found</h1>
-      <p className="muted">Check the address, or use the menu.</p>
+      <h1>{t('Page not found')}</h1>
+      <p className="muted">{t('Check the address, or use the menu.')}</p>
     </div>
   );
 }

@@ -1,11 +1,13 @@
 // Ported from Ess-Frontend/src/ApiFunction.js (commit at clone time), adapted for SLAS:
-// - the access token lives in memory only; nothing is written to localStorage
+// - the access token lives in memory only; nothing about the session is written to
+//   localStorage (only the interface language and theme are, D-94)
 // - the refresh token is an httpOnly cookie the browser sends to /api/v1/auth;
 //   requests go withCredentials and refresh echoes the XSRF-TOKEN cookie (CSRF)
 // - single-flight refresh: concurrent 401s wait for one refresh, then retry once
 // - tenant, membership and permission caching removed (the server is the source)
 
 import axios from 'axios';
+import { translate } from '../i18n';
 
 export const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
 
@@ -14,6 +16,7 @@ let refreshing = null;
 let onSessionChanged = () => {};
 let onSessionEnded = () => {};
 let lastActivity = 0;
+let language = 'en';
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -25,6 +28,10 @@ export function setAccessToken(token) {
   accessToken = token || null;
 }
 export const hasAccessToken = () => !!accessToken;
+/** Messages from the API come back in this language (D-94). */
+export function setApiLanguage(lang) {
+  language = lang === 'sw' ? 'sw' : 'en';
+}
 export const lastApiActivity = () => lastActivity;
 
 /** Lets the store react when a refresh brings a new profile, or the session ends. */
@@ -60,6 +67,7 @@ export function refreshSession() {
 
 api.interceptors.request.use((config) => {
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  config.headers['Accept-Language'] = language;
   lastActivity = Date.now();
   return config;
 });
@@ -96,8 +104,8 @@ api.interceptors.response.use(
 export function apiError(err) {
   const body = err?.response?.data;
   if (body && body.message) return { message: body.message, code: body.code, details: body.details || {}, status: err.response.status };
-  if (err?.request && !err?.response) return { message: 'Staff Loans cannot be reached. Check your connection to the LFB network.', code: 'NETWORK', details: {} };
-  return { message: 'Something went wrong. Try again.', code: 'UNKNOWN', details: {} };
+  if (err?.request && !err?.response) return { message: translate('Staff Loans cannot be reached. Check your connection to the LFB network.'), code: 'NETWORK', details: {} };
+  return { message: translate('Something went wrong. Try again.'), code: 'UNKNOWN', details: {} };
 }
 
 export const csrf = { headers: csrfHeaders };

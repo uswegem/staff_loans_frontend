@@ -4,6 +4,7 @@
 import { Button, IconButton, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField, InputAdornment } from '@mui/material';
 import MoneyInput from '../../../components/MoneyInput';
 import s from './products.module.css';
+import { useT } from '../../../i18n';
 
 const RATES = [
   ['interestBps', 'Interest a year, reducing balance'],
@@ -18,6 +19,7 @@ const toBps = (text) => (text === '' ? null : Math.round(Number.parseFloat(text)
 const fromBps = (bps) => (bps == null ? '' : String(bps / 100));
 
 export default function PricingForm({ values, onChange, errors = {}, readOnly }) {
+  const t = useT();
   const set = (k, v) => onChange({ ...values, [k]: v });
   const err = (k) => (errors[k] ? errors[k].join(' ') : undefined);
   const setBand = (i, patch) => set('payeBands', values.payeBands.map((b, j) => (j === i ? { ...b, ...patch } : b)));
@@ -25,12 +27,12 @@ export default function PricingForm({ values, onChange, errors = {}, readOnly })
   return (
     <div className={s.form}>
       <section className={s.section}>
-        <h3>Rates for all products</h3>
+        <h3>{t('Rates for all products')}</h3>
         <div className={s.grid}>
           {RATES.map(([k, label]) => (
             <TextField
               key={k}
-              label={label}
+              label={t(label)}
               type="number"
               value={fromBps(values[k])}
               onChange={(e) => set(k, toBps(e.target.value))}
@@ -41,22 +43,22 @@ export default function PricingForm({ values, onChange, errors = {}, readOnly })
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
             />
           ))}
-          <TextField select label="Instalment rounded up to" value={values.instalmentRounding} onChange={(e) => set('instalmentRounding', Number(e.target.value))} disabled={readOnly} error={!!errors.instalmentRounding} helperText={err('instalmentRounding')}>
-            {[1, 10, 100, 1000].map((n) => <MenuItem key={n} value={n}>TZS {n.toLocaleString('en-US')}</MenuItem>)}
+          <TextField select label={t('Instalment rounded up to')} value={values.instalmentRounding} onChange={(e) => set('instalmentRounding', Number(e.target.value))} disabled={readOnly} error={!!errors.instalmentRounding} helperText={err('instalmentRounding')}>
+            {[1, 10, 100, 1000].map((n) => <MenuItem key={n} value={n}>{`TZS ${n.toLocaleString('en-US')}`}</MenuItem>)}
           </TextField>
         </div>
       </section>
       <section className={s.section}>
-        <h3>PAYE bands</h3>
-        <p className="small muted">PAYE = base + rate × (taxable pay − from), using the highest band the taxable pay reaches.</p>
+        <h3>{t('PAYE bands')}</h3>
+        <p className="small muted">{t('PAYE = base + rate × (taxable pay − from), using the highest band the taxable pay reaches.')}</p>
         {errors.payeBands && <p className="xs" style={{ color: 'var(--bad)', fontWeight: 600 }}>{err('payeBands')}</p>}
         <div className="tablewrap">
-          <Table size="small" aria-label="PAYE bands">
+          <Table size="small" aria-label={t('PAYE bands')}>
             <TableHead>
               <TableRow>
-                <TableCell>Taxable pay from</TableCell>
-                <TableCell>Base</TableCell>
-                <TableCell>Rate on excess</TableCell>
+                <TableCell>{t('Taxable pay from')}</TableCell>
+                <TableCell>{t('Base')}</TableCell>
+                <TableCell>{t('Rate on excess')}</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -83,7 +85,7 @@ export default function PricingForm({ values, onChange, errors = {}, readOnly })
                   </TableCell>
                   <TableCell>
                     {!readOnly && i > 0 && (
-                      <IconButton aria-label={`Remove band ${i + 1}`} onClick={() => set('payeBands', values.payeBands.filter((_, j) => j !== i))}>×</IconButton>
+                      <IconButton aria-label={t('Remove band {n}', { n: i + 1 })} onClick={() => set('payeBands', values.payeBands.filter((_, j) => j !== i))}>×</IconButton>
                     )}
                   </TableCell>
                 </TableRow>
@@ -93,7 +95,7 @@ export default function PricingForm({ values, onChange, errors = {}, readOnly })
         </div>
         {!readOnly && (
           <Button size="small" sx={{ mt: 1.5 }} onClick={() => set('payeBands', [...values.payeBands, { from: (values.payeBands.at(-1)?.from || 0) + 100000, base: 0, rateBps: 0 }])}>
-            Add band
+            {t('Add band')}
           </Button>
         )}
       </section>

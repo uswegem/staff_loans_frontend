@@ -3,7 +3,8 @@
    (docs/LFB_Staff_Loans_Prototype.html). Brand values are
    provisional: confirm against the official Letshego Faidika
    Bank brand guide and change them here only.
-   The MUI theme (src/theme.js) reads the same values.
+   The MUI theme (src/theme.js) reads the same values, for
+   light (:root) and dark ([data-theme="dark"]) (D-94).
    ========================================================= */
 :root {
   /* brand: Letshego yellow and black */
@@ -17,6 +18,10 @@
   --brand-050: #FFFAE8;   /* faint yellow hover */
   --accent-600: #6E5000;  /* text on completed stages */
   --accent-100: #FFEFB3;  /* completed stages */
+
+  --strong: #000000;     /* text, borders and focus rings that need the most contrast */
+  --doc-bg: #FFFEFB;     /* agreement reading pane */
+  --login-gradient: linear-gradient(160deg, #000 0%, #000 42%, #3A2C00 64%, #B88A00 84%, #FFC20E 100%);
 
   /* neutrals */
   --ink: #1B1B1B;
@@ -49,4 +54,34 @@
   --shadow-pop: 0 8px 28px rgba(0, 0, 0, .18);
   --topbar-h: 60px;
   --nav-w: 236px;
+}
+
+/* Dark mode (D-94): only colours change; the login gradient stays yellow and black.
+   Screen only, so printed documents always use the light values. */
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --brand-900: #F5F5F2;
+    --brand-700: #F5F5F2;
+    --brand-500: #FFD24D;
+    --brand-100: #3D3311;
+    --brand-050: #2A2410;
+    --accent-600: #FFD24D;
+    --accent-100: #3D3311;
+    --strong: #F2F2EE;
+    --doc-bg: #1A1A19;
+    --ink: #ECECE8;
+    --ink-2: #C9C9C3;
+    --ink-3: #A3A39C;
+    --line: #3D3D39;
+    --line-2: #2C2C29;
+    --surface: #1C1C1B;
+    --canvas: #121211;
+    --ok: #7BCF9C;     --ok-bg: #173322;
+    --warn: #F2A65A;   --warn-bg: #3A2614;
+    --bad: #F28B82;    --bad-bg: #3B1E1B;
+    --info: #ECECE8;   --info-bg: #2C2C29;
+    --idle: #B5B5AE;   --idle-bg: #2A2A28;
+    --shadow-pop: 0 8px 28px rgba(0, 0, 0, .6);
+  }
 }

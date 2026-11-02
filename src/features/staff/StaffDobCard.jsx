@@ -7,8 +7,10 @@ import { Alert, Button, Card, CardContent, TextField } from '@mui/material';
 import { dobApi } from '../../api/staff';
 import { apiError } from '../../api/client';
 import DobStatus from '../../components/DobStatus';
+import { useT } from '../../i18n';
 
 export default function StaffDobCard({ staffId, canManage }) {
+  const t = useT();
   const myId = useSelector((st) => st.auth.user?.id);
   const [status, setStatus] = useState(null);
   const [dob, setDob] = useState('');
@@ -35,7 +37,7 @@ export default function StaffDobCard({ staffId, canManage }) {
   return (
     <Card>
       <CardContent sx={{ p: 3, display: 'grid', gap: 1.5 }}>
-        <h3 style={{ margin: 0 }}>Date of birth</h3>
+        <h3 style={{ margin: 0 }}>{t('Date of birth')}</h3>
         {toast && <Alert severity="success" onClose={() => setToast(null)}>{toast}</Alert>}
         <DobStatus
           status={status}
@@ -44,8 +46,8 @@ export default function StaffDobCard({ staffId, canManage }) {
         />
         {canManage && status && !status.pending && (
           <form onSubmit={propose} className="row" noValidate>
-            <TextField size="small" type="date" label="New date of birth" value={dob} onChange={(e) => setDob(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <Button type="submit" size="small" disabled={!dob}>Send for verification</Button>
+            <TextField size="small" type="date" label={t('New date of birth')} value={dob} onChange={(e) => setDob(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <Button type="submit" size="small" disabled={!dob}>{t('Send for verification')}</Button>
           </form>
         )}
         {error && <Alert severity="error" role="alert">{error}</Alert>}

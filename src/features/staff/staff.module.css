@@ -12,9 +12,9 @@
 .figure span { font-size: var(--fs-sm); color: var(--ink-3); }
 
 .drop { display: block; position: relative; cursor: pointer; border: 2px dashed var(--line); border-radius: var(--r-lg); padding: var(--s6) var(--s5); text-align: center; color: var(--ink-3); background: var(--brand-050); }
-.drop:hover, .drop.over { border-color: #000; }
+.drop:hover, .drop.over { border-color: var(--strong); }
 .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.drop:focus-within { outline: 3px solid #000; box-shadow: 0 0 0 6px var(--y); }
+.drop:focus-within { outline: 3px solid var(--strong); box-shadow: 0 0 0 6px var(--y); }
 
 @media (max-width: 1000px) {
   .layout { grid-template-columns: 1fr; }

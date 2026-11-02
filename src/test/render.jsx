@@ -1,8 +1,7 @@
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material';
-import theme from '../theme';
+import { PreferencesProvider } from '../i18n';
 import { makeStore } from '../store';
 
 const FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true };
@@ -14,14 +13,14 @@ export function renderAt(path, pattern, element, { permissions = [], userId = 'u
   });
   return render(
     <Provider store={store}>
-      <ThemeProvider theme={theme}>
+      <PreferencesProvider>
         <MemoryRouter initialEntries={[path]} future={FUTURE}>
           <Routes>
             <Route path={pattern} element={element} />
             <Route path="*" element={<p>Elsewhere</p>} />
           </Routes>
         </MemoryRouter>
-      </ThemeProvider>
+      </PreferencesProvider>
     </Provider>
   );
 }

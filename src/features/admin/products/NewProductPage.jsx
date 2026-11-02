@@ -8,8 +8,10 @@ import { apiError } from '../../../api/client';
 import { todayEat } from '../../../lib/dates';
 import ProductForm, { EMPTY_PRODUCT } from './ProductForm';
 import s from './products.module.css';
+import { useT } from '../../../i18n';
 
 export default function NewProductPage() {
+  const t = useT();
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(todayEat());
@@ -40,12 +42,12 @@ export default function NewProductPage() {
   return (
     <div className="page">
       <div className="small muted" style={{ marginBottom: 8 }}>
-        <Link component={RouterLink} to="/admin/products" color="inherit">Products and pricing</Link>
+        <Link component={RouterLink} to="/admin/products" color="inherit">{t('Products and pricing')}</Link>
       </div>
       <div className="pagehead">
         <div>
-          <h1>New product</h1>
-          <p>Saved as a draft. It goes live only after a different person approves it.</p>
+          <h1>{t('New product')}</h1>
+          <p>{t('Saved as a draft. It goes live only after a different person approves it.')}</p>
         </div>
       </div>
       <div className="stack">
@@ -58,10 +60,10 @@ export default function NewProductPage() {
           </Card>
           <Card className={s.sticky}>
             <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
-              <TextField label="Product code" required value={code} onChange={(e) => setCode(e.target.value)} error={!!errors.code} helperText={errors.code?.join(' ') || '2 to 10 capital letters or digits. It never changes.'} inputProps={{ maxLength: 10, autoCapitalize: 'characters' }} />
-              <TextField label="Effective from" type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
-              <TextField label="Why this product" multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-              <Button variant="contained" onClick={create} disabled={busy}>Save draft</Button>
+              <TextField label={t('Product code')} required value={code} onChange={(e) => setCode(e.target.value)} error={!!errors.code} helperText={errors.code?.join(' ') || '2 to 10 capital letters or digits. It never changes.'} inputProps={{ maxLength: 10, autoCapitalize: 'characters' }} />
+              <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
+              <TextField label={t('Why this product')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+              <Button variant="contained" onClick={create} disabled={busy}>{t('Save draft')}</Button>
             </CardContent>
           </Card>
         </div>

@@ -11,8 +11,11 @@ import { apiError } from '../../api/client';
 import { formatNumber } from '../../lib/format';
 import { Steps } from './ApplyWizardPage';
 import s from './apply.module.css';
+import ApplyBlockers from '../../components/ApplyBlockers';
+import { useT } from '../../i18n';
 
 export default function ApplyChoosePage() {
+  const t = useT();
   const navigate = useNavigate();
   const [products, setProducts] = useState(null);
   const [elig, setElig] = useState(null);
@@ -41,15 +44,15 @@ export default function ApplyChoosePage() {
   };
 
   if (error && !products) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!products || !elig) return <p className="muted" role="status">Loading…</p>;
+  if (!products || !elig) return <p className="muted" role="status">{t('Loading…')}</p>;
 
   if (!elig.profile.complete) {
     return (
       <div className="page">
-        <div className="pagehead"><div><h1>Apply for a loan</h1></div></div>
-        <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to="/profile">Complete profile</Button>}>
-          <AlertTitle>Complete your profile first</AlertTitle>
-          Every application fills in from your profile, so all required details must be there. Missing: {elig.profile.missing.map((m) => m.label).join(', ')}.
+        <div className="pagehead"><div><h1>{t('Apply for a loan')}</h1></div></div>
+        <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to="/profile">{t('Complete profile')}</Button>}>
+          <AlertTitle>{t('Complete your profile first')}</AlertTitle>
+          {t('Every application fills in from your profile, so all required details must be there.')} {t('Missing: {list}.', { list: elig.profile.missing.map((m) => t(m.label)).join(', ') })}
         </Alert>
       </div>
     );
@@ -59,15 +62,16 @@ export default function ApplyChoosePage() {
 
   return (
     <div className="page">
-      <div className="small muted" style={{ marginBottom: 8 }}><RouterLink to="/" style={{ color: 'inherit' }}>Home</RouterLink> / Apply for a loan</div>
+      <div className="small muted" style={{ marginBottom: 8 }}><RouterLink to="/" style={{ color: 'inherit' }}>{t('Home')}</RouterLink>{' '}{t('/ Apply for a loan')}</div>
       <div className="pagehead">
         <div>
-          <h1>Apply for a loan</h1>
-          <p>Your details fill in from your profile. You only add the loan request.</p>
+          <h1>{t('Apply for a loan')}</h1>
+          <p>{t('Your details fill in from your profile. You only add the loan request.')}</p>
         </div>
-        <Button variant="text" component={RouterLink} to="/">Cancel</Button>
+        <Button variant="text" component={RouterLink} to="/">{t('Cancel')}</Button>
       </div>
       <Steps step={0} />
+      {elig.blockers?.length > 0 && <div style={{ marginBottom: 16 }}><ApplyBlockers blockers={elig.blockers} /></div>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <div className={s.prods}>
         {products.map((p) => {
@@ -87,7 +91,7 @@ export default function ApplyChoosePage() {
           );
         })}
       </div>
-      <p className="xs muted" style={{ marginTop: 16 }}>Your own maximum is worked out from the payslip you attach on the next step: up to half of your Basic Pay after pension and PAYE, plus your LFB deductions, a month. Tenor ranges are sample values until confirmed from the Staff Loan Policy.</p>
+      <p className="xs muted" style={{ marginTop: 16 }}>{t('Your own maximum is worked out from the payslip you attach on the next step: up to half of your Basic Pay after pension and PAYE, plus your LFB deductions, a month. Tenor ranges are sample values until confirmed from the Staff Loan Policy.')}</p>
     </div>
   );
 }

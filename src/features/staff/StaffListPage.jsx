@@ -8,10 +8,12 @@ import { Alert, Button, Card, Chip, MenuItem, Table, TableBody, TableCell, Table
 import { staffApi, downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
 import { formatNumber } from '../../lib/format';
+import { useT } from '../../i18n';
 
-const STATUS = { active: null, deactivated: <Chip size="small" label="Inactive" />, exited: <Chip size="small" color="error" label="Exited" /> };
+const statusChip = (t) => ({ active: null, deactivated: <Chip size="small" label={t('Inactive')} />, exited: <Chip size="small" color="error" label={t('Exited')} /> });
 
 export default function StaffListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const canManage = useSelector((st) => st.auth.permissions.includes('staff.manage'));
   const [q, setQ] = useState('');
@@ -36,22 +38,22 @@ export default function StaffListPage() {
   }, [q, status, category, page, limit]);
 
   useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
   }, [load]);
 
   return (
     <div className="page">
       <div className="pagehead">
         <div>
-          <h1>Staff records</h1>
-          <p>Employment and salary details that Staff Loans uses for routing and affordability. Staff complete the rest of their profile.</p>
+          <h1>{t('Staff records')}</h1>
+          <p>{t('Employment and salary details that Staff Loans uses for routing and affordability. Staff complete the rest of their profile.')}</p>
         </div>
         {canManage && (
           <div className="row">
-            <Button onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>Excel template</Button>
-            <Button component={RouterLink} to="/staff/import">Upload from Excel</Button>
-            <Button variant="contained" component={RouterLink} to="/staff/new">Add staff</Button>
+            <Button onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>{t('Excel template')}</Button>
+            <Button component={RouterLink} to="/staff/import">{t('Upload from Excel')}</Button>
+            <Button variant="contained" component={RouterLink} to="/staff/new">{t('Add staff')}</Button>
           </div>
         )}
       </div>
@@ -59,32 +61,32 @@ export default function StaffListPage() {
       <Card>
         <div className="row" style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)', justifyContent: 'space-between' }}>
           <div className="row">
-            <TextField sx={{ width: 300, maxWidth: '100%' }} placeholder="Search by name, staff number, title or station" inputProps={{ 'aria-label': 'Search staff' }} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
-            <TextField select sx={{ width: 160 }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} inputProps={{ 'aria-label': 'Status' }}>
-              <MenuItem value="">All statuses</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="deactivated">Inactive</MenuItem>
-              <MenuItem value="exited">Exited</MenuItem>
+            <TextField sx={{ width: 300, maxWidth: '100%' }} placeholder={t('Search by name, staff number, title or station')} inputProps={{ 'aria-label': t('Search staff') }} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+            <TextField select sx={{ width: 160 }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} inputProps={{ 'aria-label': t('Status') }}>
+              <MenuItem value="">{t('All statuses')}</MenuItem>
+              <MenuItem value="active">{t('Active')}</MenuItem>
+              <MenuItem value="deactivated">{t('Inactive')}</MenuItem>
+              <MenuItem value="exited">{t('Exited')}</MenuItem>
             </TextField>
-            <TextField select sx={{ width: 190 }} value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }} inputProps={{ 'aria-label': 'Category' }} SelectProps={{ displayEmpty: true }}>
-              <MenuItem value="">All categories</MenuItem>
-              <MenuItem value="Management">Management</MenuItem>
-              <MenuItem value="Non-management">Non-management</MenuItem>
+            <TextField select sx={{ width: 190 }} value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }} inputProps={{ 'aria-label': t('Category') }} SelectProps={{ displayEmpty: true }}>
+              <MenuItem value="">{t('All categories')}</MenuItem>
+              <MenuItem value="Management">{t('Management')}</MenuItem>
+              <MenuItem value="Non-management">{t('Non-management')}</MenuItem>
             </TextField>
           </div>
-          <span className="small muted" role="status">{loading ? 'Loading…' : `${result.total} staff`}</span>
+          <span className="small muted" role="status">{loading ? t('Loading…') : t('{n} staff', { n: result.total })}</span>
         </div>
         <div className="tablewrap">
-          <Table aria-label="Staff records">
+          <Table aria-label={t('Staff records')}>
             <TableHead>
               <TableRow>
-                <TableCell>Staff</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Basic salary (TZS)</TableCell>
-                <TableCell>Profile</TableCell>
-                <TableCell>Sign-in</TableCell>
+                <TableCell>{t('Staff')}</TableCell>
+                <TableCell>{t('Title')}</TableCell>
+                <TableCell>{t('Category')}</TableCell>
+                <TableCell>{t('Type')}</TableCell>
+                <TableCell align="right">{t('Basic salary (TZS)')}</TableCell>
+                <TableCell>{t('Profile')}</TableCell>
+                <TableCell>{t('Sign-in')}</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -92,7 +94,7 @@ export default function StaffListPage() {
               {result.items.map((r) => (
                 <TableRow key={r.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${r.id}`)}>
                   <TableCell>
-                    <b>{r.fullName}</b> {STATUS[r.status]}
+                    <b>{r.fullName}</b> {statusChip(t)[r.status]}
                     <div className="xs muted">{r.staffNo}</div>
                   </TableCell>
                   <TableCell>
@@ -102,10 +104,10 @@ export default function StaffListPage() {
                   <TableCell>{r.category}</TableCell>
                   <TableCell>{r.employmentType}</TableCell>
                   <TableCell align="right" className="num">{formatNumber(r.basic)}</TableCell>
-                  <TableCell>{r.profile.complete ? <Chip size="small" color="success" label="Complete" /> : <Chip size="small" color="warning" label={`${r.profile.done}/${r.profile.total}`} />}</TableCell>
-                  <TableCell className="small">{r.signIn ? (r.signIn === 'active' ? 'Yes' : r.signIn) : <span className="muted">None</span>}</TableCell>
+                  <TableCell>{r.profile.complete ? <Chip size="small" color="success" label={t('Complete')} /> : <Chip size="small" color="warning" label={`${r.profile.done}/${r.profile.total}`} />}</TableCell>
+                  <TableCell className="small">{r.signIn ? (r.signIn === 'active' ? t('Yes') : t(r.signIn)) : <span className="muted">{t('None')}</span>}</TableCell>
                   <TableCell align="right">
-                    <Button size="small" component={RouterLink} to={`/staff/${r.id}`} onClick={(e) => e.stopPropagation()}>Open</Button>
+                    <Button size="small" component={RouterLink} to={`/staff/${r.id}`} onClick={(e) => e.stopPropagation()}>{t('Open')}</Button>
                   </TableCell>
                 </TableRow>
               ))}

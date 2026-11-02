@@ -12,6 +12,7 @@ import { pct } from '../../../lib/dates';
 import StateChip, { PRODUCT_STATUS } from '../../../components/StateChip';
 import ChangeDialog from './ChangeDialog';
 import s from './products.module.css';
+import { useT } from '../../../i18n';
 
 function OpenChange({ change, href }) {
   if (!change) return null;
@@ -23,17 +24,18 @@ function OpenChange({ change, href }) {
 }
 
 function PricingCard({ pricing, canMake, onChange }) {
+  const t = useT();
   const live = pricing?.live;
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid var(--line-2)', flexWrap: 'wrap' }}>
         <div>
-          <h3>Pricing for all products</h3>
-          {live && <span className="small muted">Version {live.version}, in force since {formatDate(live.liveFrom)}</span>}
+          <h3>{t('Pricing for all products')}</h3>
+          {live && <span className="small muted">{t('Version {n}, in force since {date}', { n: live.version, date: formatDate(live.liveFrom) })}</span>}
         </div>
         <div className="row">
           <OpenChange change={pricing?.openChange} href={`/admin/pricing/versions/${pricing?.openChange?.id}`} />
-          {canMake && !pricing?.openChange && <Button size="small" onClick={onChange}>Change pricing</Button>}
+          {canMake && !pricing?.openChange && <Button size="small" onClick={onChange}>{t('Change pricing')}</Button>}
         </div>
       </div>
       {live ? (
@@ -49,18 +51,18 @@ function PricingCard({ pricing, canMake, onChange }) {
             ].map(([v, l]) => (
               <div key={l} className={s.figure}>
                 <div className={s.v}>{v}</div>
-                <div className={s.l}>{l}</div>
+                <div className={s.l}>{t(l)}</div>
               </div>
             ))}
           </div>
-          <h4 style={{ margin: '20px 0 8px' }}>PAYE bands</h4>
+          <h4 style={{ margin: '20px 0 8px' }}>{t('PAYE bands')}</h4>
           <div className="tablewrap">
-            <Table size="small" aria-label="PAYE bands in force">
+            <Table size="small" aria-label={t('PAYE bands in force')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Taxable pay from (TZS)</TableCell>
-                  <TableCell align="right">Base (TZS)</TableCell>
-                  <TableCell align="right">Rate on excess</TableCell>
+                  <TableCell>{t('Taxable pay from (TZS)')}</TableCell>
+                  <TableCell align="right">{t('Base (TZS)')}</TableCell>
+                  <TableCell align="right">{t('Rate on excess')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -76,13 +78,14 @@ function PricingCard({ pricing, canMake, onChange }) {
           </div>
         </div>
       ) : (
-        <div style={{ padding: 24 }} className="muted">No pricing is in force.</div>
+        <div style={{ padding: 24 }} className="muted">{t('No pricing is in force.')}</div>
       )}
     </Card>
   );
 }
 
 export default function ProductsPage() {
+  const t = useT();
   const navigate = useNavigate();
   const permissions = useSelector((st) => st.auth.permissions);
   const canMake = permissions.includes('products.make');
@@ -107,23 +110,23 @@ export default function ProductsPage() {
 
   const waiting = [
     ...rows.filter((r) => r.openChange?.state === 'pending_approval').map((r) => ({ label: `${r.name} (${r.code}) version ${r.openChange.version}`, href: `/admin/products/versions/${r.openChange.id}` })),
-    ...(pricing?.openChange?.state === 'pending_approval' ? [{ label: `Pricing version ${pricing.openChange.version}`, href: `/admin/pricing/versions/${pricing.openChange.id}` }] : []),
+    ...(pricing?.openChange?.state === 'pending_approval' ? [{ label: t('Pricing version {n}', { n: pricing.openChange.version }), href: `/admin/pricing/versions/${pricing.openChange.id}` }] : []),
   ];
 
   return (
     <div className="page">
       <div className="pagehead">
         <div>
-          <h1>Products and pricing</h1>
-          <p>Every rule value lives here, never in code. A maker prepares each change and a different person, the checker, approves it.</p>
+          <h1>{t('Products and pricing')}</h1>
+          <p>{t('Every rule value lives here, never in code. A maker prepares each change and a different person, the checker, approves it.')}</p>
         </div>
-        {canMake && <Button variant="contained" component={RouterLink} to="/admin/products/new">New product</Button>}
+        {canMake && <Button variant="contained" component={RouterLink} to="/admin/products/new">{t('New product')}</Button>}
       </div>
       <div className="stack">
         {error && <Alert severity="error">{error}</Alert>}
         {waiting.length > 0 && (
           <Alert severity="warning">
-            <AlertTitle>{canCheck ? 'Waiting for your approval' : 'Waiting for a checker'}</AlertTitle>
+            <AlertTitle>{canCheck ? t('Waiting for your approval') : t('Waiting for a checker')}</AlertTitle>
             {waiting.map((w) => (
               <div key={w.href}>
                 <Link component={RouterLink} to={w.href}>{w.label}</Link>
@@ -132,26 +135,26 @@ export default function ProductsPage() {
           </Alert>
         )}
         <Alert severity="warning">
-          <AlertTitle>Some product values are still samples</AlertTitle>
-          Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).
+          <AlertTitle>{t('Some product values are still samples')}</AlertTitle>
+          {t('Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).')}
         </Alert>
         <PricingCard pricing={pricing} canMake={canMake} onChange={() => setDialog({ kind: 'pricing' })} />
         <Card>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-            <h3>Products</h3>
+            <h3>{t('Products')}</h3>
           </div>
           <div className="tablewrap">
-            <Table aria-label="Products">
+            <Table aria-label={t('Products')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="right">Min (TZS)</TableCell>
-                  <TableCell align="right">Max (TZS)</TableCell>
-                  <TableCell>Tenor (months)</TableCell>
-                  <TableCell>Min service</TableCell>
-                  <TableCell>Top-up</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Open change</TableCell>
+                  <TableCell>{t('Product')}</TableCell>
+                  <TableCell align="right">{t('Min (TZS)')}</TableCell>
+                  <TableCell align="right">{t('Max (TZS)')}</TableCell>
+                  <TableCell>{t('Tenor (months)')}</TableCell>
+                  <TableCell>{t('Min service')}</TableCell>
+                  <TableCell>{t('Top-up')}</TableCell>
+                  <TableCell>{t('Status')}</TableCell>
+                  <TableCell>{t('Open change')}</TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
@@ -170,19 +173,19 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell align="right" className="num">{v ? formatNumber(v.minAmount) : '—'}</TableCell>
                       <TableCell align="right" className="num">{v ? formatNumber(v.maxAmount) : '—'}</TableCell>
-                      <TableCell>{v ? `${v.minTenor} to ${v.maxTenor}` : '—'}</TableCell>
+                      <TableCell>{v ? t('{min} to {max}', { min: v.minTenor, max: v.maxTenor }) : '—'}</TableCell>
                       <TableCell>{v ? `${v.minServiceMonths} m` : '—'}</TableCell>
-                      <TableCell>{v ? (v.topUpAllowed ? 'Allowed' : 'No') : '—'}</TableCell>
+                      <TableCell>{v ? (v.topUpAllowed ? t('Allowed') : t('No')) : '—'}</TableCell>
                       <TableCell><StateChip state={r.status} map={PRODUCT_STATUS} /></TableCell>
                       <TableCell><OpenChange change={r.openChange} href={`/admin/products/versions/${r.openChange?.id}`} /></TableCell>
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         {canMake && !r.openChange && r.status !== 'not_live' && (
                           <>
-                            <Button size="small" onClick={() => setDialog({ kind: 'change', row: r })}>Change</Button>{' '}
-                            {r.status === 'active' && <Button size="small" onClick={() => setDialog({ kind: 'deactivate', row: r })}>Deactivate</Button>}{' '}
+                            <Button size="small" onClick={() => setDialog({ kind: 'change', row: r })}>{t('Change')}</Button>{' '}
+                            {r.status === 'active' && <Button size="small" onClick={() => setDialog({ kind: 'deactivate', row: r })}>{t('Deactivate')}</Button>}{' '}
                           </>
                         )}
-                        <Button size="small" variant="text" component={RouterLink} to={`/admin/products/${r.id}`}>History</Button>
+                        <Button size="small" variant="text" component={RouterLink} to={`/admin/products/${r.id}`}>{t('History')}</Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -195,9 +198,9 @@ export default function ProductsPage() {
 
       {dialog?.kind === 'pricing' && (
         <ChangeDialog
-          title="Change pricing"
-          intro="Starts a draft of the pricing in force. You edit it next, then submit it to a checker."
-          action="Start draft"
+          title={t('Change pricing')}
+          intro={t('Starts a draft of the pricing in force. You edit it next, then submit it to a checker.')}
+          action={t('Start draft')}
           onClose={() => setDialog(null)}
           onCreate={async (body) => {
             const v = await productsApi.pricingDraft(body);
@@ -207,9 +210,9 @@ export default function ProductsPage() {
       )}
       {dialog?.kind === 'change' && (
         <ChangeDialog
-          title={`Change ${dialog.row.name}`}
-          intro="Starts a draft from the latest approved version. You edit it next, then submit it to a checker."
-          action="Start draft"
+          title={t('Change {name}', { name: dialog.row.name })}
+          intro={t('Starts a draft from the latest approved version. You edit it next, then submit it to a checker.')}
+          action={t('Start draft')}
           onClose={() => setDialog(null)}
           onCreate={async (body) => {
             const v = await productsApi.createDraft(dialog.row.id, { ...body, changeType: 'change' });
@@ -219,9 +222,9 @@ export default function ProductsPage() {
       )}
       {dialog?.kind === 'deactivate' && (
         <ChangeDialog
-          title={`Deactivate ${dialog.row.name}`}
-          intro="From the effective date the product is hidden from new applications. Applications already in progress continue. A checker must approve this."
-          action="Start deactivation"
+          title={t('Deactivate {name}', { name: dialog.row.name })}
+          intro={t('From the effective date the product is hidden from new applications. Applications already in progress continue. A checker must approve this.')}
+          action={t('Start deactivation')}
           onClose={() => setDialog(null)}
           onCreate={async (body) => {
             const v = await productsApi.createDraft(dialog.row.id, { ...body, changeType: 'deactivate' });

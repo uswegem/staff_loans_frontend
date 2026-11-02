@@ -1,4 +1,7 @@
-// Application statuses (BRD 7.4) with prototype tones. Labels match the API.
+// Application statuses (BRD 7.4) with prototype tones. Labels match the API and are
+// shown in the chosen language (D-94).
+
+import { translate } from '../i18n';
 
 export const STATUS = {
   draft: ['Draft', 'default'],
@@ -17,4 +20,4 @@ export const STATUS = {
 
 export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_disbursement'];
 
-export const statusLabel = (s) => (STATUS[s] || [s])[0];
+export const statusLabel = (s) => translate((STATUS[s] || [s])[0]);

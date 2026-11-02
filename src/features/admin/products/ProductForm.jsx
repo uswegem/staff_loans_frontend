@@ -4,6 +4,7 @@
 import { Button, Checkbox, FormControlLabel, FormGroup, IconButton, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import MoneyInput from '../../../components/MoneyInput';
 import s from './products.module.css';
+import { useT } from '../../../i18n';
 
 const FIELD_TYPES = [
   ['text', 'Short text'],
@@ -42,16 +43,17 @@ function Section({ title, hint, children }) {
 }
 
 export default function ProductForm({ values, onChange, errors = {}, readOnly }) {
+  const t = useT();
   const set = (k) => (v) => onChange({ ...values, [k]: v });
   const err = (k) => (errors[k] ? errors[k].join(' ') : undefined);
   const num = (k, label, props = {}) => (
     <TextField
-      label={label}
+      label={t(label)}
       type="number"
       value={values[k] ?? ''}
       onChange={(e) => set(k)(e.target.value === '' ? null : Number(e.target.value))}
       error={!!errors[k]}
-      helperText={err(k) || props.hint}
+      helperText={err(k) || (props.hint && t(props.hint))}
       disabled={readOnly}
       inputProps={{ min: props.min ?? 0, step: props.step ?? 1, inputMode: 'decimal' }}
     />
@@ -62,14 +64,14 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
 
   return (
     <div className={s.form}>
-      <Section title="Product">
-        <TextField label="Name" required value={values.name} onChange={(e) => set('name')(e.target.value)} error={!!errors.name} helperText={err('name')} disabled={readOnly} />
-        <TextField label="Description shown to staff" value={values.description} onChange={(e) => set('description')(e.target.value)} disabled={readOnly} className={s.full} />
+      <Section title={t('Product')}>
+        <TextField label={t('Name')} required value={values.name} onChange={(e) => set('name')(e.target.value)} error={!!errors.name} helperText={err('name')} disabled={readOnly} />
+        <TextField label={t('Description shown to staff')} value={values.description} onChange={(e) => set('description')(e.target.value)} disabled={readOnly} className={s.full} />
       </Section>
 
-      <Section title="Limits" hint="Amounts are whole shillings. The salary multiple and the affordability test still cap what each applicant can borrow.">
-        <MoneyInput label="Minimum amount" required value={values.minAmount} onChange={set('minAmount')} error={!!errors.minAmount} helperText={err('minAmount')} disabled={readOnly} />
-        <MoneyInput label="Maximum amount" required value={values.maxAmount} onChange={set('maxAmount')} error={!!errors.maxAmount} helperText={err('maxAmount')} disabled={readOnly} />
+      <Section title={t('Limits')} hint={t('Amounts are whole shillings. The salary multiple and the affordability test still cap what each applicant can borrow.')}>
+        <MoneyInput label={t('Minimum amount')} required value={values.minAmount} onChange={set('minAmount')} error={!!errors.minAmount} helperText={err('minAmount')} disabled={readOnly} />
+        <MoneyInput label={t('Maximum amount')} required value={values.maxAmount} onChange={set('maxAmount')} error={!!errors.maxAmount} helperText={err('maxAmount')} disabled={readOnly} />
         {num('maxConcurrent', 'Running loans allowed', { min: 1 })}
         {num('minTenor', 'Minimum tenor (months)', { min: 1 })}
         {num('maxTenor', 'Maximum tenor (months)', { min: 1 })}
@@ -77,32 +79,32 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         {num('reapplyCoolingMonths', 'Minimum number of Months Before Applying for Topup', { hint: 'Counted from the staff member\'s last successful application for this product.' })}
       </Section>
 
-      <Section title="Eligibility" hint="Every staff loan is repaid by salary deduction.">
+      <Section title={t('Eligibility')} hint={t('Every staff loan is repaid by salary deduction.')}>
         <FormGroup>
-          <span className="small" style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Eligible employee categories</span>
+          <span className="small" style={{ fontWeight: 600, color: 'var(--ink-2)' }}>{t('Eligible employee categories')}</span>
           {['Non-management', 'Management'].map((c) => (
-            <FormControlLabel key={c} label={c} control={<Checkbox checked={values.eligibleCategories.includes(c)} onChange={(e) => toggleIn('eligibleCategories', c, e.target.checked)} disabled={readOnly} />} />
+            <FormControlLabel key={c} label={t(c)} control={<Checkbox checked={values.eligibleCategories.includes(c)} onChange={(e) => toggleIn('eligibleCategories', c, e.target.checked)} disabled={readOnly} />} />
           ))}
           {errors.eligibleCategories && <span className="xs" style={{ color: 'var(--bad)', fontWeight: 600 }}>{err('eligibleCategories')}</span>}
         </FormGroup>
         <FormGroup>
-          <FormControlLabel label="Top-up allowed" control={<Checkbox checked={!!values.topUpAllowed} onChange={(e) => set('topUpAllowed')(e.target.checked)} disabled={readOnly} />} />
-          <FormControlLabel label="Contract staff may apply" control={<Checkbox checked={!!values.contractStaffAllowed} onChange={(e) => set('contractStaffAllowed')(e.target.checked)} disabled={readOnly} />} />
+          <FormControlLabel label={t('Top-up allowed')} control={<Checkbox checked={!!values.topUpAllowed} onChange={(e) => set('topUpAllowed')(e.target.checked)} disabled={readOnly} />} />
+          <FormControlLabel label={t('Contract staff may apply')} control={<Checkbox checked={!!values.contractStaffAllowed} onChange={(e) => set('contractStaffAllowed')(e.target.checked)} disabled={readOnly} />} />
         </FormGroup>
       </Section>
 
       <section className={s.section}>
-        <h3>Application fields</h3>
-        <p className="small muted">Extra questions this product asks on the application form.</p>
+        <h3>{t('Application fields')}</h3>
+        <p className="small muted">{t('Extra questions this product asks on the application form.')}</p>
         <div className="tablewrap">
-          <Table size="small" aria-label="Application fields">
+          <Table size="small" aria-label={t('Application fields')}>
             <TableHead>
               <TableRow>
-                <TableCell>Key</TableCell>
-                <TableCell>Label</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Options (comma separated)</TableCell>
-                <TableCell>Mandatory</TableCell>
+                <TableCell>{t('Key')}</TableCell>
+                <TableCell>{t('Label')}</TableCell>
+                <TableCell>{t('Type')}</TableCell>
+                <TableCell>{t('Options (comma separated)')}</TableCell>
+                <TableCell>{t('Mandatory')}</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -118,7 +120,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
                   </TableCell>
                   <TableCell sx={{ minWidth: 150 }}>
                     <TextField select size="small" value={f.type} onChange={(e) => setField(i, { type: e.target.value, options: e.target.value === 'select' ? f.options : [] })} inputProps={{ 'aria-label': `Field ${i + 1} type` }} disabled={readOnly}>
-                      {FIELD_TYPES.map(([k, l]) => <MenuItem key={k} value={k}>{l}</MenuItem>)}
+                      {FIELD_TYPES.map(([k, l]) => <MenuItem key={k} value={k}>{t(l)}</MenuItem>)}
                     </TextField>
                   </TableCell>
                   <TableCell sx={{ minWidth: 200 }}>
@@ -137,7 +139,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
                   </TableCell>
                   <TableCell>
                     {!readOnly && (
-                      <IconButton aria-label={`Remove field ${i + 1}`} onClick={() => set('fields')(values.fields.filter((_, j) => j !== i))}>
+                      <IconButton aria-label={t('Remove field {n}', { n: i + 1 })} onClick={() => set('fields')(values.fields.filter((_, j) => j !== i))}>
                         ×
                       </IconButton>
                     )}
@@ -146,7 +148,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
               ))}
               {!values.fields.length && (
                 <TableRow>
-                  <TableCell colSpan={6} className="small muted">No extra fields.</TableCell>
+                  <TableCell colSpan={6} className="small muted">{t('No extra fields.')}</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -154,7 +156,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         </div>
         {!readOnly && (
           <Button size="small" sx={{ mt: 1.5 }} onClick={() => set('fields')([...values.fields, { key: '', label: '', type: 'text', options: [], mandatory: false }])}>
-            Add field
+            {t('Add field')}
           </Button>
         )}
       </section>

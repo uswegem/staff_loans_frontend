@@ -1,8 +1,10 @@
 import { useRef } from 'react';
 import s from './SignIn.module.css';
+import { useT } from '../../i18n';
 
 /** Six one-digit boxes; typing or pasting moves focus along (prototype .otp). */
 export default function OtpInput({ value, onChange, invalid, describedBy }) {
+  const t = useT();
   const refs = useRef([]);
   const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
 
@@ -28,7 +30,7 @@ export default function OtpInput({ value, onChange, invalid, describedBy }) {
   };
 
   return (
-    <div className={`${s.otp} ${invalid ? s.otpInvalid : ''}`} role="group" aria-label="6-digit code" aria-describedby={describedBy}>
+    <div className={`${s.otp} ${invalid ? s.otpInvalid : ''}`} role="group" aria-label={t('6-digit code')} aria-describedby={describedBy}>
       {digits.map((d, i) => (
         <input
           // eslint-disable-next-line react/no-array-index-key

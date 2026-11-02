@@ -1,5 +1,6 @@
 // Side navigation. Each item shows only to users holding one of its permissions
 // (the API enforces the same permissions; hiding is a convenience, not the control).
+// Group and item labels are English; the shell shows them in the chosen language.
 
 export const NAV = [
   {

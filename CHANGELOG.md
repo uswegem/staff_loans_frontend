@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 – Profile formats, address, language and theme (2 Nov 2026)
+
+- One validation behaviour for every form: red only when empty-and-required or wrong, normal as soon as valid, a specific message for the format (D-93).
+- Phone fields with a fixed +255; NIDA with hyphens added while typing; searchable country list (default Tanzania); Region → District → Ward → Street → House/Plot Number; P.O. Box removed.
+- English/Kiswahili and light/dark switches on the sign-in screen and in the header, remembered after refresh and at the next sign-in (D-94).
+- "You cannot apply for a loan yet" on My profile, Home and Apply lists what People and Culture still have to do; saving a complete profile only says "You can now apply" when nothing is in the way (D-97).
+- The staff form no longer asks for a retirement date; profile and review screens show the one worked out from the verified date of birth (D-98).
+- Sign-in panel: Letshego logo, "Staff Loan Application System", "Internal use only | Contact IT for Support" on a yellow and black gradient (D-96). Reports: "Report Filter".
+
 ## 0.11.0 – Salary deduction, combined cap, Legal and product approvals (2 Nov 2026)
 
 - Apply: drag-and-drop payslip with "The PDF from the Seamless HR System, not older than 45 days. Your limit is worked out from your salary slip."; the repayment step is gone (salary deduction, D-84); top-up picks a running Staff Loans loan; the calculator shows the combined cap breakdown and remaining capacity (D-87).

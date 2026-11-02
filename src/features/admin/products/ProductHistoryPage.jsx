@@ -7,10 +7,12 @@ import { productsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { formatDate, formatDateTime } from '../../../lib/format';
 import StateChip, { PRODUCT_STATUS } from '../../../components/StateChip';
+import { useT } from '../../../i18n';
 
 const CHANGE_TYPE = { create: 'New product', change: 'Change', deactivate: 'Deactivation' };
 
 export default function ProductHistoryPage() {
+  const t = useT();
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [error, setError] = useState(null);
@@ -20,13 +22,13 @@ export default function ProductHistoryPage() {
   }, [id]);
 
   if (error) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!p) return <p className="muted" role="status">Loading…</p>;
+  if (!p) return <p className="muted" role="status">{t('Loading…')}</p>;
   const name = p.versions.find((v) => ['active', 'inactive'].includes(v.state))?.name || p.versions[0]?.name;
 
   return (
     <div className="page">
       <div className="small muted" style={{ marginBottom: 8 }}>
-        <Link component={RouterLink} to="/admin/products" color="inherit">Products and pricing</Link>
+        <Link component={RouterLink} to="/admin/products" color="inherit">{t('Products and pricing')}</Link>
       </div>
       <div className="pagehead">
         <div>
@@ -36,24 +38,24 @@ export default function ProductHistoryPage() {
       </div>
       <Card>
         <div className="tablewrap">
-          <Table aria-label="Versions">
+          <Table aria-label={t('Versions')}>
             <TableHead>
               <TableRow>
-                <TableCell>Version</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Effective from</TableCell>
-                <TableCell>Live from</TableCell>
-                <TableCell>Maker</TableCell>
-                <TableCell>Checker</TableCell>
-                <TableCell>Decided</TableCell>
+                <TableCell>{t('Version')}</TableCell>
+                <TableCell>{t('Type')}</TableCell>
+                <TableCell>{t('State')}</TableCell>
+                <TableCell>{t('Effective from')}</TableCell>
+                <TableCell>{t('Live from')}</TableCell>
+                <TableCell>{t('Maker')}</TableCell>
+                <TableCell>{t('Checker')}</TableCell>
+                <TableCell>{t('Decided')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {p.versions.map((v) => (
                 <TableRow key={v.id} hover>
-                  <TableCell><Link component={RouterLink} to={`/admin/products/versions/${v.id}`}>Version {v.version}</Link></TableCell>
-                  <TableCell>{CHANGE_TYPE[v.changeType]}</TableCell>
+                  <TableCell><Link component={RouterLink} to={`/admin/products/versions/${v.id}`}>{t('Version {n}', { n: v.version })}</Link></TableCell>
+                  <TableCell>{t(CHANGE_TYPE[v.changeType] || v.changeType)}</TableCell>
                   <TableCell><StateChip state={v.state} /></TableCell>
                   <TableCell>{formatDate(v.effectiveFrom)}</TableCell>
                   <TableCell>{v.liveFrom ? formatDateTime(v.liveFrom) : '—'}</TableCell>

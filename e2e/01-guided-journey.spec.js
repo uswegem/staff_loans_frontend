@@ -14,9 +14,15 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await rehema.getByRole('combobox', { name: /Marital status/ }).click();
   await rehema.getByRole('option', { name: 'Single' }).click();
   await rehema.getByLabel(/Date of birth/).fill('1998-04-17');
-  await rehema.getByLabel(/NIDA number/).fill('19980417-41101-00002-15');
-  await rehema.getByLabel(/P\.O\. Box/).fill('P.O. Box 1120, Dodoma');
-  await rehema.getByLabel(/Residence/).fill('Area D, Dodoma');
+  // D-93: the NIDA hyphens are added while typing; the address is Region → District → Ward → Street.
+  await rehema.getByLabel(/NIDA number/).fill('19980417411010000215');
+  await expect(rehema.getByLabel(/NIDA number/)).toHaveValue('19980417-41101-00002-15');
+  await expect(rehema.getByLabel(/P\.O\. Box/)).toHaveCount(0);
+  for (const [label, option] of [['Region', 'Dodoma'], ['District', 'Dodoma'], ['Ward', 'Ipagala']]) {
+    await rehema.getByRole('combobox', { name: new RegExp(`^${label}`) }).click();
+    await rehema.getByRole('option', { name: option, exact: true }).click();
+  }
+  await rehema.getByLabel(/^Street/).fill('Area D');
   await rehema.getByRole('button', { name: 'Save personal details' }).click();
   await expect(rehema.getByText('Saved.', { exact: true })).toBeVisible();
 

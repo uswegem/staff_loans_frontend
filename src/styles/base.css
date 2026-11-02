@@ -27,7 +27,7 @@ a { color: var(--brand-500); }
 .small { font-size: var(--fs-sm); }
 .xs { font-size: var(--fs-xs); }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-:focus-visible { outline: 3px solid #000; box-shadow: 0 0 0 6px var(--y); outline-offset: 2px; border-radius: 3px; }
+:focus-visible { outline: 3px solid var(--strong); box-shadow: 0 0 0 6px var(--y); outline-offset: 2px; border-radius: 3px; }
 /* MUI text fields draw their own focus border; the ring above would add a second box inside them (§3d). */
 .MuiInputBase-input:focus-visible { outline: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -39,3 +39,9 @@ a { color: var(--brand-500); }
 .stack > * + * { margin-top: var(--s5); }
 .tablewrap { overflow-x: auto; }
 .tag { display: inline-block; font-size: var(--fs-xs); font-weight: 600; padding: 1px 8px; border-radius: var(--r-sm); background: var(--canvas); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+
+/* Printed pages are always light, whatever the screen theme (D-94). */
+@media print {
+  body, .MuiPaper-root, .MuiCard-root { background: #fff !important; color: #000 !important; }
+  h1, h2, h3, h4 { color: #000 !important; }
+}

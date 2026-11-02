@@ -16,15 +16,17 @@ import CalculatorPanel from './CalculatorPanel';
 import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
 import s from './apply.module.css';
+import { useT } from '../../i18n';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
 export function Steps({ step }) {
+  const t = useT();
   return (
-    <ol className={s.steps} aria-label="Application steps">
+    <ol className={s.steps} aria-label={t('Application steps')}>
       {STEPS.map((label, i) => (
         <li key={label} className={i === step ? s.on : i < step ? s.done : undefined} aria-current={i === step ? 'step' : undefined}>
-          {label}
+          {t(label)}
         </li>
       ))}
     </ol>
@@ -114,6 +116,7 @@ function FieldInput({ f, value, onChange, error }) {
 }
 
 function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy, onAppChanged }) {
+  const t = useT();
   const p = app.product;
   const q = useLiveQuote(app, form);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -121,7 +124,7 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
   const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
-  const hint = app.payslip ? `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(q.maxAmount)} (up to ${q.maxTenor} months)` : `TZS ${formatNumber(p.minAmount)} to TZS ${formatNumber(p.maxAmount)}; attach your payslip to see your maximum`;
+  const hint = app.payslip ? t('TZS {min} to TZS {max} (up to {n} months)', { min: formatNumber(p.minAmount), max: formatNumber(q.maxAmount), n: q.maxTenor }) : t('TZS {min} to TZS {max}; attach your payslip to see your maximum', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) });
   return (
     <div className={s.split}>
       <Card>
@@ -132,16 +135,16 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
           <PayslipCard app={app} error={errors.payslip} onChanged={onAppChanged} />
           {r.cutoff && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Your last instalment must fall on or before <b>{formatDate(r.cutoff)}</b> ({r.bufferDays} days before you turn {r.age}, from your verified date of birth). You can take up to <b>{maxTenor} months</b>{maxTenor < p.maxTenor ? ` (the product allows ${p.maxTenor})` : ''}.
+              {t('Your last instalment must fall on or before')}{' '}<b>{formatDate(r.cutoff)}</b> {t('({n} days before you turn {age}, from your verified date of birth).', { n: r.bufferDays, age: r.age })} {t('You can take up to')} <b>{t('{n} months', { n: maxTenor })}</b>{maxTenor < p.maxTenor ? ` ${t('(the product allows {n})', { n: p.maxTenor })}` : ''}.
             </Alert>
           )}
           <div className={s.grid}>
-            <MoneyInput label="Amount" required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || hint} />
+            <MoneyInput label={t('Amount')} required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || hint} />
             <div>
-              <TextField label="Tenor (months)" required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || `${p.minTenor} to ${maxTenor} months`} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
-              <Slider aria-label="Tenor slider" min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: '#000' }} />
+              <TextField label={t('Tenor (months)')} required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || t('{min} to {max} months', { min: p.minTenor, max: maxTenor })} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
+              <Slider aria-label={t('Tenor slider')} min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: 'var(--strong)' }} />
             </div>
-            <TextField label="Purpose of the loan" required className={s.full} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} error={!!errors.purpose} helperText={errors.purpose} />
+            <TextField label={t('Purpose of the loan')} required className={s.full} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} error={!!errors.purpose} helperText={errors.purpose} />
             {p.fields.map((f) => (
               <div key={f.key} className={f.type === 'textarea' ? s.full : undefined}>
                 <FieldInput f={f} value={form.productFields[f.key]} error={errors[`productFields.${f.key}`]} onChange={(v) => set({ productFields: { ...form.productFields, [f.key]: v } })} />
@@ -150,14 +153,14 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
             {app.probation.onProbation && (
               <TextField
                 className={s.full}
-                label="Reason for applying during probation"
+                label={t('Reason for applying during probation')}
                 required
                 multiline
                 minRows={2}
                 value={form.probationReason}
                 onChange={(e) => set({ probationReason: e.target.value })}
                 error={!!errors.probationReason}
-                helperText={errors.probationReason || 'You are on probation until the date on your profile. People and Culture will verify your reason.'}
+                helperText={errors.probationReason || t('You are on probation until the date on your profile. People and Culture will verify your reason.')}
               />
             )}
           </div>
@@ -168,34 +171,34 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
                 control={<Checkbox checked={form.topUp.on} onChange={(e) => set({ topUp: { ...form.topUp, on: e.target.checked } })} />}
                 label={
                   <span>
-                    <b>This tops up an existing staff loan</b>
+                    <b>{t('This tops up an existing staff loan')}</b>
                     <br />
-                    <span className="small muted">Its balance is settled from the new loan, and its monthly deduction stops: the new instalment replaces it.</span>
+                    <span className="small muted">{t('Its balance is settled from the new loan, and its monthly deduction stops: the new instalment replaces it.')}</span>
                   </span>
                 }
               />
               {form.topUp.on && (
                 <div className={s.grid} style={{ margin: '8px 0 8px 32px' }}>
-                  <TextField select label="Loan being topped up" value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} error={!!errors['topUp.applicationId']} helperText={errors['topUp.applicationId'] || (topUpLoans.length ? 'One of your running loans in Staff Loans' : 'You have no running loan of this product in Staff Loans to top up.')}>
-                    {topUpLoans.map((l) => <MenuItem key={l.applicationId} value={l.applicationId}>{l.ref}: TZS {formatNumber(l.instalment)} a month</MenuItem>)}
+                  <TextField select label={t('Loan being topped up')} value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} error={!!errors['topUp.applicationId']} helperText={errors['topUp.applicationId'] || (topUpLoans.length ? t('One of your running loans in Staff Loans') : t('You have no running loan of this product in Staff Loans to top up.'))}>
+                    {topUpLoans.map((l) => <MenuItem key={l.applicationId} value={l.applicationId}>{l.ref}: {t('TZS {amount} a month', { amount: formatNumber(l.instalment) })}</MenuItem>)}
                   </TextField>
                 </div>
               )}
             </div>
           )}
 
-          <p className="small muted" style={{ margin: '20px 0 0' }}>Repayment: salary deduction, every month.</p>
+          <p className="small muted" style={{ margin: '20px 0 0' }}>{t('Repayment: salary deduction, every month.')}</p>
 
           {checks.length > 0 && form.amount && form.tenor ? (
             <Alert severity="error" sx={{ mt: 2.5 }}>
-              <AlertTitle>Fix this before you continue</AlertTitle>
+              <AlertTitle>{t('Fix this before you continue')}</AlertTitle>
               <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{checks.map((c) => <li key={c}>{c}</li>)}</ul>
             </Alert>
           ) : null}
 
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
-            <Button onClick={onBack}>Back</Button>
-            <Button type="submit" variant="contained" disabled={busy}>Continue to documents</Button>
+            <Button onClick={onBack}>{t('Back')}</Button>
+            <Button type="submit" variant="contained" disabled={busy}>{t('Continue to documents')}</Button>
           </div>
         </form>
       </Card>
@@ -207,6 +210,7 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
 }
 
 function DocumentsStep({ app, onChanged, onBack, onNext }) {
+  const t = useT();
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const add = async (files) => {
@@ -227,28 +231,28 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   return (
     <Card>
       <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-        <h3>Supporting documents</h3>
-        <span className="tag">Optional</span>
+        <h3>{t('Supporting documents')}</h3>
+        <span className="tag">{t('Optional')}</span>
       </div>
       <div style={{ padding: 24 }}>
-        <p>Documents are optional. Adding them can help reviewers decide faster.</p>
+        <p>{t('Documents are optional. Adding them can help reviewers decide faster.')}</p>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <label className={s.drop}>
-          <div><b style={{ color: '#000' }}>{busy ? 'Uploading…' : 'Choose files'}</b>{busy ? '' : ' or drag them here'}</div>
-          <div className="xs">PDF, JPG or PNG, up to the size limit set by the bank</div>
-          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" aria-label="Choose files" disabled={busy} onChange={(e) => add(e.target.files)} />
+          <div><b style={{ color: 'var(--strong)' }}>{busy ? t('Uploading…') : t('Choose files')}</b>{busy ? '' : ` ${t('or drag them here')}`}</div>
+          <div className="xs">{t('PDF, JPG or PNG, up to the size limit set by the bank')}</div>
+          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" aria-label={t('Choose files')} disabled={busy} onChange={(e) => add(e.target.files)} />
         </label>
         <ul className={s.files}>
           {app.documents.map((d) => (
             <li key={d.id}>
               <span>{d.originalName} <span className="muted xs">{Math.ceil(d.size / 1024)} KB</span></span>
-              <Button size="small" variant="text" sx={{ color: 'var(--bad)' }} onClick={async () => { await applicationsApi.removeDocument(app.id, d.id); onChanged(); }} aria-label={`Remove ${d.originalName}`}>Remove</Button>
+              <Button size="small" variant="text" sx={{ color: 'var(--bad)' }} onClick={async () => { await applicationsApi.removeDocument(app.id, d.id); onChanged(); }} aria-label={`Remove ${d.originalName}`}>{t('Remove')}</Button>
             </li>
           ))}
         </ul>
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
-          <Button onClick={onBack}>Back</Button>
-          <Button variant="contained" onClick={onNext}>Review application</Button>
+          <Button onClick={onBack}>{t('Back')}</Button>
+          <Button variant="contained" onClick={onNext}>{t('Review application')}</Button>
         </div>
       </div>
     </Card>
@@ -256,6 +260,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
 }
 
 function ReviewStep({ app, form, onBack, onNext, onEdit }) {
+  const t = useT();
   const p = app.product;
   const q = useLiveQuote(app, form);
   const draftRoute = { ...app, status: 'draft' };
@@ -264,43 +269,43 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
       <div className="stack">
         <Card>
           <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-            <h3>Loan</h3>
-            <Button size="small" variant="text" onClick={() => onEdit(1)}>Edit</Button>
+            <h3>{t('Loan')}</h3>
+            <Button size="small" variant="text" onClick={() => onEdit(1)}>{t('Edit')}</Button>
           </div>
           <dl className={s.kv} style={{ padding: 24 }}>
-            <dt>Product</dt><dd>{p.name}</dd>
-            <dt>Amount</dt><dd>{formatTzs(form.amount)}</dd>
-            <dt>Tenor</dt><dd>{form.tenor} months</dd>
-            <dt>Purpose</dt><dd>{form.purpose}</dd>
+            <dt>{t('Product')}</dt><dd>{p.name}</dd>
+            <dt>{t('Amount')}</dt><dd>{formatTzs(form.amount)}</dd>
+            <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: form.tenor })}</dd>
+            <dt>{t('Purpose')}</dt><dd>{form.purpose}</dd>
             {p.fields.map((f) => (
               <Fragment key={f.key}><dt>{f.label}</dt><dd>{f.type === 'money' ? formatTzs(form.productFields[f.key]) : String(form.productFields[f.key] ?? '—')}</dd></Fragment>
             ))}
-            <dt>Repayment</dt><dd>Salary deduction</dd>
-            {form.topUp.on && (<><dt>Top-up of</dt><dd>{(app.existingLoans || []).find((l) => l.applicationId === form.topUp.applicationId)?.ref || '—'}</dd></>)}
-            {app.probation.onProbation && (<><dt>Probation reason</dt><dd>{form.probationReason}</dd></>)}
+            <dt>{t('Repayment')}</dt><dd>{t('Salary deduction')}</dd>
+            {form.topUp.on && (<><dt>{t('Top-up of')}</dt><dd>{(app.existingLoans || []).find((l) => l.applicationId === form.topUp.applicationId)?.ref || '—'}</dd></>)}
+            {app.probation.onProbation && (<><dt>{t('Probation reason')}</dt><dd>{form.probationReason}</dd></>)}
           </dl>
         </Card>
         <Card>
           <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-            <h3>Documents</h3>
-            <Button size="small" variant="text" onClick={() => onEdit(2)}>Edit</Button>
+            <h3>{t('Documents')}</h3>
+            <Button size="small" variant="text" onClick={() => onEdit(2)}>{t('Edit')}</Button>
           </div>
-          <div className="small" style={{ padding: 24 }}>{app.documents.length ? app.documents.map((d) => <div key={d.id}>{d.originalName}</div>) : <span className="muted">None attached</span>}</div>
+          <div className="small" style={{ padding: 24 }}>{app.documents.length ? app.documents.map((d) => <div key={d.id}>{d.originalName}</div>) : <span className="muted">{t('None attached')}</span>}</div>
         </Card>
         <Card>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>What happens next</h3></div>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('What happens next')}</h3></div>
           <div style={{ padding: 24 }}>
             <LoanRoute app={draftRoute} />
-            <p className="small muted" style={{ marginTop: 12 }}>Each reviewer has a working-hours target. You can follow every step and get an in-app notification when it moves.</p>
+            <p className="small muted" style={{ marginTop: 12 }}>{t('Each reviewer has a working-hours target. You can follow every step and get an in-app notification when it moves.')}</p>
           </div>
         </Card>
       </div>
       <Card className={s.sticky}>
         <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} />
         <div style={{ padding: 24, borderTop: '1px solid var(--line-2)' }}>
-          <p className="small muted" style={{ margin: '0 0 12px' }}>Next you read the loan agreement for these terms and sign it. Signing submits the application.</p>
-          <Button variant="contained" fullWidth onClick={onNext}>Continue to agreement</Button>
-          <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>Back</Button>
+          <p className="small muted" style={{ margin: '0 0 12px' }}>{t('Next you read the loan agreement for these terms and sign it. Signing submits the application.')}</p>
+          <Button variant="contained" fullWidth onClick={onNext}>{t('Continue to agreement')}</Button>
+          <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>{t('Back')}</Button>
         </div>
       </Card>
     </div>
@@ -308,6 +313,7 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
 }
 
 function SignStep({ app, onBack, onSigned }) {
+  const t = useT();
   const docRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [read, setRead] = useState(false);
@@ -349,8 +355,8 @@ function SignStep({ app, onBack, onSigned }) {
   const allTicked = Object.values(consents).every(Boolean) && agree;
   const sign = async (e) => {
     e.preventDefault();
-    if (!allTicked) return setError('Tick every statement and the agreement to sign.');
-    if (!password) return setError('Enter your password to sign.');
+    if (!allTicked) return setError(t('Tick every statement and the agreement to sign.'));
+    if (!password) return setError(t('Enter your password to sign.'));
     setBusy(true);
     setError(null);
     try {
@@ -363,62 +369,62 @@ function SignStep({ app, onBack, onSigned }) {
         setProgress(0);
         await load();
       }
-      setError(x.code === 'PASSWORD_WRONG' ? `Your password is not right. ${x.details.remainingAttempts} attempts left before the account locks.` : x.message);
+      setError(x.code === 'PASSWORD_WRONG' ? t('Your password is not right. {n} attempts left before the account locks.', { n: x.details.remainingAttempts }) : x.message);
       setPassword('');
       setBusy(false);
     }
     return undefined;
   };
 
-  if (!preview) return error ? <Alert severity="error">{error}</Alert> : <p className="muted" role="status">Preparing your agreement…</p>;
-  const t = preview.terms;
+  if (!preview) return error ? <Alert severity="error">{error}</Alert> : <p className="muted" role="status">{t('Preparing your agreement…')}</p>;
+  const terms = preview.terms;
 
   return (
     <div className={s.split}>
       <div>
         {resubmit && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            <AlertTitle>You are signing a new agreement</AlertTitle>
-            Your earlier signed agreement for {app.ref} is replaced by this one when you resubmit.
+            <AlertTitle>{t('You are signing a new agreement')}</AlertTitle>
+            {t('Your earlier signed agreement for {ref} is replaced by this one when you resubmit.', { ref: app.ref })}
           </Alert>
         )}
-        {preview.template.sample && <Alert severity="warning" sx={{ mb: 2 }}>Sample agreement text: Legal loads the approved version before go-live.</Alert>}
+        {preview.template.sample && <Alert severity="warning" sx={{ mb: 2 }}>{t('Sample agreement text: Legal loads the approved version before go-live.')}</Alert>}
         <AgreementDoc ref={docRef} blocks={preview.blocks} onScroll={onScroll} />
         <div className={s.readbar} aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
-        <p className="xs muted" role="status">{read ? 'You have reached the end of the agreement.' : 'Scroll to the end of the agreement to sign it.'}</p>
+        <p className="xs muted" role="status">{read ? t('You have reached the end of the agreement.') : t('Scroll to the end of the agreement to sign it.')}</p>
       </div>
       <Card className={s.sticky}>
         <form onSubmit={sign} noValidate>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>Sign and submit</h3></div>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('Sign and submit')}</h3></div>
           <div style={{ padding: 24 }}>
             <dl className={s.kv}>
-              <dt>Amount</dt><dd>{formatTzs(t.amount)}</dd>
-              <dt>Tenor</dt><dd>{t.tenor} months</dd>
-              <dt>Instalment</dt><dd>{formatTzs(t.instalment)}</dd>
-              <dt>Fees</dt><dd>{formatTzs(t.fees)}</dd>
-              <dt>Total to repay</dt><dd>{formatTzs(t.totalRepayable)}</dd>
+              <dt>{t('Amount')}</dt><dd>{formatTzs(terms.amount)}</dd>
+              <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: terms.tenor })}</dd>
+              <dt>{t('Instalment')}</dt><dd>{formatTzs(terms.instalment)}</dd>
+              <dt>{t('Fees')}</dt><dd>{formatTzs(terms.fees)}</dd>
+              <dt>{t('Total to repay')}</dt><dd>{formatTzs(terms.totalRepayable)}</dd>
             </dl>
             <fieldset className={s.consents} disabled={!read}>
-              <legend className="small" style={{ fontWeight: 700, margin: '14px 0 4px' }}>Declaration and consents</legend>
+              <legend className="small" style={{ fontWeight: 700, margin: '14px 0 4px' }}>{t('Declaration and consents')}</legend>
               {CONSENTS.map(([k, sw, en]) => (
                 <label key={k} className={s.check}>
                   <input type="checkbox" checked={consents[k]} onChange={(e) => setConsents((c) => ({ ...c, [k]: e.target.checked }))} />
-                  <span><b lang="sw">{sw}</b><br /><span className="xs muted">{en}</span></span>
+                  <span><b lang="sw">{sw}</b><br /><span className="xs muted" lang="en">{en}</span></span>
                 </label>
               ))}
               <label className={s.check}>
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted">I have read, understood and accept all the terms of this agreement.</span></span>
+                <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted" lang="en">I have read, understood and accept all the terms of this agreement.</span></span>
               </label>
-              <TextField label="Enter your password to sign" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} sx={{ mt: 1 }} />
+              <TextField label={t('Enter your password to sign')} type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} sx={{ mt: 1 }} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
             <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !allTicked || !password || busy}>
-              {resubmit ? 'Sign and resubmit' : 'Sign agreement and submit'}
+              {resubmit ? t('Sign and resubmit') : t('Sign agreement and submit')}
             </Button>
-            <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>Back</Button>
+            <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>{t('Back')}</Button>
             <p className="xs muted" style={{ marginTop: 12 }}>
-              Signing records your name, time, IP address and a fingerprint of this exact text. The agreement takes effect when the application gets final approval on these terms. If a reviewer changes the amount or tenor, you accept a revised agreement before the loan is paid. If the application is rejected or withdrawn it becomes void; if it is returned, you sign a new one when you resubmit.
+              {t('Signing records your name, time, IP address and a fingerprint of this exact text. The agreement takes effect when the application gets final approval on these terms. If a reviewer changes the amount or tenor, you accept a revised agreement before the loan is paid. If the application is rejected or withdrawn it becomes void; if it is returned, you sign a new one when you resubmit.')}
             </p>
           </div>
         </form>
@@ -428,6 +434,7 @@ function SignStep({ app, onBack, onSigned }) {
 }
 
 export default function ApplyWizardPage() {
+  const t = useT();
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
@@ -456,7 +463,7 @@ export default function ApplyWizardPage() {
     if (!app || !form || !app.editable) return undefined;
     const body = JSON.stringify(bodyOf(form, app));
     if (body === saved.current) return undefined;
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const a = await applicationsApi.update(app.id, JSON.parse(body));
         saved.current = body;
@@ -465,7 +472,7 @@ export default function ApplyWizardPage() {
         /* shown when continuing */
       }
     }, 600);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [form, app]);
 
   const saveNow = async () => {
@@ -482,7 +489,7 @@ export default function ApplyWizardPage() {
       const a = await saveNow();
       const c = a.checks;
       if (Object.keys(c.fieldErrors).length || c.checks.length || c.eligibility.length) {
-        setError(Object.keys(c.fieldErrors).length ? 'Fill in the required fields.' : c.eligibility[0] || c.checks[0]);
+        setError(Object.keys(c.fieldErrors).length ? t('Fill in the required fields.') : c.eligibility[0] || c.checks[0]);
       } else setStep(2);
     } catch (err) {
       setError(apiError(err).message);
@@ -492,33 +499,33 @@ export default function ApplyWizardPage() {
   };
 
   if (error && !app) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!app || !form) return <p className="muted" role="status">Loading…</p>;
+  if (!app || !form) return <p className="muted" role="status">{t('Loading…')}</p>;
   if (!app.editable) {
     return (
       <div className="page">
-        <Alert severity="info" action={<Button component={RouterLink} to={`/applications/${app.id}`}>View application</Button>}>{app.ref} is {app.statusLabel.toLowerCase()}. It can no longer be changed.</Alert>
+        <Alert severity="info" action={<Button component={RouterLink} to={`/applications/${app.id}`}>{t('View application')}</Button>}>{t('{ref} is {status}. It can no longer be changed.', { ref: app.ref, status: t(app.statusLabel).toLowerCase() })}</Alert>
       </div>
     );
   }
 
   const correcting = app.status === 'returned';
-  const title = correcting ? `Correct ${app.ref}` : 'Apply for a loan';
+  const title = correcting ? t('Correct {ref}', { ref: app.ref }) : t('Apply for a loan');
 
   return (
     <div className="page">
       <div className="small muted" style={{ marginBottom: 8 }}>
-        <RouterLink to="/" style={{ color: 'inherit' }}>Home</RouterLink> / {correcting ? <><RouterLink to={`/applications/${app.id}`} style={{ color: 'inherit' }}>{app.ref}</RouterLink> / </> : null}{title}
+        <RouterLink to="/" style={{ color: 'inherit' }}>{t('Home')}</RouterLink> / {correcting ? <><RouterLink to={`/applications/${app.id}`} style={{ color: 'inherit' }}>{app.ref}</RouterLink> / </> : null}{title}
       </div>
       <div className="pagehead">
         <div>
           <h1>{title}</h1>
-          <p>{correcting ? 'Make the changes asked for, then resubmit. It goes back to the first review stage.' : `${app.ref}. Your details fill in from your profile. You only add the loan request.`}</p>
+          <p>{correcting ? t('Make the changes asked for, then resubmit. It goes back to the first review stage.') : `${app.ref}. ${t('Your details fill in from your profile. You only add the loan request.')}`}</p>
         </div>
-        {!correcting && <Button variant="text" onClick={async () => { await applicationsApi.withdraw(app.id, 'Draft cancelled').catch(() => {}); navigate('/'); }}>Cancel application</Button>}
+        {!correcting && <Button variant="text" onClick={async () => { await applicationsApi.withdraw(app.id, 'Draft cancelled').catch(() => {}); navigate('/'); }}>{t('Cancel application')}</Button>}
       </div>
       <Steps step={step} />
       {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>This product is no longer available for new applications.</Alert>}
+      {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...app.checks.eligibility, ...app.checks.checks]} busy={busy} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={setApp} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}

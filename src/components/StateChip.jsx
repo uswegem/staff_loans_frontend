@@ -1,4 +1,5 @@
 import { Chip } from '@mui/material';
+import { useT } from '../i18n';
 
 // Maker-checker states (FR-63) with prototype status tones.
 export const VERSION_STATES = {
@@ -19,6 +20,7 @@ export const PRODUCT_STATUS = {
 };
 
 export default function StateChip({ state, map = VERSION_STATES }) {
+  const t = useT();
   const [label, color] = map[state] || [state, 'default'];
-  return <Chip size="small" color={color} label={label} />;
+  return <Chip size="small" color={color} label={t(label)} />;
 }

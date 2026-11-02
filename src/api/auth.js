@@ -11,6 +11,7 @@ export const authApi = {
   mfaEnrolStart: (mfaToken) => data(api.post('/auth/mfa/enrol/start', { mfaToken })),
   mfaEnrolConfirm: (mfaToken, code) => data(api.post('/auth/mfa/enrol/confirm', { mfaToken, code })),
   me: () => data(api.get('/auth/me')),
+  savePreferences: (prefs) => data(api.patch('/auth/preferences', prefs)),
   changePassword: (currentPassword, newPassword) => data(api.post('/auth/change-password', { currentPassword, newPassword })),
   refresh: () => refreshSession(),
   async logout() {

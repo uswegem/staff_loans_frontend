@@ -9,8 +9,10 @@ import { apiError } from '../../api/client';
 import { formatDateTime } from '../../lib/format';
 import { safePath } from '../../lib/safePath';
 import styles from './Notifications.module.css';
+import { useT } from '../../i18n';
 
 export default function NotificationsPage() {
+  const t = useT();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -38,27 +40,27 @@ export default function NotificationsPage() {
     <div className="page">
       <div className="pagehead">
         <div>
-          <h1>Notifications</h1>
-          <p>Updates on your applications and items waiting for you. Staff Loans sends notifications in the app only.</p>
+          <h1>{t('Notifications')}</h1>
+          <p>{t('Updates on your applications and items waiting for you. Staff Loans sends notifications in the app only.')}</p>
         </div>
-        <Button onClick={readAll} disabled={!data?.unread}>Mark all read</Button>
+        <Button onClick={readAll} disabled={!data?.unread}>{t('Mark all read')}</Button>
       </div>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {!data && !error && <p className="muted" role="status">Loading…</p>}
+      {!data && !error && <p className="muted" role="status">{t('Loading…')}</p>}
       {data && (
         <Card>
           {data.items.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center' }}>
-              <h3>No notifications yet</h3>
-              <p className="muted">You will see updates here when your applications move.</p>
+              <h3>{t('No notifications yet')}</h3>
+              <p className="muted">{t('You will see updates here when your applications move.')}</p>
             </div>
           ) : (
-            <ul className={styles.list} aria-label="Notifications">
+            <ul className={styles.list} aria-label={t('Notifications')}>
               {data.items.map((n) => (
                 <li key={n.id}>
                   <button type="button" className={`${styles.note} ${n.read ? '' : styles.unread}`} onClick={() => open(n)}>
                     <b>{n.text}</b>
-                    {!n.read && <span className="visually-hidden"> (unread)</span>}
+                    {!n.read && <span className="visually-hidden">{' '}{t('(unread)')}</span>}
                     <span className={styles.when}>{formatDateTime(n.createdAt)}</span>
                   </button>
                 </li>

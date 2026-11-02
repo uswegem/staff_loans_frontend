@@ -7,8 +7,10 @@ import { applicationsApi } from '../../api/applications';
 import { apiError } from '../../api/client';
 import { formatDate, formatNumber } from '../../lib/format';
 import AppStatusChip from '../../components/AppStatusChip';
+import { useT } from '../../i18n';
 
 export default function MyApplicationsPage() {
+  const t = useT();
   const navigate = useNavigate();
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
@@ -20,25 +22,25 @@ export default function MyApplicationsPage() {
     <div className="page">
       <div className="pagehead">
         <div>
-          <h1>My applications</h1>
-          <p>Every staff loan you applied for, and where it is now.</p>
+          <h1>{t('My applications')}</h1>
+          <p>{t('Every staff loan you applied for, and where it is now.')}</p>
         </div>
-        <Button variant="contained" component={RouterLink} to="/apply">Apply for a loan</Button>
+        <Button variant="contained" component={RouterLink} to="/apply">{t('Apply for a loan')}</Button>
       </div>
       {error && <Alert severity="error">{error}</Alert>}
-      {rows && !rows.length && <Alert severity="info">You have not applied for a staff loan yet.</Alert>}
+      {rows && !rows.length && <Alert severity="info">{t('You have not applied for a staff loan yet.')}</Alert>}
       {rows && rows.length > 0 && (
         <Card>
           <div className="tablewrap">
-            <Table aria-label="My applications">
+            <Table aria-label={t('My applications')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Reference</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="right">Amount (TZS)</TableCell>
-                  <TableCell>Tenor</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Submitted</TableCell>
+                  <TableCell>{t('Reference')}</TableCell>
+                  <TableCell>{t('Product')}</TableCell>
+                  <TableCell align="right">{t('Amount (TZS)')}</TableCell>
+                  <TableCell>{t('Tenor')}</TableCell>
+                  <TableCell>{t('Status')}</TableCell>
+                  <TableCell>{t('Submitted')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

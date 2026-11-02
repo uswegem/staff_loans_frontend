@@ -8,8 +8,10 @@ import { usersApi } from '../../../api/admin';
 import { apiError } from '../../../api/client';
 import { isoDay } from '../../../lib/format';
 import { conflictsFor, needsMfa } from './sod';
+import { useT } from '../../../i18n';
 
 export default function UserRolesDialog({ user, roles, catalogue, onClose, onSaved }) {
+  const t = useT();
   const [picked, setPicked] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +33,7 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
     return [...set];
   }, [chosen]);
   const conflicts = conflictsFor(effective, catalogue);
-  const label = (id) => catalogue.permissions.find((p) => p.id === id)?.label || id;
+  const label = (id) => t(catalogue.permissions.find((p) => p.id === id)?.label || id);
 
   const toggle = (id, on) => setPicked((p) => ({ ...p, [id]: { ...(p[id] || { endsOn: '' }), on } }));
   const setEnd = (id, endsOn) => setPicked((p) => ({ ...p, [id]: { ...(p[id] || { on: true }), endsOn } }));
@@ -59,7 +61,7 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
   return (
     <Dialog open onClose={onClose} maxWidth="md" fullWidth aria-labelledby="roles-title">
       <DialogTitle id="roles-title" sx={{ pb: 0 }}>
-        <span style={{ display: 'block', fontSize: 22, fontWeight: 700 }}>Roles for {user.fullName}</span>
+        <span style={{ display: 'block', fontSize: 22, fontWeight: 700 }}>{t('Roles for {name}', { name: user.fullName })}</span>
         <span className="small muted" style={{ fontWeight: 400 }}>
           {user.staffNo}
           {user.title ? `, ${user.title}` : ''}
@@ -68,7 +70,7 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
       <DialogContent sx={{ pt: 2 }}>
         {(error || conflicts.length > 0) && (
           <Alert severity="error" sx={{ my: 1.5 }} role="alert">
-            <AlertTitle>This combination is not allowed</AlertTitle>
+            <AlertTitle>{t('This combination is not allowed')}</AlertTitle>
             {error || `${conflicts[0].name}. ${conflicts[0].why}`}
           </Alert>
         )}
@@ -76,9 +78,9 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Role</TableCell>
-                <TableCell>Assigned</TableCell>
-                <TableCell>Ends (optional)</TableCell>
+                <TableCell>{t('Role')}</TableCell>
+                <TableCell>{t('Assigned')}</TableCell>
+                <TableCell>{t('Ends (optional)')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -87,12 +89,12 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
                 return (
                   <TableRow key={r.id}>
                     <TableCell>
-                      <b>{r.name}</b> {!r.active && <span className="tag">Inactive</span>}
-                      <div className="xs muted">{r.description}</div>
+                      <b>{t(r.name)}</b> {!r.active && <span className="tag">{t('Inactive')}</span>}
+                      <div className="xs muted">{t(r.description)}</div>
                     </TableCell>
                     <TableCell>
                       <Checkbox
-                        inputProps={{ 'aria-label': `Assign ${r.name}` }}
+                        inputProps={{ 'aria-label': t('Assign {role}', { role: t(r.name) }) }}
                         checked={isStaff || !!picked[r.id]?.on}
                         disabled={isStaff || (!r.active && !picked[r.id]?.on)}
                         onChange={(e) => toggle(r.id, e.target.checked)}
@@ -100,13 +102,13 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
                     </TableCell>
                     <TableCell>
                       {isStaff ? (
-                        <span className="small muted">Always</span>
+                        <span className="small muted">{t('Always')}</span>
                       ) : (
                         <TextField
                           type="date"
                           size="small"
                           sx={{ maxWidth: 180 }}
-                          inputProps={{ 'aria-label': `End date for ${r.name}`, min: isoDay(new Date()) }}
+                          inputProps={{ 'aria-label': t('End date for {role}', { role: t(r.name) }), min: isoDay(new Date()) }}
                           value={picked[r.id]?.endsOn || ''}
                           disabled={!picked[r.id]?.on}
                           onChange={(e) => setEnd(r.id, e.target.value)}
@@ -120,13 +122,13 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
           </Table>
         </div>
         <h4 style={{ marginTop: 16 }}>
-          Effective permissions {needsMfa(effective, catalogue) && <Chip size="small" color="success" label="MFA required" sx={{ ml: 1 }} />}
+          {t('Effective permissions')} {needsMfa(effective, catalogue) && <Chip size="small" color="success" label={t('MFA required')} sx={{ ml: 1 }} />}
         </h4>
-        <p className="small">{effective.map(label).join('; ') || 'None'}</p>
+        <p className="small">{effective.map(label).join('; ') || t('None')}</p>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={save} disabled={busy}>Save roles</Button>
+        <Button onClick={onClose}>{t('Cancel')}</Button>
+        <Button variant="contained" onClick={save} disabled={busy}>{t('Save roles')}</Button>
       </DialogActions>
     </Dialog>
   );

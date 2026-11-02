@@ -7,10 +7,12 @@ import { Badge, Button, Divider, IconButton, Menu, MenuItem } from '@mui/materia
 import { notificationsApi } from '../api/products';
 import { formatDateTime } from '../lib/format';
 import { safePath } from '../lib/safePath';
+import { useT } from '../i18n';
 
 const POLL_MS = 60 * 1000;
 
 export default function NotificationBell() {
+  const t = useT();
   const [anchor, setAnchor] = useState(null);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -22,8 +24,8 @@ export default function NotificationBell() {
 
   useEffect(() => {
     refreshCount();
-    const t = setInterval(refreshCount, POLL_MS);
-    return () => clearInterval(t);
+    const timer = setInterval(refreshCount, POLL_MS);
+    return () => clearInterval(timer);
   }, [refreshCount]);
 
   const open = async (e) => {
@@ -48,7 +50,7 @@ export default function NotificationBell() {
 
   return (
     <>
-      <IconButton aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} aria-haspopup="menu" onClick={open}>
+      <IconButton aria-label={unread ? t('Notifications, {n} unread', { n: unread }) : t('Notifications')} aria-haspopup="menu" onClick={open}>
         <Badge badgeContent={unread} color="error" max={99}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -58,11 +60,11 @@ export default function NotificationBell() {
       </IconButton>
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} PaperProps={{ sx: { width: 380, maxWidth: 'calc(100vw - 32px)' } }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 16px 8px' }}>
-          <b>Notifications</b>
-          <Button variant="text" size="small" onClick={readAll} disabled={!unread}>Mark all as read</Button>
+          <b>{t('Notifications')}</b>
+          <Button variant="text" size="small" onClick={readAll} disabled={!unread}>{t('Mark all as read')}</Button>
         </div>
         <Divider />
-        {items.length === 0 && <MenuItem disabled>Nothing new.</MenuItem>}
+        {items.length === 0 && <MenuItem disabled>{t('Nothing new.')}</MenuItem>}
         {items.map((n) => (
           <MenuItem key={n.id} onClick={() => go(n)} sx={{ whiteSpace: 'normal', alignItems: 'flex-start', display: 'block', background: n.read ? undefined : 'var(--brand-050)', py: 1.25 }}>
             <div className="small" style={{ fontWeight: n.read ? 400 : 600 }}>{n.text}</div>
@@ -71,7 +73,7 @@ export default function NotificationBell() {
         ))}
         <Divider />
         <MenuItem onClick={() => { setAnchor(null); navigate('/notifications'); }} sx={{ justifyContent: 'center' }}>
-          <span className="small" style={{ color: 'var(--link, inherit)' }}>See all notifications</span>
+          <span className="small" style={{ color: 'var(--link, inherit)' }}>{t('See all notifications')}</span>
         </MenuItem>
       </Menu>
     </>

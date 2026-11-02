@@ -10,10 +10,12 @@ import { apiError } from '../../api/client';
 import { formatDate, formatNumber } from '../../lib/format';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
+import { useT } from '../../i18n';
 
 export const PAYSLIP_HINT = 'The PDF from the Seamless HR System, not older than 45 days. Your limit is worked out from your salary slip.';
 
 export default function PayslipCard({ app, error, onChanged }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
   const slip = app.payslip;
@@ -32,17 +34,17 @@ export default function PayslipCard({ app, error, onChanged }) {
 
   return (
     <section className={s.payslip} aria-labelledby="payslip-h">
-      <h4 id="payslip-h" style={{ margin: '0 0 8px' }}>Latest payslip <span className="small" style={{ color: 'var(--bad)' }}>(required)</span></h4>
-      <FileDrop accept=".pdf" label="Your payslip" inputLabel="Choose payslip PDF" buttonLabel={slip ? 'Attach a newer payslip' : 'Choose payslip PDF'} hint={PAYSLIP_HINT} busy={busy} error={problem || error} onFile={upload} />
+      <h4 id="payslip-h" style={{ margin: '0 0 8px' }}>{t('Latest payslip')}{' '}<span className="small" style={{ color: 'var(--bad)' }}>{t('(required)')}</span></h4>
+      <FileDrop accept=".pdf" label={t('Your payslip')} inputLabel={t('Choose payslip PDF')} buttonLabel={slip ? t('Attach a newer payslip') : t('Choose payslip PDF')} hint={t(PAYSLIP_HINT)} busy={busy} error={problem || error} onFile={upload} />
       {slip && (
         <dl className={s.kv} style={{ marginTop: 12 }}>
-          <dt>Payslip</dt>
+          <dt>{t('Payslip')}</dt>
           <dd>
-            <Link component="button" type="button" onClick={() => downloadFile(`/files/${slip.fileId}`, slip.originalName).catch(() => {})}>{slip.originalName}</Link>, dated {formatDate(slip.payDate)}
+            <Link component="button" type="button" onClick={() => downloadFile(`/files/${slip.fileId}`, slip.originalName).catch(() => {})}>{slip.originalName}</Link>, {t('dated {date}', { date: formatDate(slip.payDate) })}
           </dd>
-          <dt>Basic Pay</dt>
+          <dt>{t('Basic Pay')}</dt>
           <dd>TZS {formatNumber(slip.basic)}</dd>
-          <dt>Staff loan deductions</dt>
+          <dt>{t('Staff loan deductions')}</dt>
           <dd>
             TZS {formatNumber(slip.lfbDeductions)}
             {slip.lfbLines.length > 0 && <span className="xs muted"> ({slip.lfbLines.map((l) => `${l.label} ${formatNumber(l.amount)}`).join('; ')})</span>}
