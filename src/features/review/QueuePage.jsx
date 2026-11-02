@@ -68,12 +68,12 @@ export default function QueuePage() {
                   <TableRow key={r.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/review/${r.id}`)}>
                     <TableCell sx={{ fontWeight: 600 }}>{r.ref}</TableCell>
                     <TableCell>
-                      {r.applicant.fullName}
-                      <div className="xs muted">{r.limited ? `${r.route.label} route` : `${r.applicant.title}, ${r.applicant.category}`}{r.onBehalfOf ? `; for ${r.onBehalfOf}` : ''}</div>
+                      {r.applicant.fullName || `${r.applicant.firstName} ${r.applicant.lastName}`}
+                      <div className="xs muted">{r.limited ? 'Identity only' : `${r.applicant.title}, ${r.applicant.category}`}{r.onBehalfOf ? `; for ${r.onBehalfOf}` : ''}</div>
                     </TableCell>
                     {r.limited ? (
                       <TableCell colSpan={3}>
-                        <span className="tag">Limited details</span> <span className="xs muted">Name, mobile and NIDA only</span>
+                        <span className="tag">Limited details</span> <span className="xs muted">Name, NIDA and mobile only</span>
                       </TableCell>
                     ) : (
                       <>

@@ -7,7 +7,7 @@ import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
 import { formatTzs } from '../../lib/format';
 import { todayEat } from '../../lib/dates';
-import MoneyInput from '../../components/MoneyInput';
+import FileDrop from '../../components/FileDrop';
 import s from '../apply/apply.module.css';
 
 const BUTTON = { approve: 'Approve application', return: 'Return to applicant', reject: 'Reject application' };
@@ -20,7 +20,6 @@ export default function DecisionPanel({ app, onDone }) {
   const [crbFile, setCrbFile] = useState(null);
   const [note, setNote] = useState(app.appraisalNote || '');
   const [arrears, setArrears] = useState('');
-  const [rec, setRec] = useState({ amount: null, tenor: '', reason: '' });
   const [checks, setChecks] = useState({ employment: false, category: false, salary: false, probationReasonVerified: false });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -48,10 +47,6 @@ export default function DecisionPanel({ app, onDone }) {
         if (crb.outcome) body.crb = { outcome: crb.outcome, reportDate: crb.reportDate, ...(fileId ? { fileId } : {}) };
         if (note) body.appraisalNote = note;
         if (arrears) body.arrearsNote = arrears;
-        if (p.canRecommend && action === 'approve' && (rec.amount || rec.tenor)) {
-          body.recommended = { amount: rec.amount || app.amount, tenor: Number(rec.tenor) || app.tenor, reason: rec.reason };
-        }
-        if (p.canRecommend && action === 'return' && (rec.amount || rec.tenor)) body.suggested = { amount: rec.amount || app.amount, tenor: Number(rec.tenor) || app.tenor };
       }
       if (p.needsHrChecks) body.hrChecks = checks;
       const res = await reviewApi.decide(app.id, body);
@@ -83,26 +78,19 @@ export default function DecisionPanel({ app, onDone }) {
         {p.needsCrb && (
           <>
             <h4>Credit bureau check</h4>
-            <p className="xs muted" style={{ margin: 0 }}>{app.limited ? 'Search the bureau with the name, mobile and NIDA number, then record the result.' : 'Run the check in the bureau portal, then record it here.'}</p>
+            <p className="xs muted" style={{ margin: 0 }}>Search the bureau with the name, NIDA number and mobile, then record the result.</p>
             <div className={s.grid}>
               <TextField select label="Outcome" required value={crb.outcome} onChange={(e) => setCrb({ ...crb, outcome: e.target.value })}>
                 {p.crbOutcomes.map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
               </TextField>
               <TextField label="Report date" type="date" required value={crb.reportDate} onChange={(e) => setCrb({ ...crb, reportDate: e.target.value })} />
             </div>
-            <TextField label="Report (optional)" type="file" inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }} onChange={(e) => setCrbFile(e.target.files[0] || null)} />
-            <TextField label={app.limited ? 'Bureau note' : 'Appraisal note'} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={app.limited ? 'What the bureau report shows' : 'Repayment history, anything later approvers should know'} />
-            {!app.limited && <TextField label="Arrears on existing staff loans (BR-10)" value={arrears} onChange={(e) => setArrears(e.target.value)} helperText="Later approvers must comment on any arrears you record." />}
-            {p.canRecommend && (
-              <>
-                <div className={s.grid}>
-                  <MoneyInput label="Recommended amount" value={rec.amount} onChange={(v) => setRec({ ...rec, amount: v })} helperText="Leave blank to keep the signed terms" />
-                  <TextField label="Recommended tenor" type="number" value={rec.tenor} onChange={(e) => setRec({ ...rec, tenor: e.target.value })} placeholder={String(app.tenor)} helperText="Months" />
-                </div>
-                {(rec.amount || rec.tenor) && <TextField label="Why" value={rec.reason} onChange={(e) => setRec({ ...rec, reason: e.target.value })} />}
-                <p className="xs muted" style={{ margin: 0 }}>If you approve at different terms, later approvers see your recommendation and the applicant accepts a revised agreement after final approval. Recommended terms must pass the product limits and affordability.</p>
-              </>
-            )}
+            <div>
+              <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Report (optional)</div>
+              <FileDrop accept=".pdf,.jpg,.jpeg,.png" label="The bureau report" inputLabel="Choose bureau report" buttonLabel="Choose file" hint={crbFile ? `Attached: ${crbFile.name}` : 'PDF, JPG or PNG.'} onFile={setCrbFile} />
+            </div>
+            <TextField label="Appraisal note" multiline minRows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What the bureau report shows, anything later approvers should know" />
+            <TextField label="Arrears on existing staff loans (BR-10)" value={arrears} onChange={(e) => setArrears(e.target.value)} helperText="Later approvers must comment on any arrears you record." />
             <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', width: '100%' }} />
           </>
         )}

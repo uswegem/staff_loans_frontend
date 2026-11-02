@@ -1,7 +1,6 @@
 // Every product parameter from FR-57, edited by the maker. The API validates the
 // same rules (FR-58); messages it returns are shown next to the fields.
 
-import { useEffect, useState } from 'react';
 import { Button, Checkbox, FormControlLabel, FormGroup, IconButton, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import MoneyInput from '../../../components/MoneyInput';
 import s from './products.module.css';
@@ -28,40 +27,9 @@ export const EMPTY_PRODUCT = {
   topUpAllowed: false,
   contractStaffAllowed: false,
   eligibleCategories: ['Management', 'Non-management'],
-  repaymentMethods: ['payroll', 'account'],
-  requiredDocuments: [],
-  optionalDocuments: [],
+  repaymentMethods: ['payroll'],
   fields: [],
-  disbursementConditions: [],
 };
-
-const lines = (arr) => (arr || []).join('\n');
-const toLines = (text) =>
-  text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-/** One item per line; keeps the raw text while typing so new lines are not swallowed. */
-function LinesField({ value, onChange, ...rest }) {
-  const [text, setText] = useState(lines(value));
-  useEffect(() => {
-    if (toLines(text).join('\n') !== lines(value)) setText(lines(value));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-  return (
-    <TextField
-      {...rest}
-      multiline
-      minRows={2}
-      value={text}
-      onChange={(e) => {
-        setText(e.target.value);
-        onChange(toLines(e.target.value));
-      }}
-    />
-  );
-}
 
 function Section({ title, hint, children }) {
   return (
@@ -106,10 +74,10 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         {num('minTenor', 'Minimum tenor (months)', { min: 1 })}
         {num('maxTenor', 'Maximum tenor (months)', { min: 1 })}
         {num('minServiceMonths', 'Minimum service (months)')}
-        {num('reapplyCoolingMonths', 'Months before applying for this product again', { hint: 'Counted from the last successful application.' })}
+        {num('reapplyCoolingMonths', 'Minimum number of Months Before Applying for Topup', { hint: 'Counted from the staff member\'s last successful application for this product.' })}
       </Section>
 
-      <Section title="Eligibility and repayment">
+      <Section title="Eligibility" hint="Every staff loan is repaid by salary deduction.">
         <FormGroup>
           <span className="small" style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Eligible employee categories</span>
           {['Non-management', 'Management'].map((c) => (
@@ -118,25 +86,9 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
           {errors.eligibleCategories && <span className="xs" style={{ color: 'var(--bad)', fontWeight: 600 }}>{err('eligibleCategories')}</span>}
         </FormGroup>
         <FormGroup>
-          <span className="small" style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Repayment methods</span>
-          {[
-            ['payroll', 'Payroll deduction'],
-            ['account', 'Debit from staff account'],
-          ].map(([k, label]) => (
-            <FormControlLabel key={k} label={label} control={<Checkbox checked={values.repaymentMethods.includes(k)} onChange={(e) => toggleIn('repaymentMethods', k, e.target.checked)} disabled={readOnly} />} />
-          ))}
-          {errors.repaymentMethods && <span className="xs" style={{ color: 'var(--bad)', fontWeight: 600 }}>{err('repaymentMethods')}</span>}
-        </FormGroup>
-        <FormGroup>
           <FormControlLabel label="Top-up allowed" control={<Checkbox checked={!!values.topUpAllowed} onChange={(e) => set('topUpAllowed')(e.target.checked)} disabled={readOnly} />} />
           <FormControlLabel label="Contract staff may apply" control={<Checkbox checked={!!values.contractStaffAllowed} onChange={(e) => set('contractStaffAllowed')(e.target.checked)} disabled={readOnly} />} />
         </FormGroup>
-      </Section>
-
-      <Section title="Documents and conditions" hint="One per line. No document is mandatory at launch (decision 7).">
-        <LinesField label="Required documents" value={values.requiredDocuments} onChange={set('requiredDocuments')} error={!!errors.requiredDocuments} helperText={err('requiredDocuments')} disabled={readOnly} />
-        <LinesField label="Optional documents" value={values.optionalDocuments} onChange={set('optionalDocuments')} error={!!errors.optionalDocuments} helperText={err('optionalDocuments')} disabled={readOnly} />
-        <LinesField label="Conditions OPS confirms before disbursement" value={values.disbursementConditions} onChange={set('disbursementConditions')} disabled={readOnly} className={s.full} />
       </Section>
 
       <section className={s.section}>

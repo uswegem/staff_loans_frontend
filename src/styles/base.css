@@ -28,6 +28,8 @@ a { color: var(--brand-500); }
 .xs { font-size: var(--fs-xs); }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 3px solid #000; box-shadow: 0 0 0 6px var(--y); outline-offset: 2px; border-radius: 3px; }
+/* MUI text fields draw their own focus border; the ring above would add a second box inside them (§3d). */
+.MuiInputBase-input:focus-visible { outline: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 .page { max-width: 1180px; margin: 0 auto; }

@@ -36,11 +36,11 @@ export const NAV = [
   {
     group: 'Administration',
     items: [
-      { to: '/admin/products', label: 'Products and pricing', any: ['products.view', 'products.make', 'products.check'] },
+      { to: '/admin/products', label: 'Products and pricing', any: ['products.view', 'products.make', 'products.approveCredit', 'products.approveRisk'] },
       { to: '/admin/users', label: 'Users and roles', any: ['admin.users'] },
       { to: '/admin/roles', label: 'Roles and permissions', any: ['admin.roles'] },
       { to: '/admin/workflow', label: 'Workflow and calendar', any: ['admin.workflow'] },
-      { to: '/admin/templates', label: 'Agreement templates', any: ['admin.templates'] },
+      { to: '/admin/templates', label: 'Agreement templates', any: ['admin.templates', 'templates.approve'] },
       { to: '/admin/audit', label: 'Audit log', any: ['audit.view'] },
     ],
   },

@@ -28,7 +28,10 @@ export const templatesApi = {
   list: () => data(api.get('/admin/templates')),
   get: (id) => data(api.get(`/admin/templates/${id}`)),
   preview: (body) => data(api.post('/admin/templates/preview', { body })),
-  load: (body) => api.post('/admin/templates', body).then((r) => r.data),
+  upload: (body) => api.post('/admin/templates', body).then((r) => r.data),
+  edit: (id, body) => api.put(`/admin/templates/${id}`, body).then((r) => r.data),
+  approve: (id) => api.post(`/admin/templates/${id}/approve`).then((r) => r.data),
+  reject: (id, reason) => api.post(`/admin/templates/${id}/reject`, { reason }).then((r) => r.data),
 };
 
 export const auditApi = {

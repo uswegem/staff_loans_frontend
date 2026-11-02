@@ -1,6 +1,7 @@
 // Review screen (prototype #/review/:id; FR-14). The full view shows the request,
 // signed agreement, affordability steps, rule checks, applicant, documents and
-// history. The limited view (FR-55) shows only name, mobile and NIDA number.
+// history. The Credit Analyst's view (FR-55, D-86) shows only first name, surname, NIDA
+// number and mobile.
 
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
@@ -49,28 +50,29 @@ function LimitedReview({ app, onDone }) {
       <div className="small muted" style={{ marginBottom: 8 }}><Link component={RouterLink} to="/queue" color="inherit">Review queue</Link> / {app.ref}</div>
       <div className="pagehead">
         <div>
-          <h1>{app.applicant.fullName}</h1>
-          <p>{app.ref}, {app.route.label.toLowerCase()} route, submitted {formatDate(app.submittedAt)}</p>
+          <h1>{app.applicant.firstName} {app.applicant.lastName}</h1>
+          <p>{app.ref}, submitted {formatDate(app.submittedAt)}</p>
         </div>
         <div className="row"><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
       </div>
       <div className={s.split}>
         <div className="stack">
           <Alert severity="info">
-            <AlertTitle>Limited details for a management application</AlertTitle>
-            For management staff, the CEO and the Head of People and Culture, the Credit Analyst receives only the name, mobile number and NIDA number. Use them for the credit bureau check. The loan terms, salary, documents and agreement are not shared with you.
+            <AlertTitle>Identity details for the credit bureau check</AlertTitle>
+            The Credit Analyst receives only the applicant&apos;s first name, surname, NIDA number and mobile number. Use them for the credit bureau check. The loan, salary, payslip, affordability, documents and agreement are not shared with you.
           </Alert>
           <Panel title="Details for the credit bureau check" action={<span className="tag">Shared with you</span>}>
             <dl className={s.kv}>
-              <dt>Full name</dt><dd>{app.applicant.fullName}</dd>
-              <dt>Mobile number</dt><dd>{app.applicant.mobile || '—'}</dd>
+              <dt>First Name</dt><dd>{app.applicant.firstName}</dd>
+              <dt>Surname</dt><dd>{app.applicant.lastName}</dd>
               <dt>NIDA number</dt><dd className="num">{app.applicant.nida || 'Not on the profile'}</dd>
+              <dt>Mobile number</dt><dd>{app.applicant.mobile || '—'}</dd>
             </dl>
           </Panel>
-          <Panel title="Not shared on this route">
+          <Panel title="Not shared with the Credit Analyst">
             <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
-              <li>Product, amount, tenor and purpose</li>
-              <li>Salary, deductions and affordability</li>
+              <li>Product, amount, tenor, instalment and purpose</li>
+              <li>Salary, payslip and affordability</li>
               <li>Position, employment record and next of kin</li>
               <li>Supporting documents and the signed agreement</li>
               <li>Other reviewers&apos; comments</li>
@@ -115,7 +117,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>Tenor</dt><dd>{app.tenor} months</dd>
               <dt>Purpose</dt><dd>{app.purpose}</dd>
               {app.product.fields.map((f) => [<dt key={`t${f.key}`}>{f.label}</dt>, <dd key={`d${f.key}`}>{f.type === 'money' ? formatTzs(app.productFields[f.key]) : String(app.productFields[f.key] ?? '—')}</dd>])}
-              <dt>Repayment</dt><dd>{app.repayment.method === 'payroll' ? 'Payroll deduction' : `Debit from ${app.repayment.bank}, ${app.repayment.branch}, account ${app.repayment.accountNo}`}</dd>
+              <dt>Repayment</dt><dd>Salary deduction</dd>
               {app.topUp?.on && (<><dt>Top-up of</dt><dd>{app.topUp.loanRef}, instalment {formatTzs(app.topUp.instalment)}</dd></>)}
               {app.probation.onProbation && (<><dt>Probation reason</dt><dd>{app.probation.reason}</dd></>)}
             </dl>
@@ -159,7 +161,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>Employment</dt><dd>{a.employmentType}, joined {formatDate(a.dateJoined)}</dd>
               <dt>Retirement</dt><dd>{formatDate(a.retirementDate)}</dd>
               <dt>Mobile</dt><dd>{a.mobile}</dd>
-              <dt>Next of kin</dt><dd>{a.nextOfKin ? `${a.nextOfKin.name} (${a.nextOfKin.relationship}), ${a.nextOfKin.phone}` : '—'}</dd>
+              <dt>Next of kin</dt><dd>{a.nextOfKin ? `${[a.nextOfKin.firstName, a.nextOfKin.lastName].filter(Boolean).join(' ') || a.nextOfKin.name || ''} (${a.nextOfKin.relationship}), ${a.nextOfKin.phone}` : '—'}</dd>
               <dt>Staff loans declared</dt><dd>{a.existingLfbLoans.map((l) => `${l.description || 'Staff loan'}${l.instalment ? `: ${formatTzs(l.instalment)} a month` : ''}`).join('; ') || 'None'}</dd>
               <dt>Staff loans in this system</dt><dd>{a.runningLoans.map((r) => `${r.ref}, ${formatTzs(r.amount)}`).join('; ') || 'None'}</dd>
             </dl>
@@ -169,7 +171,7 @@ function FullReview({ app, onDone, onError }) {
               <dl className={s.kv}>
                 <dt>File</dt><dd><Link component="button" type="button" onClick={() => dl(`/files/${app.payslip.fileId}`, app.payslip.originalName)}>{app.payslip.originalName}</Link>, dated {formatDate(app.payslip.payDate)}</dd>
                 <dt>Basic Pay read</dt><dd>{formatTzs(app.payslip.basic)}{a.salaryAtSubmission?.basic && a.salaryAtSubmission.basic !== app.payslip.basic ? <span className="small" style={{ color: 'var(--bad)' }}> (staff record: {formatTzs(a.salaryAtSubmission.basic)})</span> : null}</dd>
-                <dt>LFB deductions read</dt><dd>{formatTzs(app.payslip.lfbDeductions)}{app.payslip.lfbLines.length ? <span className="small muted"> ({app.payslip.lfbLines.map((l) => `${l.label} ${formatTzs(l.amount)}`).join('; ')})</span> : null}</dd>
+                <dt>Staff loan deductions read</dt><dd>{formatTzs(app.payslip.lfbDeductions)}{app.payslip.lfbLines.length ? <span className="small muted"> ({app.payslip.lfbLines.map((l) => `${l.label} ${formatTzs(l.amount)}`).join('; ')})</span> : null}</dd>
               </dl>
               <p className="xs muted" style={{ margin: '8px 0 0' }}>Read from the PDF when it was attached. Open it to confirm the figures before you decide.</p>
             </Panel>

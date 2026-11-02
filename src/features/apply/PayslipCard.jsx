@@ -1,24 +1,24 @@
-// The latest payslip (D-78, D-79). The API reads Basic Pay, LFB deductions and the pay
-// date from the PDF; the staff member sees what was read and can attach a newer one.
+// The latest payslip (D-78, D-79). The API reads Basic Pay, the staff loan deductions and
+// the pay month from the PDF; the staff member sees what was read and can attach a newer
+// one, by drag and drop or the file picker (§1b).
 
-import { useRef, useState } from 'react';
-import { Alert, Button, Link } from '@mui/material';
+import { useState } from 'react';
+import { Alert, Link } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
 import { formatDate, formatNumber } from '../../lib/format';
+import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 
+export const PAYSLIP_HINT = 'The PDF from the Seamless HR System, not older than 45 days. Your limit is worked out from your salary slip.';
+
 export default function PayslipCard({ app, error, onChanged }) {
-  const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
   const slip = app.payslip;
 
-  const choose = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  const upload = async (file) => {
     setBusy(true);
     setProblem(null);
     try {
@@ -32,16 +32,8 @@ export default function PayslipCard({ app, error, onChanged }) {
 
   return (
     <section className={s.payslip} aria-labelledby="payslip-h">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <div>
-          <h4 id="payslip-h" style={{ margin: 0 }}>Latest payslip <span className="small" style={{ color: 'var(--bad)' }}>(required)</span></h4>
-          <p className="xs muted" style={{ margin: '2px 0 0' }}>The PDF from the payroll system, not older than {app.payslipMaxAgeDays} days. Your limit is worked out from its Basic Pay and LFB deductions.</p>
-        </div>
-        <Button variant={slip ? 'outlined' : 'contained'} size="small" disabled={busy} onClick={() => input.current?.click()}>
-          {busy ? 'Reading…' : slip ? 'Attach a newer payslip' : 'Attach payslip'}
-        </Button>
-        <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={choose} aria-label="Choose payslip PDF" />
-      </div>
+      <h4 id="payslip-h" style={{ margin: '0 0 8px' }}>Latest payslip <span className="small" style={{ color: 'var(--bad)' }}>(required)</span></h4>
+      <FileDrop accept=".pdf" label="Your payslip" inputLabel="Choose payslip PDF" buttonLabel={slip ? 'Attach a newer payslip' : 'Choose payslip PDF'} hint={PAYSLIP_HINT} busy={busy} error={problem || error} onFile={upload} />
       {slip && (
         <dl className={s.kv} style={{ marginTop: 12 }}>
           <dt>Payslip</dt>
@@ -50,7 +42,7 @@ export default function PayslipCard({ app, error, onChanged }) {
           </dd>
           <dt>Basic Pay</dt>
           <dd>TZS {formatNumber(slip.basic)}</dd>
-          <dt>LFB deductions</dt>
+          <dt>Staff loan deductions</dt>
           <dd>
             TZS {formatNumber(slip.lfbDeductions)}
             {slip.lfbLines.length > 0 && <span className="xs muted"> ({slip.lfbLines.map((l) => `${l.label} ${formatNumber(l.amount)}`).join('; ')})</span>}

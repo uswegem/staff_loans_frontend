@@ -107,8 +107,7 @@ describe('comparison values', () => {
   it('formats money, rates and lists', () => {
     expect(formatCompareValue('maxAmount', 300000000)).toBe('TZS 300,000,000');
     expect(formatCompareValue('interestBps', 600)).toBe('6%');
-    expect(formatCompareValue('repaymentMethods', ['payroll'])).toBe('Payroll deduction');
+    expect(formatCompareValue('repaymentMethods', ['payroll'])).toBe('Salary deduction');
     expect(formatCompareValue('topUpAllowed', false)).toBe('No');
-    expect(formatCompareValue('optionalDocuments', [])).toBe('—');
   });
 });

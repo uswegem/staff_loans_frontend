@@ -42,7 +42,8 @@ function PersonalTab({ profile, missing, onSave }) {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
       <div className={s.grid}>
-        <Field label="Full name" value={profile.fullName} disabled helperText="From your staff record. Ask People and Culture to correct it." />
+        <Field label="First Name" value={profile.firstName} disabled helperText="From your staff record. Ask People and Culture to correct it." />
+        <Field label="Surname" value={profile.lastName} disabled />
         <Field select label="Marital status" required value={v.maritalStatus} onChange={on('maritalStatus')} error={err('maritalStatus')}>
           {['Single', 'Married', 'Divorced', 'Widowed'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
         </Field>
@@ -125,13 +126,14 @@ function BankTab({ profile, missing, onSave }) {
 
 function KinTab({ profile, missing, onSave }) {
   const k = profile.nextOfKin?.[0] || {};
-  const [v, on] = useForm({ name: k.name || '', relationship: k.relationship || '', phone: k.phone || '', employer: k.employer || '', address: k.address || '' });
+  const [v, on] = useForm({ firstName: k.firstName || '', lastName: k.lastName || '', relationship: k.relationship || '', phone: k.phone || '', employer: k.employer || '', address: k.address || '' });
   const err = (f) => (missing.has(`nextOfKin.0.${f}`) ? 'Required to apply.' : undefined);
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.saveKin([v, ...(profile.nextOfKin || []).slice(1)])); }} noValidate>
       <p className="small muted">At least one next of kin is required.</p>
       <div className={s.grid}>
-        <Field label="Full name" required value={v.name} onChange={on('name')} error={err('name')} />
+        <Field label="First Name" required value={v.firstName} onChange={on('firstName')} error={err('firstName')} />
+        <Field label="Surname" required value={v.lastName} onChange={on('lastName')} error={err('lastName')} />
         <Field select label="Relationship" required value={v.relationship} onChange={on('relationship')} error={err('relationship')}>
           {['Spouse', 'Parent', 'Child', 'Sibling', 'Other relative', 'Guardian'].map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
         </Field>

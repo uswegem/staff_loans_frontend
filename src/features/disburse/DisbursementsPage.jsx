@@ -25,7 +25,7 @@ function Summary({ d }) {
       <dt>Insurance</dt><dd>{formatTzs(d.insuranceFee)}</dd>
       <dt>Credit to</dt><dd>{bank?.accountNo ? `${bank.bank || ''}, ${bank.accountNo}` : 'No bank account in the profile'}</dd>
       <dt>Instalment</dt><dd>{formatTzs(d.instalment)} for {d.tenor} months</dd>
-      <dt>Recovery set-up</dt><dd>{d.repayment.method === 'payroll' ? 'Payroll deduction (HR and Finance)' : `Account debit from ${d.repayment.accountNo} (OPS)`}</dd>
+      <dt>Recovery set-up</dt><dd>Salary deduction (HR and Finance)</dd>
       {d.topUp && <><dt>Top-up</dt><dd>Settle {d.topUp.loanRef} from this loan</dd></>}
     </dl>
   );
@@ -33,7 +33,6 @@ function Summary({ d }) {
 
 function ConfirmDialog({ id, onClose, onDone }) {
   const [d, setD] = useState(null);
-  const [ticks, setTicks] = useState([]);
   const [topUp, setTopUp] = useState(false);
   const [date, setDate] = useState(todayEat());
   const [ref, setRef] = useState('');
@@ -42,19 +41,18 @@ function ConfirmDialog({ id, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    disbursementsApi.get(id).then((x) => { setD(x); setTicks(x.conditions.map(() => false)); setDate(x.today); }).catch((e) => setError(apiError(e).message));
+    disbursementsApi.get(id).then((x) => { setD(x); setDate(x.today); }).catch((e) => setError(apiError(e).message));
   }, [id]);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (ticks.some((t) => !t)) return setError('Tick each condition before you confirm.');
     if (d.topUp && !topUp) return setError('Confirm the old loan balance has been settled.');
     if (!comment.trim()) return setError('Add a comment confirming the disbursement.');
     if (!date) return setError('Enter the disbursement date.');
     setBusy(true);
     setError(null);
     try {
-      const res = await disbursementsApi.confirm(id, { date, transactionRef: ref.trim(), comment: comment.trim(), conditions: ticks, ...(d.topUp ? { topUpSettled: topUp } : {}) });
+      const res = await disbursementsApi.confirm(id, { date, transactionRef: ref.trim(), comment: comment.trim(), ...(d.topUp ? { topUpSettled: topUp } : {}) });
       onDone(res.message);
     } catch (err) {
       setError(apiError(err).message);
@@ -76,13 +74,10 @@ function ConfirmDialog({ id, onClose, onDone }) {
             <>
               <Summary d={d} />
               {d.blockedReason && <Alert severity="warning">{d.blockedReason}</Alert>}
-              {(d.conditions.length > 0 || d.topUp) && (
+              {d.topUp && (
                 <div>
                   <h4 style={{ margin: '0 0 4px' }}>Before you confirm</h4>
-                  {d.conditions.map((c, i) => (
-                    <FormControlLabel key={c} sx={{ display: 'flex' }} control={<Checkbox checked={ticks[i]} onChange={(e) => setTicks((t) => t.map((v, j) => (j === i ? e.target.checked : v)))} />} label={c} />
-                  ))}
-                  {d.topUp && <FormControlLabel sx={{ display: 'flex' }} control={<Checkbox checked={topUp} onChange={(e) => setTopUp(e.target.checked)} />} label={`Balance of ${d.topUp.loanRef} confirmed in core banking and settled`} />}
+                  <FormControlLabel sx={{ display: 'flex' }} control={<Checkbox checked={topUp} onChange={(e) => setTopUp(e.target.checked)} />} label={`Balance of ${d.topUp.loanRef} confirmed in core banking and settled`} />
                 </div>
               )}
               <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
@@ -211,7 +206,7 @@ export default function DisbursementsPage() {
                     <TableCell align="right" className="num">{formatNumber(r.amount)}</TableCell>
                     <TableCell align="right" className="num">{formatNumber(r.fees)}</TableCell>
                     <TableCell align="right" className="num">{formatNumber(r.instalment)}</TableCell>
-                    <TableCell>{r.repayment.method === 'payroll' ? 'Payroll' : 'Account debit'}</TableCell>
+                    <TableCell>Salary deduction</TableCell>
                     <TableCell>{tab === 'ready' ? <Waiting r={r} /> : <>{formatDate(r.disbursement.date)}{r.disbursement.transactionRef && <div className="xs muted">{r.disbursement.transactionRef}</div>}</>}</TableCell>
                     <TableCell align="right">
                       {tab === 'ready' ? (

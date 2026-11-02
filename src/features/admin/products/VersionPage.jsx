@@ -163,13 +163,13 @@ export default function VersionPage({ kind }) {
       <div className="stack">
         {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
         {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
-        {v.state === 'rejected' && (
+        {v.rejectionReason && ['draft', 'rejected'].includes(v.state) && (
           <Alert severity="warning">
             <AlertTitle>Rejected by {v.checker?.name}</AlertTitle>
-            {v.rejectionReason} Edit the draft and submit it again, or discard it.
+            {v.rejectionReason} It is back in draft: edit it and submit it again, or discard it.
           </Alert>
         )}
-        {v.state === 'pending_approval' && v.isEditor && <Alert severity="info">Waiting for a checker. You prepared or edited this change, so someone else must approve it.</Alert>}
+        {v.state === 'pending_approval' && <Alert severity="info">Waiting for the {v.stageLabel || 'approver'}.{v.isEditor ? ' You prepared or edited this change, so someone else must approve it.' : ''} Approval order: Head of Credit, then Head of Risk and Compliance.</Alert>}
         {v.state === 'approved_scheduled' && <Alert severity="info">Approved. It goes live on {formatDate(v.liveFrom)}; the current version stays in force until then.</Alert>}
         {v.changeType === 'deactivate' && ['draft', 'rejected', 'pending_approval'].includes(v.state) && (
           <Alert severity="warning">From the effective date this product is hidden from new applications. Applications already in progress continue.</Alert>
@@ -181,7 +181,8 @@ export default function VersionPage({ kind }) {
             <div><dt>Live from</dt><dd>{v.liveFrom ? formatDateTime(v.liveFrom) : '—'}</dd></div>
             <div><dt>Maker</dt><dd>{v.maker?.name || '—'}</dd></div>
             <div><dt>Submitted</dt><dd>{v.submittedAt ? formatDateTime(v.submittedAt) : '—'}</dd></div>
-            <div><dt>Checker</dt><dd>{v.checker?.name || '—'}</dd></div>
+            <div><dt>Approvals</dt><dd>{(v.approvals || []).length ? v.approvals.map((a) => `${a.stageLabel} ${formatDateTime(a.at)}`).join('; ') : '—'}</dd></div>
+            <div><dt>Final approver</dt><dd>{v.checker?.name || '—'}</dd></div>
             <div><dt>Decided</dt><dd>{v.decidedAt ? formatDateTime(v.decidedAt) : '—'}</dd></div>
           </dl>
           {v.note && <p className="small" style={{ padding: '0 24px 16px', margin: 0 }}><b>Why:</b> {v.note}</p>}
@@ -210,7 +211,7 @@ export default function VersionPage({ kind }) {
                   {v.canRecall && <Button onClick={() => act(() => vapi.recall(vid), 'Taken back to draft.')} disabled={busy}>Take back to draft</Button>}
                   {v.canCheck && (
                     <>
-                      <p className="small" style={{ margin: 0 }}>Check every value and the comparison. Approval puts it live on the effective date.</p>
+                      <p className="small" style={{ margin: 0 }}>Check every value and the comparison. {v.stage === 'credit' ? 'Your approval sends it to the Head of Risk and Compliance.' : 'Your approval publishes it on the effective date.'}</p>
                       <Button variant="contained" onClick={() => act(() => vapi.approve(vid), 'Approved.')} disabled={busy}>Approve</Button>
                       <Button onClick={() => setRejecting(true)} disabled={busy}>Reject</Button>
                     </>

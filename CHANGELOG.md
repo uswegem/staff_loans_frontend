@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0 – Salary deduction, combined cap, Legal and product approvals (2 Nov 2026)
+
+- Apply: drag-and-drop payslip with "The PDF from the Seamless HR System, not older than 45 days. Your limit is worked out from your salary slip."; the repayment step is gone (salary deduction, D-84); top-up picks a running Staff Loans loan; the calculator shows the combined cap breakdown and remaining capacity (D-87).
+- First Name and Surname for staff and next of kin on My profile, staff records and review screens (D-85).
+- Credit Analyst: first name, surname, NIDA number and mobile only; no recommended amount or tenor; drag-and-drop bureau report; one appraisal note box (the doubled textarea outline is fixed) (D-86).
+- Agreement templates: upload and edit (Legal Officer), review, approve or reject with a reason (Head of Legal); status Pending Legal Approval, Approved or Rejected (D-88).
+- Products: approval stages and history on the version page; form without repayment methods, documents and disbursement conditions; "Minimum number of Months Before Applying for Topup" (D-89). Disbursement without the conditions checklist.
+
 ## 0.10.0 – Date of birth verification and retirement cutoff (2 Nov 2026)
 
 - My profile and staff records show the verified date of birth and any change waiting for People and Culture; the submitter can withdraw it.

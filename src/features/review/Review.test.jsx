@@ -14,22 +14,24 @@ const limited = {
   statusLabel: 'Pending Credit Review',
   currentStage: 'credit',
   due: { overdue: false, hoursLeft: 6.8, hoursOverdue: 0, targetHours: 8 },
-  route: { key: 'mgmt', label: 'Management staff', stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] },
   submittedAt: '2026-10-29T08:00:00Z',
-  applicant: { fullName: 'Daniel Mrema', mobile: '+255 754 067 390', nida: '19801211-10067-00007-27' },
+  applicant: { firstName: 'Daniel', lastName: 'Mrema', mobile: '+255 754 067 390', nida: '19801211-10067-00007-27' },
   crb: null,
   myDecisions: [],
   panel: { stage: 'credit', stageLabel: 'Credit Analyst', isFinal: false, nextStageLabel: 'Head of HR', needsCrb: true, canRecommend: false, needsHrChecks: false, needsProbationCheck: false, crbOutcomes: ['Clear', 'Adverse: minor', 'Adverse: serious', 'No record found'] },
 };
 
 describe('review screen', () => {
-  it('limited details show name, mobile and NIDA only (FR-55)', async () => {
+  it('the Credit Analyst sees first name, surname, NIDA and mobile only (D-86)', async () => {
     stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
-    expect(await screen.findByText('Limited details for a management application')).toBeInTheDocument();
+    expect(await screen.findByText('Identity details for the credit bureau check')).toBeInTheDocument();
+    expect(screen.getByText('Daniel')).toBeInTheDocument();
+    expect(screen.getByText('Mrema')).toBeInTheDocument();
+    expect(screen.queryByText(/route/i)).toBeNull();
     expect(screen.getByText('+255 754 067 390')).toBeInTheDocument();
     expect(screen.getByText('19801211-10067-00007-27')).toBeInTheDocument();
-    expect(screen.getByText('Product, amount, tenor and purpose')).toBeInTheDocument();
+    expect(screen.getByText('Product, amount, tenor, instalment and purpose')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Recommended amount/)).toBeNull();
     expect(screen.queryByText(/Affordability/)).toBeNull();
   });

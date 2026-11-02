@@ -15,7 +15,7 @@ export const PASSWORD = process.env.E2E_PASSWORD || 'Sample#2026';
 // payslip that matches their seeded salary (D-79).
 const backend = createRequire(path.join(process.env.E2E_BACKEND_DIR || path.resolve('..', 'staff_loans_backend'), 'package.json'));
 const { PEOPLE } = backend('./seed/data/people.js');
-const { PRICING } = backend('./seed/products.js');
+const { PRICING } = backend('./seed/pricing.js');
 const { samplePayslip } = backend('./seed/samplePayslip.js');
 
 /** A payslip PDF for a seeded person, dated a few days ago. */
@@ -158,24 +158,20 @@ export async function openFromQueue(page, ref) {
   await page.goto('/queue');
   await page.getByRole('cell', { name: ref, exact: true }).click();
   await expect(page).toHaveURL(/\/review\/[0-9a-f]{24}/);
-  await expect(page.getByText('Your decision')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your decision', exact: true })).toBeVisible();
 }
 
 /**
  * Records a decision on the open review screen.
- * opts: { action: 'approve'|'return'|'reject', comment, crb: true, hrChecks: true, recommend: { amount, tenor, reason } }
+ * opts: { action: 'approve'|'return'|'reject', comment, crb: true, hrChecks: true }
  */
-export async function decide(page, { action = 'approve', comment, crb, hrChecks, recommend } = {}) {
+export async function decide(page, { action = 'approve', comment, crb, hrChecks } = {}) {
   if (crb) {
     await page.getByRole('combobox', { name: /Outcome/ }).click();
     await page.getByRole('option', { name: 'Clear' }).click();
     await page.getByLabel(/Report date/).fill(new Date().toISOString().slice(0, 10));
   }
-  if (recommend) {
-    await page.getByLabel('Recommended amount').fill(String(recommend.amount));
-    if (recommend.tenor) await page.getByLabel('Recommended tenor').fill(String(recommend.tenor));
-    await page.getByLabel('Why').fill(recommend.reason);
-  }
+
   if (hrChecks) {
     for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Category is|Basic Pay of|I have verified the probation reason)/ }).all()) await box.check();
   }

@@ -1,0 +1,4 @@
+/* Drag-and-drop box (§1b, §3c). */
+.drop { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s5) var(--s4); border: 2px dashed var(--line); border-radius: 8px; background: var(--surface, #fff); color: var(--ink-2); text-align: center; transition: border-color 120ms, background 120ms; }
+.over { border-color: var(--brand-900); background: var(--brand-050); }
+.bad { border-color: var(--bad); }

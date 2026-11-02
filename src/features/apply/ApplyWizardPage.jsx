@@ -33,7 +33,7 @@ export function Steps({ step }) {
 
 const CONSENTS = [
   ['truth', 'Ninathibitisha kwamba taarifa zote nilizotoa katika maombi haya ni sahihi na kamili.', 'I confirm that all the information in this application is true and complete.'],
-  ['deduct', 'Ninaruhusu Mkopeshaji kukata marejesho ya mkopo kwenye mshahara wangu au akaunti yangu kama nilivyochagua.', 'I authorise the lender to recover repayments from my salary or my account, as I chose.'],
+  ['deduct', 'Ninaruhusu Mkopeshaji kukata marejesho ya mkopo kwenye mshahara wangu.', 'I authorise the lender to recover repayments from my salary or my account, as I chose.'],
   ['crb', 'Ninaruhusu taarifa zangu za mkopo kuangaliwa na kuwasilishwa kwa ofisi za kumbukumbu za mikopo.', 'I consent to my credit information being checked with, and reported to, credit reference bureaus.'],
   ['sms', 'Ninakubali kupokea ujumbe mfupi (SMS) kuhusu salio, malipo na malimbikizo ya mkopo huu.', "I agree to receive SMS about this loan's balance, payments and arrears."],
 ];
@@ -44,8 +44,7 @@ function formOf(app) {
     tenor: app.tenor || Math.min(app.product.maxTenor, Math.max(app.product.minTenor, 12)),
     purpose: app.purpose || '',
     productFields: app.productFields || {},
-    repaymentMethod: app.repayment?.method || 'payroll',
-    topUp: { on: !!app.topUp?.on, loanRef: app.topUp?.loanRef || '' },
+    topUp: { on: !!app.topUp?.on, applicationId: app.topUp?.applicationId || '' },
     probationReason: app.probation?.reason || '',
   };
 }
@@ -56,11 +55,20 @@ function bodyOf(form, app) {
     tenor: form.tenor ?? null,
     purpose: form.purpose,
     productFields: form.productFields,
-    repaymentMethod: form.repaymentMethod,
-    topUp: form.topUp.on ? { on: true, loanRef: form.topUp.loanRef } : { on: false },
+    topUp: form.topUp.on ? { on: true, applicationId: form.topUp.applicationId || null } : { on: false },
   };
   if (app.probation.onProbation) body.probationReason = form.probationReason;
   return body;
+}
+
+/**
+ * D-87: the staff member's other running loans in Staff Loans count against one 50% cap;
+ * the loan chosen for a top-up is added back (its instalment as recorded in Staff Loans).
+ */
+function existingFor(app, form) {
+  const loans = app.existingLoans || [];
+  const chosen = form.topUp.on ? loans.find((l) => l.applicationId === form.topUp.applicationId) : null;
+  return { others: loans.filter((l) => l !== chosen).reduce((n, l) => n + l.instalment, 0), addBack: chosen?.instalment || 0 };
 }
 
 /** The same calculation as the API, for instant feedback while typing. */
@@ -72,6 +80,7 @@ function useLiveQuote(app, form) {
         tenor: form.tenor || 0,
         topUp: form.topUp.on,
         pay: app.payInputs,
+        existing: existingFor(app, form),
         pricing: app.pricing,
         startDay: todayEat(),
         dueDay: app.firstDueDay,
@@ -108,6 +117,7 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
   const p = app.product;
   const q = useLiveQuote(app, form);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const topUpLoans = (app.existingLoans || []).filter((l) => l.canTopUp);
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
   const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
@@ -160,37 +170,21 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
                   <span>
                     <b>This tops up an existing staff loan</b>
                     <br />
-                    <span className="small muted">Its balance is settled from the new loan; OPS confirms it from core banking. Its instalment is already among the LFB deductions on your payslip.</span>
+                    <span className="small muted">Its balance is settled from the new loan, and its monthly deduction stops: the new instalment replaces it.</span>
                   </span>
                 }
               />
               {form.topUp.on && (
                 <div className={s.grid} style={{ margin: '8px 0 8px 32px' }}>
-                  <TextField label="Loan being topped up" value={form.topUp.loanRef} onChange={(e) => set({ topUp: { ...form.topUp, loanRef: e.target.value } })} error={!!errors['topUp.loanRef']} helperText={errors['topUp.loanRef'] || 'Reference or description'} />
+                  <TextField select label="Loan being topped up" value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} error={!!errors['topUp.applicationId']} helperText={errors['topUp.applicationId'] || (topUpLoans.length ? 'One of your running loans in Staff Loans' : 'You have no running loan of this product in Staff Loans to top up.')}>
+                    {topUpLoans.map((l) => <MenuItem key={l.applicationId} value={l.applicationId}>{l.ref}: TZS {formatNumber(l.instalment)} a month</MenuItem>)}
+                  </TextField>
                 </div>
               )}
             </div>
           )}
 
-          <h4 style={{ margin: '24px 0 10px' }}>How will you repay?</h4>
-          <div className={s.radios} role="radiogroup" aria-label="Repayment method">
-            {p.repaymentMethods.includes('payroll') && (
-              <label className={s.radioCard}>
-                <input type="radio" name="method" value="payroll" checked={form.repaymentMethod === 'payroll'} onChange={() => set({ repaymentMethod: 'payroll' })} />
-                <span><b>Payroll deduction</b><span className="small muted">Deducted from your salary each month.</span></span>
-              </label>
-            )}
-            {p.repaymentMethods.includes('account') && (
-              <label className={s.radioCard}>
-                <input type="radio" name="method" value="account" checked={form.repaymentMethod === 'account'} onChange={() => set({ repaymentMethod: 'account' })} />
-                <span>
-                  <b>Debit from my account</b>
-                  <span className="small muted">{app.bank?.bank}, {app.bank?.branch}, account {app.bank?.accountNo || '—'}. Change it in your profile.</span>
-                </span>
-              </label>
-            )}
-          </div>
-          {errors['repayment.method'] && <p className="small" style={{ color: 'var(--bad)', fontWeight: 600 }}>{errors['repayment.method']}</p>}
+          <p className="small muted" style={{ margin: '20px 0 0' }}>Repayment: salary deduction, every month.</p>
 
           {checks.length > 0 && form.amount && form.tenor ? (
             <Alert severity="error" sx={{ mt: 2.5 }}>
@@ -215,8 +209,6 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
 function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const p = app.product;
-  const suggested = [...p.requiredDocuments, ...p.optionalDocuments];
   const add = async (files) => {
     setBusy(true);
     setError(null);
@@ -240,7 +232,6 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
       </div>
       <div style={{ padding: 24 }}>
         <p>Documents are optional. Adding them can help reviewers decide faster.</p>
-        {suggested.length > 0 && <p className="small muted">Useful for {p.name}: {suggested.join('; ')}.</p>}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <label className={s.drop}>
           <div><b style={{ color: '#000' }}>{busy ? 'Uploading…' : 'Choose files'}</b>{busy ? '' : ' or drag them here'}</div>
@@ -284,8 +275,8 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
             {p.fields.map((f) => (
               <Fragment key={f.key}><dt>{f.label}</dt><dd>{f.type === 'money' ? formatTzs(form.productFields[f.key]) : String(form.productFields[f.key] ?? '—')}</dd></Fragment>
             ))}
-            <dt>Repayment</dt><dd>{form.repaymentMethod === 'payroll' ? 'Payroll deduction' : `Debit from account ${app.bank?.accountNo}`}</dd>
-            {form.topUp.on && (<><dt>Top-up of</dt><dd>{form.topUp.loanRef}</dd></>)}
+            <dt>Repayment</dt><dd>Salary deduction</dd>
+            {form.topUp.on && (<><dt>Top-up of</dt><dd>{(app.existingLoans || []).find((l) => l.applicationId === form.topUp.applicationId)?.ref || '—'}</dd></>)}
             {app.probation.onProbation && (<><dt>Probation reason</dt><dd>{form.probationReason}</dd></>)}
           </dl>
         </Card>

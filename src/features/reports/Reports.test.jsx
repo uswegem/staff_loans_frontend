@@ -43,28 +43,63 @@ describe('reports', () => {
 });
 
 describe('agreement templates', () => {
-  it('requires a successful preview and Legal approval before loading', async () => {
+  const row = (over) => ({ id: 't1', version: '2026.11', status: 'approved', statusLabel: 'Approved', state: 'current', sample: true, effectiveFrom: '2026-10-01', note: '', loadedAt: '2026-10-01T08:00:00Z', loadedBy: 'Peter Lyimo', editorIds: ['u-legal'], approvedBy: 'Grace Mushi', approvedAt: '2026-10-01T09:00:00Z', agreements: 14, ...over });
+
+  it('the Legal Officer uploads a previewed version for Legal approval', async () => {
     const calls = stubHttp({
-      'GET /admin/templates': () => [200, { data: { items: [{ id: 't1', version: '2026.11', state: 'current', sample: true, effectiveFrom: '2026-10-01', legalApproved: true, note: '', loadedAt: '2026-10-01T08:00:00Z', loadedBy: 'Peter Lyimo', agreements: 14 }], required: [] } }],
+      'GET /admin/templates': () => [200, { data: { items: [row()], required: [] } }],
       'POST /admin/templates/preview': () => [200, { data: { blocks: [{ type: 'h1', parts: [{ text: 'MKATABA' }] }], textSha256: 'a'.repeat(64), placeholders: [] } }],
-      'POST /admin/templates': () => [201, { message: 'Version 2027.01 loaded.', data: { id: 't2', version: '2027.01' } }],
+      'POST /admin/templates': () => [201, { message: "Version 2027.01 uploaded. It waits for the Head of Legal's approval.", data: { id: 't2', version: '2027.01', status: 'pending_legal_approval' } }],
     });
-    renderAt('/admin/templates', '/admin/templates', <TemplatesPage />, { permissions: ['admin.templates'] });
+    renderAt('/admin/templates', '/admin/templates', <TemplatesPage />, { permissions: ['admin.templates'], userId: 'u-legal' });
     expect(await screen.findByText(/sample clauses/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Load new version' }));
+    expect(screen.getByText('Approved, in use')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Upload new version' }));
     const dialog = await screen.findByRole('dialog');
-    const load = within(dialog).getByRole('button', { name: 'Load version' });
-    expect(load).toBeDisabled();
+    const send = within(dialog).getByRole('button', { name: 'Send for Legal approval' });
+    expect(send).toBeDisabled();
+    expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument();
     await userEvent.type(within(dialog).getByLabelText(/Version/), '2027.01');
     await userEvent.type(within(dialog).getByLabelText(/Agreement text/), '# MKATABA');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check and preview' }));
     expect(await within(dialog).findByText('Renders correctly with a sample applicant.')).toBeInTheDocument();
-    await userEvent.click(load);
-    expect(within(dialog).getByText('Legal must approve the text before it is loaded.')).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Legal has approved this text' }));
-    await userEvent.click(load);
-    expect(await screen.findByText('Version 2027.01 loaded.')).toBeInTheDocument();
+    await userEvent.click(send);
+    expect(await screen.findByText(/waits for the Head of Legal's approval/)).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /admin/templates').config.data);
-    expect(body).toMatchObject({ version: '2027.01', body: '# MKATABA', legalApproved: true });
+    expect(body).toMatchObject({ version: '2027.01', body: '# MKATABA' });
+    expect(body).not.toHaveProperty('legalApproved');
+  });
+
+  it('the Head of Legal rejects a pending version with a reason, but cannot approve their own', async () => {
+    const pending = row({ id: 't2', version: '2027.01', status: 'pending_legal_approval', statusLabel: 'Pending Legal Approval', state: 'pending_legal_approval', sample: false, approvedBy: null, approvedAt: null });
+    const mine = row({ id: 't3', version: '2027.02', status: 'pending_legal_approval', statusLabel: 'Pending Legal Approval', state: 'pending_legal_approval', sample: false, editorIds: ['u-head'], approvedBy: null, approvedAt: null });
+    const calls = stubHttp({
+      'GET /admin/templates': () => [200, { data: { items: [mine, pending, row()], required: [] } }],
+      'GET /admin/templates/t2': () => [200, { data: { ...pending, body: '# MKATABA', blocks: [{ type: 'h1', parts: [{ text: 'MKATABA' }] }] } }],
+      'GET /admin/templates/t3': () => [200, { data: { ...mine, body: '# MKATABA', blocks: [{ type: 'h1', parts: [{ text: 'MKATABA' }] }] } }],
+      'POST /admin/templates/t2/reject': () => [200, { message: 'Version 2027.01 rejected.', data: { id: 't2' } }],
+    });
+    renderAt('/admin/templates', '/admin/templates', <TemplatesPage />, { permissions: ['templates.approve'], userId: 'u-head' });
+    expect((await screen.findAllByText('Pending Legal Approval')).length).toBe(2);
+    expect(screen.queryByRole('button', { name: 'Upload new version' })).not.toBeInTheDocument();
+
+    // Own version: view only.
+    const rows = screen.getAllByRole('row');
+    await userEvent.click(within(rows[1]).getByRole('button', { name: 'View' }));
+    let dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText(/another Head of Legal must approve it/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+
+    await userEvent.click(within(rows[2]).getByRole('button', { name: 'Review' }));
+    dialog = await screen.findByRole('dialog');
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Reject' }));
+    dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+    expect(within(dialog).getByText('Give the reason for rejecting.')).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText(/Reason/), 'Clause 7 cites the old policy.');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+    expect(await screen.findByText('Version 2027.01 rejected.')).toBeInTheDocument();
+    expect(JSON.parse(calls.find((c) => c.key === 'POST /admin/templates/t2/reject').config.data)).toEqual({ reason: 'Clause 7 cites the old policy.' });
   });
 });

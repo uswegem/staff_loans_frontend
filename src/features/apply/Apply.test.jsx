@@ -125,8 +125,8 @@ describe('apply wizard', () => {
     const file = new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' });
     await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), file);
     expect(await screen.findByText('TZS 150,000')).toBeInTheDocument();
-    // Adjusted net pay 1,337,500 + 150,000 = 1,487,500; limit 743,750.
-    expect(screen.getByText('Limit 743,750')).toBeInTheDocument();
+    // Combined cap (D-87): 50% of Net Pay 1,337,500 = 668,750, less other Staff Loans loans (none).
+    expect(screen.getByText('Limit 668,750')).toBeInTheDocument();
     expect(calls.some((c) => c.key === 'POST /applications/a1/payslip')).toBe(true);
   });
 

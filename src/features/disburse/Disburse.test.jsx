@@ -17,7 +17,7 @@ const row = {
   processingFee: 8000,
   insuranceFee: 4800,
   fees: 12800,
-  repayment: { method: 'account', accountNo: '0150123456' },
+  repayment: { method: 'payroll' },
   approvedAt: '2026-10-22T09:00:00Z',
   daysWaiting: 31,
   outsideSla: true,
@@ -29,7 +29,6 @@ const detail = {
   agreement: { id: 'g1', number: 'MKT-2026-00012', signedAt: '2026-10-18T09:00:00Z', effectiveAt: '2026-10-22T09:00:00Z' },
   creditTo: { bank: 'Letshego Faidika Bank', accountNo: '0150123456' },
   topUp: null,
-  conditions: ['Insurance cover note received'],
   earliestDate: '2026-10-22',
   today: '2026-10-30',
 };
@@ -52,15 +51,13 @@ describe('disbursements', () => {
     await userEvent.click(within(r).getByRole('button', { name: 'Confirm disbursement' }));
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText('Letshego Faidika Bank, 0150123456')).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm disbursement' }));
-    expect(within(dialog).getByText('Tick each condition before you confirm.')).toBeInTheDocument();
-
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Insurance cover note received' }));
+    expect(within(dialog).getByText('Salary deduction (HR and Finance)')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('checkbox')).toBeNull();
     await userEvent.type(within(dialog).getByLabelText('Transaction reference'), 'FT26294AB12');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm disbursement' }));
     expect(await screen.findByText('SL-2026-00019 disbursed. Journey complete.')).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /disbursements/a1/confirm').config.data);
-    expect(body).toEqual({ date: '2026-10-30', transactionRef: 'FT26294AB12', comment: 'Loan disbursed to staff account.', conditions: [true] });
+    expect(body).toEqual({ date: '2026-10-30', transactionRef: 'FT26294AB12', comment: 'Loan disbursed to staff account.' });
   });
 
   it('shows why OPS cannot confirm their own or an approved loan', async () => {

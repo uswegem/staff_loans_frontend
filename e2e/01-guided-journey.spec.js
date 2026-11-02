@@ -26,7 +26,8 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await expect(rehema.getByText('Saved.', { exact: true })).toBeVisible();
 
   await rehema.getByRole('tab', { name: /Next of kin/ }).click();
-  await rehema.getByLabel(/Full name/).last().fill('Mariam Ally');
+  await rehema.getByLabel(/^First Name/).last().fill('Mariam');
+  await rehema.getByLabel(/^Surname/).last().fill('Ally');
   await rehema.getByRole('combobox', { name: /Relationship/ }).click();
   await rehema.getByRole('option', { name: 'Parent' }).click();
   await rehema.getByLabel(/^Phone/).fill('+255 754 330 112');
@@ -56,8 +57,11 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   // 3. Credit Analyst, Head of People and Culture, CEO.
   const juma = await as(browser, 'LFB0233');
   await openFromQueue(juma, ref);
+  // Identity only for the Credit Analyst (D-86): no amount, no payslip.
   await expect(juma.getByText('Rehema Ally').first()).toBeVisible();
-  await decide(juma, { action: 'approve', crb: true, comment: 'Affordable; bureau clear.' });
+  await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
+  await expect(juma.getByText('3,000,000')).toHaveCount(0);
+  await decide(juma, { action: 'approve', crb: true, comment: 'Bureau clear.' });
 
   const grace = await as(browser, 'LFB0051');
   await openFromQueue(grace, ref);

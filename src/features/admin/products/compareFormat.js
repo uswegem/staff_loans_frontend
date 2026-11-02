@@ -2,7 +2,7 @@
 
 const MONEY = new Set(['minAmount', 'maxAmount', 'instalmentRounding']);
 const BPS = new Set(['interestBps', 'processingFeeBps', 'processingFeeTopUpBps', 'insuranceBps', 'affordabilityBps', 'pensionBps']);
-const METHODS = { payroll: 'Payroll deduction', account: 'Account debit' };
+const METHODS = { payroll: 'Salary deduction' };
 
 const n = (v) => Number(v).toLocaleString('en-US');
 

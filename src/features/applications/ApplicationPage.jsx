@@ -175,7 +175,7 @@ export default function ApplicationPage() {
                   <dt>Tenor</dt><dd>{app.tenor} months</dd>
                   <dt>Instalment</dt><dd>{formatTzs(current?.terms?.instalment ?? app.quote.instalment)}</dd>
                   <dt>Purpose</dt><dd>{app.purpose}</dd>
-                  <dt>Repayment</dt><dd>{app.repayment.method === 'payroll' ? 'Payroll deduction' : `Account ${app.repayment.accountNo}`}</dd>
+                  <dt>Repayment</dt><dd>Salary deduction</dd>
                   <dt>Submitted</dt><dd>{formatDate(app.submittedAt)}</dd>
                 </dl>
               </CardContent>

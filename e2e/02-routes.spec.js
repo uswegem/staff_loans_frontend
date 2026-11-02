@@ -1,11 +1,11 @@
 // One run per approval route (BRD 7.1 to 7.3; prompt 7, milestone 8). The
-// non-management route is the guided journey. On the other three the Credit Analyst
-// sees limited details only (FR-55), checked here on the screen he works from.
+// non-management route is the guided journey. On every route the Credit Analyst sees
+// identity details only (FR-55, D-86), checked here on the screen he works from.
 
 import { test, expect } from '@playwright/test';
 import { as, startApplication, signAndSubmit, openFromQueue, decide, approveAll } from './helpers';
 
-/** Juma's limited review: name, mobile and NIDA; no terms; bureau result only. */
+/** Juma's identity-only review: first name, surname, NIDA and mobile; bureau result only. */
 async function limitedCredit(browser, ref, { amount, purpose }) {
   const juma = await as(browser, 'LFB0233');
   await juma.goto('/queue');
@@ -13,10 +13,10 @@ async function limitedCredit(browser, ref, { amount, purpose }) {
   await expect(row.getByText('Limited details')).toBeVisible();
   await expect(row).not.toContainText(amount.toLocaleString('en-US'));
   await openFromQueue(juma, ref);
-  await expect(juma.getByText('Limited details for a management application')).toBeVisible();
+  await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
   await expect(juma.getByText(purpose)).toHaveCount(0);
   await expect(juma.getByText(amount.toLocaleString('en-US'))).toHaveCount(0);
-  await expect(juma.getByLabel('Recommended amount')).toHaveCount(0);
+  await expect(juma.getByLabel(/Recommended/)).toHaveCount(0);
   await decide(juma, { action: 'approve', crb: true, comment: 'Bureau clear on name, mobile and NIDA.' });
   await juma.context().close();
 }

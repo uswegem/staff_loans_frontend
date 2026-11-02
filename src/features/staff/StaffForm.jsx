@@ -8,8 +8,8 @@ import s from './staff.module.css';
 export const EMPTY_STAFF = {
   staffNo: '',
   firstName: '',
-  middleName: '',
   lastName: '',
+  gender: '',
   title: '',
   department: '',
   station: '',
@@ -40,8 +40,8 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
         <div className={s.grid}>
           {isNew && f('staffNo', 'Staff number', { required: true, hint: 'The employee code on the payslip, for example AT637.', inputProps: { autoCapitalize: 'characters', maxLength: 12 } })}
           {f('firstName', 'First name', { required: true })}
-          {f('middleName', 'Middle name')}
-          {f('lastName', 'Last name', { required: true })}
+          {f('lastName', 'Surname', { required: true })}
+          {f('gender', 'Gender', { select: true, hint: 'Leave blank if not known yet.', children: [['', 'Not recorded'], ['Male', 'Male'], ['Female', 'Female']].map(([v, l]) => <MenuItem key={l} value={v}>{l}</MenuItem>) })}
           {f('email', 'Email', { type: 'email' })}
           {f('workPhone', 'Work phone', { type: 'tel' })}
           {isNew && f('mobile', 'Mobile phone', { type: 'tel', hint: 'The staff member keeps it up to date on their profile.' })}

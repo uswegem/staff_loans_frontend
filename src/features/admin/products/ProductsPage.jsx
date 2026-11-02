@@ -86,7 +86,7 @@ export default function ProductsPage() {
   const navigate = useNavigate();
   const permissions = useSelector((st) => st.auth.permissions);
   const canMake = permissions.includes('products.make');
-  const canCheck = permissions.includes('products.check');
+  const canCheck = permissions.includes('products.approveCredit') || permissions.includes('products.approveRisk');
   const [rows, setRows] = useState([]);
   const [pricing, setPricing] = useState(null);
   const [error, setError] = useState(null);

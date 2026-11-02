@@ -25,6 +25,22 @@ export function Meter({ q }) {
 }
 
 /** The affordability steps (D-78), all from the payslip's Basic Pay and LFB deductions. */
+/** The combined cap across all loans in Staff Loans (D-87). */
+export function Combined({ q }) {
+  const c = q.combined;
+  if (!c) return null; // applications submitted before D-87
+  return (
+    <>
+      <div className={`${s.line} ${s.total}`}><span>Combined limit ({pct(q.rates.affordabilityBps, 0)} of Net Pay)</span><b>{formatNumber(c.cap)}</b></div>
+      <div className={s.line}><span>Your other loans in Staff Loans</span><b>−{formatNumber(c.others)}</b></div>
+      {c.addBack > 0 && <div className={s.line}><span>Deduction added back (loan being topped up)</span><b>{formatNumber(c.addBack)}</b></div>}
+      <div className={s.line}><span>Available for this loan</span><b>{formatNumber(c.available)}</b></div>
+      <div className={s.line}><span>New instalment</span><b>−{formatNumber(c.newInstalment)}</b></div>
+      <div className={`${s.line} ${s.total}`}><span>Remaining combined capacity</span><b style={c.remaining < 0 ? { color: 'var(--bad)' } : undefined}>{formatNumber(c.remaining)}</b></div>
+    </>
+  );
+}
+
 export function Breakdown({ q }) {
   const ps = q.payslip;
   return (
@@ -35,9 +51,7 @@ export function Breakdown({ q }) {
       <div className={s.line}><span>PAYE</span><b>{formatNumber(ps.tax)}</b></div>
       <div className={s.line}><span>Total Deductions (Pension + PAYE)</span><b>{formatNumber(ps.totalDeductions)}</b></div>
       <div className={`${s.line} ${s.total}`}><span>Net Pay (Basic Pay − Total Deductions)</span><b>{formatNumber(ps.net)}</b></div>
-      <div className={s.line}><span>Add LFB deductions</span><b>+{formatNumber(ps.lfbDeductions)}</b></div>
-      <div className={s.line}><span>Adjusted Net Pay</span><b>{formatNumber(ps.adjusted)}</b></div>
-      <div className={`${s.line} ${s.total}`}><span>Maximum instalment ({pct(q.rates.affordabilityBps, 0)} of Adjusted Net Pay)</span><b>{formatNumber(q.maxInstalment)}</b></div>
+      <Combined q={q} />
       <div className={s.line}><span>Maximum amount over {q.maxTenor} months at {pct(q.rates.interestBps)}</span><b>{formatNumber(q.maxAmount)}</b></div>
     </div>
   );
@@ -58,6 +72,7 @@ export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = 
         {ready ? <Meter q={q} /> : <p className="small muted">{hasPayslip ? 'Enter an amount and tenor to see your instalment.' : 'Attach your latest payslip to see your limit.'}</p>}
         {hasPayslip && (
           <div className={s.calc} style={{ marginTop: 12 }}>
+            <div className={s.line}><span>Remaining combined capacity</span><b>TZS {formatNumber(Math.max(0, q.combined.remaining))} a month</b></div>
             <div className={s.line}><span>You can borrow up to</span><b>TZS {formatNumber(q.maxAmount)} over {q.maxTenor} months</b></div>
             {ready && tenor !== q.maxTenor && <div className={s.line}><span>Over {tenor} months, up to</span><b>TZS {formatNumber(q.maxAmountAtTenor)}</b></div>}
           </div>

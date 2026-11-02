@@ -36,7 +36,7 @@ import TemplatesPage from './features/admin/templates/TemplatesPage';
 import AuditPage from './features/admin/audit/AuditPage';
 import DobVerificationsPage from './features/staff/DobVerificationsPage';
 
-const PRODUCT_PERMS = ['products.view', 'products.make', 'products.check'];
+const PRODUCT_PERMS = ['products.view', 'products.make', 'products.approveCredit', 'products.approveRisk'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
 
 function NotFound() {
@@ -80,7 +80,7 @@ export default function App() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<RequirePermission any={['reports.view', 'admin.users', 'admin.roles', 'audit.view']}><ReportsPage /></RequirePermission>} />
           <Route path="admin/workflow" element={<RequirePermission any={['admin.workflow']}><WorkflowPage /></RequirePermission>} />
-          <Route path="admin/templates" element={<RequirePermission any={['admin.templates']}><TemplatesPage /></RequirePermission>} />
+          <Route path="admin/templates" element={<RequirePermission any={['admin.templates', 'templates.approve']}><TemplatesPage /></RequirePermission>} />
           <Route path="admin/audit" element={<RequirePermission any={['audit.view']}><AuditPage /></RequirePermission>} />
           <Route path="staff" element={<RequirePermission any={STAFF_PERMS}><StaffListPage /></RequirePermission>} />
           <Route path="staff/dob-verifications" element={<RequirePermission any={['staff.verifyDob']}><DobVerificationsPage /></RequirePermission>} />
