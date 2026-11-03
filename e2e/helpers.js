@@ -125,7 +125,7 @@ export async function startApplication(page, { staffNo, product, amount, tenor, 
 /** Attaches the person's latest payslip on the loan details step and waits for it to be read. */
 export async function attachPayslip(page, staffNo) {
   await page.getByLabel('Choose payslip PDF').setInputFiles({ name: 'payslip.pdf', mimeType: 'application/pdf', buffer: await payslipFor(staffNo) });
-  await expect(page.getByRole('button', { name: 'Attach a newer payslip' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Replace' })).toBeVisible({ timeout: 30_000 });
 }
 
 /** From the loan details step to a signed, submitted application; returns its reference. */

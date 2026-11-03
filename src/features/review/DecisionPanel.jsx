@@ -23,7 +23,9 @@ export default function DecisionPanel({ app, onDone }) {
   const [note, setNote] = useState(app.appraisalNote || '');
   const [arrears, setArrears] = useState('');
   const [checks, setChecks] = useState({ employment: false, category: false, salary: false, probationReasonVerified: false });
+  // error: what the API said about the last submit; the checks below follow the current choices.
   const [error, setError] = useState(null);
+  const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const finalText = p.isFinal
@@ -32,14 +34,24 @@ export default function DecisionPanel({ app, onDone }) {
       : t('Final approval. The signed agreement takes effect and OPS disburses.')
     : t('Moves to {stage}.', { stage: t(p.nextStageLabel) });
 
+  /** What still stops this decision, from the current choices (null when it can be sent). */
+  const blocker = () => {
+    if (!action) return t('Choose approve, return or reject.');
+    if (action !== 'approve' && !comment.trim()) return t('Add a comment so the applicant knows what to do.');
+    if (p.needsCrb && action === 'approve' && !crb.outcome) return t('Record the credit bureau outcome before approving.');
+    if (p.needsHrChecks && action === 'approve' && !(checks.employment && checks.category && checks.salary)) return t('Confirm all three staff record checks before approving.');
+    if (p.needsProbationCheck && action === 'approve' && !checks.probationReasonVerified) return t('Verify the probation reason before approving.');
+    return null;
+  };
+  // Shown once a submit was tried, and re-checked on every change: it goes when it is put right.
+  const problem = (tried && blocker()) || error;
+
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return undefined;
     setError(null);
-    if (!action) return setError(t('Choose approve, return or reject.'));
-    if (action !== 'approve' && !comment.trim()) return setError(t('Add a comment so the applicant knows what to do.'));
-    if (p.needsCrb && action === 'approve' && !crb.outcome) return setError(t('Record the credit bureau outcome before approving.'));
-    if (p.needsHrChecks && action === 'approve' && !(checks.employment && checks.category && checks.salary)) return setError(t('Confirm all three staff record checks before approving.'));
-    if (p.needsProbationCheck && action === 'approve' && !checks.probationReasonVerified) return setError(t('Verify the probation reason before approving.'));
+    setTried(true);
+    if (blocker()) return undefined;
     setBusy(true);
     try {
       const body = { action, comment };
@@ -140,7 +152,7 @@ export default function DecisionPanel({ app, onDone }) {
           ))}
         </div>
         <TextField label={t('Comment')} required={!!action && action !== 'approve'} multiline minRows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('Visible to the applicant and later approvers')} helperText={t('Required to return or reject.')} />
-        {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: 0 }}>{error}</p>}
+        {problem && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: 0 }}>{problem}</p>}
         <Button type="submit" variant="contained" fullWidth disabled={busy}>{BUTTON[action] ? t(BUTTON[action]) : t('Record decision')}</Button>
       </div>
     </form>

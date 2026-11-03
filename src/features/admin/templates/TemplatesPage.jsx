@@ -5,7 +5,7 @@
 // makes a new version; the approved one stays in use until the new one is approved.
 // The text is checked by rendering a sample agreement before it is saved.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { templatesApi } from '../../../api/reports';
@@ -49,17 +49,24 @@ function EditDialog({ editing, onClose, onSaved }) {
     setError(null);
   };
 
+  // The preview is for the text as sent: an answer for text that has changed since is dropped,
+  // so Send never goes out with a preview of different text.
+  const bodyNow = useRef(form.body);
+  bodyNow.current = form.body;
   const check = async () => {
     setError(null);
+    const sent = form.body;
     try {
-      setPreview(await templatesApi.preview(form.body));
+      const p = await templatesApi.preview(sent);
+      if (bodyNow.current === sent) setPreview(p);
     } catch (err) {
-      setError(apiError(err).message);
+      if (bodyNow.current === sent) setError(apiError(err).message);
     }
   };
 
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     try {
       const body = { ...form };

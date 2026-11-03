@@ -115,39 +115,86 @@ function FieldInput({ f, value, onChange, error }) {
   );
 }
 
-function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy, onAppChanged }) {
+const same = (a, b) => (a ?? null) === (b ?? null) || (a ?? '') === (b ?? '');
+
+/**
+ * The API's field errors (the one set of rules), shown progressively: a field's error appears
+ * once the field has been left or Continue was pressed, and hides while its value differs from
+ * the one the API last checked, so a correction clears the error straight away.
+ */
+function useShownErrors(app, form, errors, attempted) {
+  const [touched, setTouched] = useState({});
+  const saved = {
+    amount: app.amount,
+    tenor: app.tenor,
+    purpose: app.purpose,
+    probationReason: app.probation?.reason,
+    'topUp.applicationId': app.topUp?.applicationId,
+    ...Object.fromEntries(Object.entries(form.productFields).map(([k]) => [`productFields.${k}`, app.productFields?.[k]])),
+  };
+  const current = { amount: form.amount, tenor: form.tenor, purpose: form.purpose, probationReason: form.probationReason, 'topUp.applicationId': form.topUp.applicationId, ...Object.fromEntries(Object.entries(form.productFields).map(([k, v]) => [`productFields.${k}`, v])) };
+  const shown = (key) => ((attempted || touched[key]) && same(current[key], saved[key]) ? errors[key] : undefined);
+  const touch = (key) => () => setTouched((x) => (x[key] ? x : { ...x, [key]: true }));
+  return { shown, touch, touched };
+}
+
+function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure, onRetry, onBack, onNext, busy, onAppChanged, attempt }) {
   const t = useT();
   const p = app.product;
   const q = useLiveQuote(app, form);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const formRef = useRef(null);
+  const attempted = attempt > 0;
+  const { shown, touch, touched } = useShownErrors(app, form, errors, attempted);
   const topUpLoans = (app.existingLoans || []).filter((l) => l.canTopUp);
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
   const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
   const hint = app.payslip ? t('TZS {min} to TZS {max} (up to {n} months)', { min: formatNumber(p.minAmount), max: formatNumber(q.maxAmount), n: q.maxTenor }) : t('TZS {min} to TZS {max}; attach your payslip to see your maximum', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) });
+  // The tenor range in context, once the tenor has been changed (the API checks it too).
+  const tenorRange = (touched.tenor || attempted) && form.tenor
+    ? form.tenor > maxTenor ? t('The longest tenor you can take is {n} months.', { n: maxTenor }) : form.tenor < p.minTenor ? t('Choose a tenor between {min} and {max} months.', { min: p.minTenor, max: maxTenor }) : null
+    : null;
+  const tenorError = shown('tenor') || tenorRange;
+  // A problem with an attached payslip (too old, unreadable) shows at once; a missing one only on Continue.
+  const payslipError = app.payslip || attempted ? errors.payslip : undefined;
+
+  // After a Continue that found problems: bring the first one into view.
+  useEffect(() => {
+    if (!attempt) return;
+    const first = formRef.current?.querySelector('[aria-invalid="true"], [data-invalid="true"]');
+    if (first) {
+      first.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      first.focus({ preventScroll: true });
+    }
+  }, [attempt]);
+
   return (
     <div className={s.split}>
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
           <h3>{p.name}</h3>
         </div>
-        <form style={{ padding: 24 }} noValidate onSubmit={(e) => { e.preventDefault(); onNext(); }}>
-          <PayslipCard app={app} error={errors.payslip} onChanged={onAppChanged} />
+        <form ref={formRef} style={{ padding: 24 }} noValidate onSubmit={(e) => { e.preventDefault(); onNext(); }}>
+          <PayslipCard app={app} error={payslipError} onChanged={onAppChanged} />
           {r.cutoff && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              {t('Your last instalment must fall on or before')}{' '}<b>{formatDate(r.cutoff)}</b> {t('({n} days before you turn {age}, from your verified date of birth).', { n: r.bufferDays, age: r.age })} {t('You can take up to')} <b>{t('{n} months', { n: maxTenor })}</b>{maxTenor < p.maxTenor ? ` ${t('(the product allows {n})', { n: p.maxTenor })}` : ''}.
-            </Alert>
+            <div className={s.note}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
+              <span>
+                {t('You can take up to')} <b>{t('{n} months', { n: maxTenor })}</b>{maxTenor < p.maxTenor ? ` ${t('(the product allows {n})', { n: p.maxTenor })}` : ''}. {t('Your last instalment must fall on or before')}{' '}<b>{formatDate(r.cutoff)}</b> {t('({n} days before you turn {age}, from your verified date of birth).', { n: r.bufferDays, age: r.age })}
+              </span>
+            </div>
           )}
           <div className={s.grid}>
-            <MoneyInput label={t('Amount')} required value={form.amount ?? null} onChange={(v) => set({ amount: v })} error={!!errors.amount} helperText={errors.amount || hint} />
+            <MoneyInput label={t('Amount')} required placeholder={t('Enter amount')} value={form.amount ?? null} onChange={(v) => set({ amount: v })} onBlur={touch('amount')} error={!!shown('amount')} helperText={shown('amount') || hint} />
             <div>
-              <TextField label={t('Tenor (months)')} required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} error={!!errors.tenor} helperText={errors.tenor || t('{min} to {max} months', { min: p.minTenor, max: maxTenor })} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
-              <Slider aria-label={t('Tenor slider')} min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} sx={{ color: 'var(--strong)' }} />
+              <TextField label={t('Tenor (months)')} required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} onBlur={touch('tenor')} error={!!tenorError} helperText={tenorError || t('{min} to {max} months', { min: p.minTenor, max: maxTenor })} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
+              <Slider aria-label={t('Tenor slider')} min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} onChangeCommitted={touch('tenor')} sx={{ color: 'var(--strong)' }} />
             </div>
-            <TextField label={t('Purpose of the loan')} required className={s.full} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} error={!!errors.purpose} helperText={errors.purpose} />
+            <TextField label={t('Purpose of the loan')} required className={s.full} placeholder={t('What will you use the loan for?')} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} onBlur={touch('purpose')} error={!!shown('purpose')} helperText={shown('purpose')} />
             {p.fields.map((f) => (
-              <div key={f.key} className={f.type === 'textarea' ? s.full : undefined}>
-                <FieldInput f={f} value={form.productFields[f.key]} error={errors[`productFields.${f.key}`]} onChange={(v) => set({ productFields: { ...form.productFields, [f.key]: v } })} />
+              <div key={f.key} className={f.type === 'textarea' ? s.full : undefined} onBlur={touch(`productFields.${f.key}`)}>
+                <FieldInput f={f} value={form.productFields[f.key]} error={shown(`productFields.${f.key}`)} onChange={(v) => set({ productFields: { ...form.productFields, [f.key]: v } })} />
               </div>
             ))}
             {app.probation.onProbation && (
@@ -159,8 +206,9 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
                 minRows={2}
                 value={form.probationReason}
                 onChange={(e) => set({ probationReason: e.target.value })}
-                error={!!errors.probationReason}
-                helperText={errors.probationReason || t('You are on probation until the date on your profile. People and Culture will verify your reason.')}
+                onBlur={touch('probationReason')}
+                error={!!shown('probationReason')}
+                helperText={shown('probationReason') || t('You are on probation until the date on your profile. People and Culture will verify your reason.')}
               />
             )}
           </div>
@@ -179,7 +227,7 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
               />
               {form.topUp.on && (
                 <div className={s.grid} style={{ margin: '8px 0 8px 32px' }}>
-                  <TextField select label={t('Loan being topped up')} value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} error={!!errors['topUp.applicationId']} helperText={errors['topUp.applicationId'] || (topUpLoans.length ? t('One of your running loans in Staff Loans') : t('You have no running loan of this product in Staff Loans to top up.'))}>
+                  <TextField select label={t('Loan being topped up')} value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} onBlur={touch('topUp.applicationId')} error={!!shown('topUp.applicationId')} helperText={shown('topUp.applicationId') || (topUpLoans.length ? t('One of your running loans in Staff Loans') : t('You have no running loan of this product in Staff Loans to top up.'))}>
                     {topUpLoans.map((l) => <MenuItem key={l.applicationId} value={l.applicationId}>{l.ref}: {t('TZS {amount} a month', { amount: formatNumber(l.instalment) })}</MenuItem>)}
                   </TextField>
                 </div>
@@ -189,9 +237,16 @@ function DetailsStep({ app, form, setForm, errors, checks, onBack, onNext, busy,
 
           <p className="small muted" style={{ margin: '20px 0 0' }}>{t('Repayment: salary deduction, every month.')}</p>
 
-          {checks.length > 0 && form.amount && form.tenor ? (
-            <Alert severity="error" sx={{ mt: 2.5 }}>
-              <AlertTitle>{t('Fix this before you continue')}</AlertTitle>
+          {!checked && saveFailure ? (
+            <Alert severity="warning" sx={{ mt: 2.5 }} action={saveFailure.code === 'NETWORK' || !saveFailure.status || saveFailure.status >= 500 ? <Button size="small" onClick={onRetry}>{t('Try again')}</Button> : undefined}>
+              <AlertTitle>{t('Your latest changes are not saved or checked yet')}</AlertTitle>
+              {saveFailure.message}
+            </Alert>
+          ) : checks.length > 0 && form.amount && form.tenor ? (
+            // The API's checks for the values it last saw. While newer values are on their way
+            // they are marked as being checked again, and replaced as soon as the answer arrives.
+            <Alert severity="error" sx={{ mt: 2.5, opacity: checked ? 1 : 0.6 }} aria-busy={!checked}>
+              <AlertTitle>{checked ? t('Fix this before you continue') : t('Checking your changes…')}</AlertTitle>
               <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{checks.map((c) => <li key={c}>{c}</li>)}</ul>
             </Alert>
           ) : null}
@@ -442,16 +497,28 @@ export default function ApplyWizardPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  // The body the API last checked: its checks describe exactly these values.
   const saved = useRef(null);
+  // Every request that returns the application takes a number; only the latest one is applied,
+  // so a slow older answer never replaces the checks for newer values.
+  const seq = useRef(0);
+  // The body most recently sent: equal to saved while nothing is on its way.
+  const sent = useRef(null);
+  const [saveFailure, setSaveFailure] = useState(null);
+  const [retry, setRetry] = useState(0);
 
   const load = useCallback(async () => {
+    const n = ++seq.current;
     try {
       const a = await applicationsApi.get(id);
+      if (n !== seq.current) return;
       setApp(a);
       setForm((f) => f || formOf(a));
       saved.current = JSON.stringify(bodyOf(formOf(a), a));
+      sent.current = saved.current;
     } catch (err) {
-      setError(apiError(err).message);
+      if (n === seq.current) setError(apiError(err).message);
     }
   }, [id]);
   useEffect(() => {
@@ -462,24 +529,54 @@ export default function ApplyWizardPage() {
   useEffect(() => {
     if (!app || !form || !app.editable) return undefined;
     const body = JSON.stringify(bodyOf(form, app));
-    if (body === saved.current) return undefined;
+    if (body === sent.current) return undefined;
     const timer = setTimeout(async () => {
+      const n = ++seq.current;
+      sent.current = body;
       try {
         const a = await applicationsApi.update(app.id, JSON.parse(body));
+        if (n !== seq.current) return;
         saved.current = body;
         setApp(a);
-      } catch {
-        /* shown when continuing */
+        setSaveFailure(null);
+      } catch (err) {
+        // Not saved, so not checked: say so rather than leave the last checks looking current.
+        if (n !== seq.current) return;
+        sent.current = saved.current;
+        setSaveFailure(apiError(err));
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form, app]);
+  }, [form, app, retry]);
+
+  // A Continue message describes the form as it was; editing makes it out of date.
+  useEffect(() => setError(null), [form]);
 
   const saveNow = async () => {
-    const a = await applicationsApi.update(app.id, bodyOf(form, app));
-    saved.current = JSON.stringify(bodyOf(form, app));
-    setApp(a);
+    const n = ++seq.current;
+    const body = bodyOf(form, app);
+    sent.current = JSON.stringify(body);
+    let a;
+    try {
+      a = await applicationsApi.update(app.id, body);
+    } catch (err) {
+      if (n === seq.current) sent.current = saved.current;
+      throw err;
+    }
+    if (n === seq.current) {
+      saved.current = sent.current;
+      setApp(a);
+      setSaveFailure(null);
+    }
     return a;
+  };
+
+  // A payslip upload answers with the application too; it supersedes any save still on its way.
+  const payslipRead = (a) => {
+    seq.current += 1;
+    // A save that was on its way is dropped with its answer: send the latest values again.
+    sent.current = saved.current;
+    setApp(a);
   };
 
   const next = async () => {
@@ -490,9 +587,10 @@ export default function ApplyWizardPage() {
       const c = a.checks;
       if (Object.keys(c.fieldErrors).length || c.checks.length || c.eligibility.length) {
         setError(Object.keys(c.fieldErrors).length ? t('Fill in the required fields.') : c.eligibility[0] || c.checks[0]);
+        setAttempt((n) => n + 1);
       } else setStep(2);
     } catch (err) {
-      setError(apiError(err).message);
+      setSaveFailure(apiError(err));
     } finally {
       setBusy(false);
     }
@@ -526,7 +624,7 @@ export default function ApplyWizardPage() {
       <Steps step={step} />
       {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
-      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...app.checks.eligibility, ...app.checks.checks]} busy={busy} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={setApp} />}
+      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}

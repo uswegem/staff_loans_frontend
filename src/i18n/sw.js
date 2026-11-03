@@ -1058,7 +1058,6 @@ const SW = {
   'The Legal Officer uploads and edits versions; the Head of Legal approves them. Only approved versions are used, and each loan keeps the version its staff member accepted.': 'Afisa Sheria hupakia na kuhariri matoleo; Mkuu wa Sheria huyaidhinisha. Matoleo yaliyoidhinishwa tu ndiyo hutumika, na kila mkopo hubaki na toleo ambalo mfanyakazi wake alilikubali.',
   'The maker sees this and can correct the draft.': 'Mwandaaji ataona hili na anaweza kurekebisha rasimu.',
   'The old salary is kept as history. Applications use the salary in force on the day they are submitted (FR-03).': 'Mshahara wa zamani hutunzwa kama historia. Maombi hutumia mshahara unaotumika siku yanapowasilishwa (FR-03).',
-  'The PDF from the Seamless HR System, not older than 45 days. Your limit is worked out from your salary slip.': 'PDF kutoka Mfumo wa Seamless HR, isiyozidi siku 45. Kikomo chako hukokotolewa kutoka hati yako ya mshahara.',
   'The People and Culture Manager reviewed in place of the Head of HR. You give final approval.': 'Meneja wa Rasilimali Watu amepitia badala ya Mkuu wa Rasilimali Watu. Wewe unatoa idhini ya mwisho.',
   'The person who approves a loan must not also confirm that it was paid out.': 'Mtu anayeidhinisha mkopo asithibitishe pia kwamba umetolewa.',
   "The route comes from the applicant's role and the category on their staff record. After the last approval, OPS disburses. Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.": 'Njia hutokana na jukumu la mwombaji na kundi lililo kwenye kumbukumbu zake. Baada ya idhini ya mwisho, OPS hutoa mkopo. Wafanyakazi husaini mkataba wanapoomba na hukubali mkataba uliorekebishwa iwapo tu masharti yaliyoidhinishwa yanatofautiana.',
@@ -1263,6 +1262,18 @@ const SW = {
   'Your role reviews, disburses or administers loans, so Staff Loans asks for a one-time code at every sign-in. Use Microsoft Authenticator, Google Authenticator or a similar app.': 'Jukumu lako linapitia, linatoa au linasimamia mikopo, hivyo Mikopo ya Wafanyakazi inaomba msimbo wa mara moja kila unapoingia. Tumia Microsoft Authenticator, Google Authenticator au programu inayofanana.',
   'Your session has ended. Sign in again to continue.': 'Kipindi chako kimeisha. Ingia tena ili kuendelea.',
   'Your signed agreement becomes void. You can apply again later.': 'Mkataba wako uliosainiwa unakuwa batili. Unaweza kuomba tena baadaye.',
+  'Your loan estimate': 'Makadirio ya mkopo wako',
+  'Your estimated monthly instalment and repayment breakdown will appear here once you enter your loan amount and repayment period.': 'Makadirio ya rejesho lako la kila mwezi na mchanganuo wa marejesho yataonekana hapa ukishaweka kiasi cha mkopo na muda wa kurejesha.',
+  'Upload your latest payslip to calculate your eligible loan amount.': 'Pakia hati yako ya mshahara ya karibuni ili kukokotoa kiasi cha mkopo unachostahili.',
+  'PDF · From the Seamless HR System · Not older than {n} days': 'PDF · Kutoka Mfumo wa Seamless HR · Isiyozidi siku {n}',
+  'Replace': 'Badilisha',
+  'Enter amount': 'Weka kiasi',
+  'What will you use the loan for?': 'Utatumia mkopo kwa ajili gani?',
+  'The longest tenor you can take is {n} months.': 'Muda mrefu zaidi unaoweza kuchukua ni miezi {n}.',
+  'Choose a tenor between {min} and {max} months.': 'Chagua muda kati ya miezi {min} na {max}.',
+  'Your latest changes are not saved or checked yet': 'Mabadiliko yako ya mwisho bado hayajahifadhiwa wala kukaguliwa',
+  'Checking your changes…': 'Tunakagua mabadiliko yako…',
+  'Try again': 'Jaribu tena',
 };
 
 export default SW;

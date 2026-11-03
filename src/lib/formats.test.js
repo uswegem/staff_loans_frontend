@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatPhone, isNida, isPhone, nidaInput, phoneDigits, phoneValue } from './formats';
-import { RULES, checkValue } from './validation';
+import { renderHook, act } from '@testing-library/react';
+import { RULES, checkValue, failureShown, useLiveErrors, useValidatedForm } from './validation';
 
 describe('NIDA number (D-93)', () => {
   it('puts the hyphens in while typing or pasting digits', () => {
@@ -51,5 +52,46 @@ describe('shared validation', () => {
     expect(checkValue('+2557', rule)).toMatch(/nine digits/);
     expect(checkValue('+255712345678', rule)).toBeNull();
     expect(checkValue('', { validate: RULES.phone })).toBeNull();
+  });
+});
+
+describe('progressive and reactive validation (shared)', () => {
+  const rules = { mobile: { required: true, requiredMessage: 'Required to apply.', validate: RULES.phone } };
+
+  it('says nothing about an empty field on open, then follows the value once it has been left', () => {
+    const { result } = renderHook(() => useValidatedForm({ mobile: '' }, rules));
+    expect(result.current.errorOf('mobile')).toBeUndefined();
+    act(() => result.current.touch('mobile')());
+    expect(result.current.errorOf('mobile')).toBe('Required to apply.');
+    act(() => result.current.set('mobile')('+2557'));
+    expect(result.current.errorOf('mobile')).toMatch(/nine digits/);
+    act(() => result.current.set('mobile')('+255712345678'));
+    expect(result.current.errorOf('mobile')).toBeUndefined();
+  });
+
+  it('shows a saved value that is already wrong at once, and every rule after a submit', () => {
+    const { result } = renderHook(() => useValidatedForm({ mobile: '7123456780', other: '' }, { ...rules, other: { required: true } }));
+    expect(result.current.errorOf('mobile')).toMatch(/nine digits/);
+    expect(result.current.errorOf('other')).toBeUndefined();
+    act(() => result.current.attempt());
+    expect(result.current.errorOf('other')).toBe('This field is required.');
+  });
+
+  it('keeps a server error until its own field changes, and the summary while any remains', () => {
+    const errors = { branch: ['Required to apply.'], accountNo: ['Required to apply.'] };
+    const failure = { code: 'VALIDATION_FAILED', message: 'Check the highlighted fields.' };
+    const { result, rerender } = renderHook(({ values }) => useLiveErrors(errors, values), { initialProps: { values: { branch: '', accountNo: '' } } });
+    expect(Object.keys(result.current)).toEqual(['branch', 'accountNo']);
+    rerender({ values: { branch: 'Dodoma', accountNo: '' } });
+    expect(Object.keys(result.current)).toEqual(['accountNo']);
+    expect(failureShown(failure, errors, result.current)).toBe(true);
+    rerender({ values: { branch: 'Dodoma', accountNo: '401022831170' } });
+    expect(result.current).toEqual({});
+    expect(failureShown(failure, errors, result.current)).toBe(false);
+  });
+
+  it('never drops a connection or permission failure because a field changed', () => {
+    expect(failureShown({ code: 'NETWORK', message: 'Staff Loans cannot be reached.' }, {}, {})).toBe(true);
+    expect(failureShown({ code: 'FORBIDDEN', message: 'Not allowed.' }, { x: ['y'] }, {})).toBe(true);
   });
 });

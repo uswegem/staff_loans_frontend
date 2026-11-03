@@ -10,6 +10,7 @@ import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import Meter from '../../components/Meter';
+import { failureShown, useServerErrors } from '../../lib/validation';
 import StaffForm, { EMPTY_STAFF, toBody } from './StaffForm';
 import StaffDobCard from './StaffDobCard';
 import s from './staff.module.css';
@@ -26,15 +27,20 @@ function SalaryDialog({ onClose, onSave }) {
   const t = useT();
   const [v, setV] = useState({ basic: null, allowances: 0, effectiveFrom: '' });
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const server = useServerErrors(errors, v);
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     try {
       await onSave({ ...v, allowances: v.allowances || 0 });
     } catch (err) {
       const x = apiError(err);
       setErrors(x.details || {});
-      setError(x.message);
+      setFailure(x);
+      setBusy(false);
     }
   };
   return (
@@ -43,14 +49,14 @@ function SalaryDialog({ onClose, onSave }) {
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Record a salary change')}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{t('The old salary is kept as history. Applications use the salary in force on the day they are submitted (FR-03).')}</p>
-          {error && <Alert severity="error">{error}</Alert>}
-          <MoneyInput label={t('Basic salary')} required value={v.basic} onChange={(x) => setV({ ...v, basic: x })} error={!!errors.basic} helperText={errors.basic?.join(' ')} />
+          {failureShown(failure, errors, server) && <Alert severity="error">{failure.message}</Alert>}
+          <MoneyInput label={t('Basic salary')} required value={v.basic} onChange={(x) => setV({ ...v, basic: x })} error={!!server('basic')} helperText={server('basic')} />
           <MoneyInput label={t('Allowances')} value={v.allowances} onChange={(x) => setV({ ...v, allowances: x })} helperText={t('Not counted for affordability.')} />
-          <TextField label={t('Effective from')} type="date" required value={v.effectiveFrom} onChange={(e) => setV({ ...v, effectiveFrom: e.target.value })} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
+          <TextField label={t('Effective from')} type="date" required value={v.effectiveFrom} onChange={(e) => setV({ ...v, effectiveFrom: e.target.value })} error={!!server('effectiveFrom')} helperText={server('effectiveFrom')} />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained">{t('Save salary')}</Button>
+          <Button type="submit" variant="contained" disabled={busy}>{t('Save salary')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -63,12 +69,16 @@ function StatusDialog({ current, onClose, onSave }) {
   const [exitDate, setExitDate] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     try {
       await onSave({ status, exitDate: status === 'exited' ? exitDate : undefined, reason });
     } catch (err) {
       setError(apiError(err).message);
+      setBusy(false);
     }
   };
   return (
@@ -88,7 +98,7 @@ function StatusDialog({ current, onClose, onSave }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained">{t('Save status')}</Button>
+          <Button type="submit" variant="contained" disabled={busy}>{t('Save status')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -100,9 +110,11 @@ export function NewStaffPage() {
   const navigate = useNavigate();
   const [values, setValues] = useState(EMPTY_STAFF);
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
   const [busy, setBusy] = useState(false);
+  const server = useServerErrors(errors, values);
   const save = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const created = await staffApi.create(toBody({ ...values, staffNo: values.staffNo.trim().toUpperCase() }, { isNew: true }));
@@ -110,7 +122,7 @@ export function NewStaffPage() {
     } catch (err) {
       const x = apiError(err);
       setErrors(x.details || {});
-      setError(x.message);
+      setFailure(x);
       setBusy(false);
     }
   };
@@ -123,7 +135,7 @@ export function NewStaffPage() {
           <p>{t('They complete their personal, bank and next-of-kin details on their profile. A System Administrator adds their sign-in.')}</p>
         </div>
       </div>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {failureShown(failure, errors, server) && <Alert severity="error" sx={{ mb: 2 }}>{failure.message}</Alert>}
       <Card>
         <CardContent sx={{ p: 3 }}>
           <StaffForm values={values} onChange={setValues} errors={errors} isNew />
@@ -145,8 +157,11 @@ export default function StaffDetailPage() {
   const [values, setValues] = useState(null);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [dialog, setDialog] = useState(null);
+  const server = useServerErrors(errors, values);
 
   const show = (data) => {
     setD(data);
@@ -156,8 +171,9 @@ export default function StaffDetailPage() {
     staffApi.get(id).then(show).catch((err) => setError(apiError(err).message));
   }, [id]);
 
-  const run = async (fn, message) => {
-    setError(null);
+  /** Saves; a dialog shows its own failure, the staff record form shows the page's. */
+  const run = async (fn, message, { inDialog = false } = {}) => {
+    if (!inDialog) setFailure(null);
     setToast(null);
     try {
       show(await fn());
@@ -165,11 +181,19 @@ export default function StaffDetailPage() {
       setDialog(null);
       setToast(message);
     } catch (err) {
-      const x = apiError(err);
-      setErrors(x.details || {});
-      setError(x.message);
+      if (!inDialog) {
+        const x = apiError(err);
+        setErrors(x.details || {});
+        setFailure(x);
+      }
       throw err;
     }
+  };
+  const saveRecord = async () => {
+    if (busy) return;
+    setBusy(true);
+    await run(() => staffApi.update(id, toBody(values, { isNew: false })), t('Staff record saved.')).catch(() => {});
+    setBusy(false);
   };
 
   if (error && !d) return <div className="page"><Alert severity="error">{error}</Alert></div>;
@@ -190,7 +214,7 @@ export default function StaffDetailPage() {
       </div>
       <div className="stack">
         {toast && <Alert severity="success" onClose={() => setToast(null)}>{toast}</Alert>}
-        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+        {failureShown(failure, errors, server) && <Alert severity="error" onClose={() => setFailure(null)}>{failure.message}</Alert>}
         {d.probation?.onProbation && (
           <Alert severity="info">
             <AlertTitle>{t('On probation until {date}', { date: formatDate(d.probation.endsOn) })}</AlertTitle>
@@ -203,7 +227,7 @@ export default function StaffDetailPage() {
               <StaffForm values={values} onChange={setValues} errors={errors} readOnly={!canManage} />
               {canManage && (
                 <div className="row" style={{ marginTop: 24 }}>
-                  <Button variant="contained" onClick={() => run(() => staffApi.update(id, toBody(values, { isNew: false })), t('Staff record saved.')).catch(() => {})}>{t('Save staff record')}</Button>
+                  <Button variant="contained" onClick={saveRecord} disabled={busy}>{t('Save staff record')}</Button>
                 </div>
               )}
             </CardContent>
@@ -255,8 +279,8 @@ export default function StaffDetailPage() {
           </div>
         </div>
       </div>
-      {dialog === 'salary' && <SalaryDialog onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.addSalary(id, body), t('Salary recorded.'))} />}
-      {dialog === 'status' && <StatusDialog current={d.status} onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.setStatus(id, body), t('Status saved.'))} />}
+      {dialog === 'salary' && <SalaryDialog onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.addSalary(id, body), t('Salary recorded.'), { inDialog: true })} />}
+      {dialog === 'status' && <StatusDialog current={d.status} onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.setStatus(id, body), t('Status saved.'), { inDialog: true })} />}
     </div>
   );
 }

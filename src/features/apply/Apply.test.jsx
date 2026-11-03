@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, fireEvent, within } from '@testing-library/react';
+import { screen, fireEvent, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { quote } from '../../lib/calc/loanCalculator';
 import { routeSteps } from '../../components/LoanRoute';
@@ -121,13 +121,192 @@ describe('apply wizard', () => {
     });
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('Attach your latest payslip to see your limit.')).toBeInTheDocument();
-    expect(screen.getByText('Attach your latest payslip. Basic Pay and LFB deductions are read from it.')).toBeInTheDocument();
+    expect(screen.getByText('Upload your latest payslip to calculate your eligible loan amount.')).toBeInTheDocument();
+    expect(screen.getByText('PDF · From the Seamless HR System · Not older than 45 days')).toBeInTheDocument();
+    // A missing payslip is not an error until Continue is pressed.
+    expect(screen.queryByText('Attach your latest payslip. Basic Pay and LFB deductions are read from it.')).not.toBeInTheDocument();
     const file = new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' });
     await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), file);
     expect(await screen.findByText('TZS 150,000')).toBeInTheDocument();
     // Combined cap (D-87): 50% of Net Pay 1,337,500 = 668,750, less other Staff Loans loans (none).
     expect(screen.getByText('Limit 668,750')).toBeInTheDocument();
     expect(calls.some((c) => c.key === 'POST /applications/a1/payslip')).toBe(true);
+  });
+
+  describe('progressive validation', () => {
+    const blankErrors = { amount: 'Enter the amount you want to borrow.', tenor: 'Enter the tenor in months.', purpose: 'Say what the loan is for.', payslip: 'Attach your latest payslip. Basic Pay and LFB deductions are read from it.' };
+    const blank = { ...app, payslip: null, payInputs: { basic: 0, lfbDeductions: 0 }, amount: null, tenor: null, purpose: '', checks: { eligibility: [], fieldErrors: blankErrors, checks: [], canSubmit: false } };
+    const ERRORS = Object.values(blankErrors);
+
+    it('opens calm: no field errors, no red payslip box, and no zero estimate', async () => {
+      stubHttp({ 'GET /applications/a1': () => [200, { data: blank }] });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      expect(await screen.findByText(/will appear here once you enter your loan amount/)).toBeInTheDocument();
+      for (const m of ERRORS) expect(screen.queryByText(m)).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /Amount/ })).toHaveAttribute('aria-invalid', 'false');
+      expect(screen.getByRole('textbox', { name: /Purpose of the loan/ })).toHaveAttribute('aria-invalid', 'false');
+      expect(screen.queryByText('Total interest')).not.toBeInTheDocument();
+      expect(screen.queryByText('—')).not.toBeInTheDocument();
+    });
+
+    it('shows a field error after leaving it, and clears it as soon as the value changes', async () => {
+      stubHttp({ 'GET /applications/a1': () => [200, { data: blank }], 'PATCH /applications/a1': () => [200, { data: blank }] });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      const purpose = await screen.findByRole('textbox', { name: /Purpose of the loan/ });
+      await userEvent.click(purpose);
+      await userEvent.tab();
+      expect(screen.getByText('Say what the loan is for.')).toBeInTheDocument();
+      expect(screen.queryByText('Enter the amount you want to borrow.')).not.toBeInTheDocument();
+      await userEvent.type(purpose, 'C');
+      expect(screen.queryByText('Say what the loan is for.')).not.toBeInTheDocument();
+    });
+
+    it('on Continue shows every missing field, says so once, and focuses the first problem', async () => {
+      stubHttp({ 'GET /applications/a1': () => [200, { data: blank }], 'PATCH /applications/a1': () => [200, { data: blank }] });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+      expect(await screen.findByText('Fill in the required fields.')).toBeInTheDocument();
+      for (const m of ['Enter the amount you want to borrow.', 'Say what the loan is for.']) expect(screen.getByText(m)).toBeInTheDocument();
+      expect(screen.getAllByText(blankErrors.payslip).length).toBeGreaterThan(0);
+      expect(document.activeElement).toHaveAttribute('aria-labelledby', 'payslip-h');
+      expect(screen.getByRole('button', { name: 'Continue to documents' })).toBeInTheDocument(); // still on step 2
+    });
+
+    it('explains the longest tenor when a longer one is typed (D-82)', async () => {
+      stubHttp({ 'GET /applications/a1': () => [200, { data: { ...app, retirement: { dateOfBirth: '1969-01-29', cutoff: '2028-11-30', maxTenor: 24, age: 60, bufferDays: 60 } } }] });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      const tenor = await screen.findByRole('spinbutton', { name: /Tenor/ });
+      expect(screen.queryByText('The longest tenor you can take is 24 months.')).not.toBeInTheDocument();
+      await userEvent.clear(tenor);
+      await userEvent.type(tenor, '30');
+      await userEvent.tab();
+      expect(screen.getByText('The longest tenor you can take is 24 months.')).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: 'Tenor slider' })).toHaveAttribute('aria-valuenow', '24');
+    });
+  });
+
+  describe('reactive checks: the box always describes the values on screen', () => {
+    // A stand-in for the API: the same calculator, and checks for exactly the values sent.
+    const MAX = app.product.maxAmount;
+    const evaluate = (body) => {
+      const q = quote({ amount: body.amount || 0, tenor: body.tenor || 0, pay: app.payInputs, pricing: PRICING, startDay: '2026-11-03', maxTenor: 60, maxAmountCap: MAX });
+      const checks = [];
+      if (body.amount > MAX) checks.push(`The maximum for Personal Loan is TZS ${MAX.toLocaleString('en-US')}.`);
+      if (body.tenor && (body.tenor < 6 || body.tenor > 60)) checks.push('Choose a tenor between 6 and 60 months.');
+      if (body.amount && body.tenor && !q.pass) checks.push(`The instalment of TZS ${q.instalment.toLocaleString('en-US')} is above what your combined limit leaves.`);
+      return { ...app, amount: body.amount, tenor: body.tenor, purpose: body.purpose, checks: { eligibility: [], fieldErrors: {}, checks, canSubmit: !checks.length } };
+    };
+    const patch = (config) => [200, { data: evaluate(JSON.parse(config.data)) }];
+    const WAIT = { timeout: 3000 };
+    // The box, whether its checks are current or being redone.
+    const box = () => screen.queryByText('Fix this before you continue') || screen.queryByText('Checking your changes…');
+    const setAmount = async (n) => {
+      const amount = screen.getByRole('textbox', { name: /Amount/ });
+      await userEvent.clear(amount);
+      await userEvent.type(amount, String(n));
+    };
+    const setTenor = async (n) => {
+      const tenor = screen.getByRole('spinbutton', { name: /Tenor/ });
+      await userEvent.clear(tenor);
+      await userEvent.type(tenor, String(n));
+    };
+    const open = async (routes = {}) => {
+      const calls = stubHttp({ 'GET /applications/a1': () => [200, { data: app }], 'PATCH /applications/a1': patch, ...routes });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      await screen.findByText('136,900');
+      return calls;
+    };
+
+    it('1: an amount over the product maximum is flagged, and the message goes once it is lowered', async () => {
+      await open();
+      await setAmount(350000000);
+      expect(await screen.findByText('The maximum for Personal Loan is TZS 300,000,000.', {}, WAIT)).toBeInTheDocument();
+      await setAmount(4500000);
+      await waitFor(() => expect(box()).not.toBeInTheDocument(), WAIT);
+      expect(screen.queryByText(/The maximum for Personal Loan/)).not.toBeInTheDocument();
+    });
+
+    it('2: an unaffordable instalment is flagged, and recalculated away by a longer tenor', async () => {
+      await open();
+      await setAmount(20000000);
+      await setTenor(12);
+      expect(await screen.findByText(/^The instalment of TZS/, {}, WAIT)).toBeInTheDocument();
+      await setTenor(60);
+      await waitFor(() => expect(box()).not.toBeInTheDocument(), WAIT);
+      expect(screen.getByText(/below your limit/)).toBeInTheDocument();
+    });
+
+    it('3: a tenor outside the range is flagged, and cleared when corrected', async () => {
+      await open();
+      await setTenor(72);
+      await userEvent.tab();
+      expect(await screen.findByText('Choose a tenor between 6 and 60 months.', {}, WAIT)).toBeInTheDocument();
+      expect(screen.getByText('The longest tenor you can take is 60 months.')).toBeInTheDocument();
+      await setTenor(24);
+      await waitFor(() => expect(box()).not.toBeInTheDocument(), WAIT);
+      expect(screen.queryByText('The longest tenor you can take is 60 months.')).not.toBeInTheDocument();
+    });
+
+    it('4: with two problems, fixing one leaves the other; fixing both removes the box', async () => {
+      await open();
+      await setAmount(350000000);
+      await setTenor(72);
+      expect(await screen.findByText('Choose a tenor between 6 and 60 months.', {}, WAIT)).toBeInTheDocument();
+      expect(screen.getByText('The maximum for Personal Loan is TZS 300,000,000.')).toBeInTheDocument();
+      await setTenor(60);
+      await waitFor(() => expect(screen.queryByText('Choose a tenor between 6 and 60 months.')).not.toBeInTheDocument(), WAIT);
+      expect(screen.getByText('The maximum for Personal Loan is TZS 300,000,000.')).toBeInTheDocument();
+      await waitFor(() => expect(box()).toBeInTheDocument(), WAIT);
+      await setAmount(4500000);
+      await waitFor(() => expect(box()).not.toBeInTheDocument(), WAIT);
+    });
+
+    it('5: Continue is refused while a check fails and goes through once corrected', async () => {
+      await open();
+      await setAmount(350000000);
+      await userEvent.click(screen.getByRole('button', { name: 'Continue to documents' }));
+      expect(await screen.findByText('Fix this before you continue')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Supporting documents' })).not.toBeInTheDocument();
+      await setAmount(4500000);
+      const go = screen.getByRole('button', { name: 'Continue to documents' });
+      expect(go).toBeEnabled();
+      await userEvent.click(go);
+      expect(await screen.findByRole('heading', { name: 'Supporting documents' })).toBeInTheDocument();
+    });
+
+    it('6: a slow answer for older values never replaces the answer for newer ones', async () => {
+      let release;
+      const slow = new Promise((r) => { release = r; });
+      let n = 0;
+      await open({
+        'PATCH /applications/a1': async (config) => {
+          n += 1;
+          if (n === 1) await slow; // the answer for 350,000,000 arrives last
+          return patch(config);
+        },
+      });
+      await setAmount(350000000);
+      await waitFor(() => expect(n).toBe(1), WAIT);
+      await setAmount(4500000);
+      await waitFor(() => expect(n).toBe(2), WAIT);
+      release();
+      await new Promise((r) => { setTimeout(r, 100); });
+      expect(screen.queryByText(/The maximum for Personal Loan/)).not.toBeInTheDocument();
+      expect(box()).not.toBeInTheDocument();
+    });
+
+    it('a save that fails is reported, not hidden behind the last checks, and can be retried', async () => {
+      let down = true;
+      await open({ 'PATCH /applications/a1': (config) => (down ? [503, { message: 'The database is not available.', code: 'UNAVAILABLE' }] : patch(config)) });
+      await setAmount(350000000);
+      expect(await screen.findByText('Your latest changes are not saved or checked yet', {}, WAIT)).toBeInTheDocument();
+      expect(box()).not.toBeInTheDocument();
+      down = false;
+      await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      expect(await screen.findByText('The maximum for Personal Loan is TZS 300,000,000.', {}, WAIT)).toBeInTheDocument();
+      expect(screen.queryByText('Your latest changes are not saved or checked yet')).not.toBeInTheDocument();
+    });
   });
 
   it('consents unlock only after reading to the end; signing sends the fingerprint read', async () => {

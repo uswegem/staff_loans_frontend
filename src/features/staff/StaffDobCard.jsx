@@ -22,16 +22,25 @@ export default function StaffDobCard({ staffId, canManage }) {
   }, [staffId]);
   useEffect(load, [load]);
 
+  // A refusal of a proposed date is about that date: it goes once the date is changed.
+  const [sentDob, setSentDob] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const shownError = error && (sentDob === null || sentDob === dob) ? error : null;
   const propose = async (e) => {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     setError(null);
     try {
       setStatus(await dobApi.propose(staffId, dob));
       setDob('');
+      setSentDob(null);
       setToast('Sent for verification. Another verifier must approve it.');
     } catch (err) {
+      setSentDob(dob);
       setError(apiError(err).message);
     }
+    setBusy(false);
   };
 
   return (
@@ -42,15 +51,15 @@ export default function StaffDobCard({ staffId, canManage }) {
         <DobStatus
           status={status}
           canWithdraw={!!status?.pending && status.pending.submittedById === myId}
-          onWithdraw={() => dobApi.withdraw(status.pending.id).then(load).catch((e) => setError(apiError(e).message))}
+          onWithdraw={() => dobApi.withdraw(status.pending.id).then(load).catch((e) => { setSentDob(null); setError(apiError(e).message); })}
         />
         {canManage && status && !status.pending && (
           <form onSubmit={propose} className="row" noValidate>
             <TextField size="small" type="date" label={t('New date of birth')} value={dob} onChange={(e) => setDob(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <Button type="submit" size="small" disabled={!dob}>{t('Send for verification')}</Button>
+            <Button type="submit" size="small" disabled={!dob || busy}>{t('Send for verification')}</Button>
           </form>
         )}
-        {error && <Alert severity="error" role="alert">{error}</Alert>}
+        {shownError && <Alert severity="error" role="alert">{shownError}</Alert>}
       </CardContent>
     </Card>
   );

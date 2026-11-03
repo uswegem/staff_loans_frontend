@@ -28,23 +28,38 @@ export default function DelegationPage() {
   useEffect(() => {
     load();
   }, []);
+  // Names for the text as typed; an answer for earlier text is dropped.
   useEffect(() => {
-    const timer = setTimeout(() => delegationApi.candidates(q).then(setOptions).catch(() => {}), 250);
-    return () => clearTimeout(timer);
+    let current = true;
+    const timer = setTimeout(() => delegationApi.candidates(q).then((o) => current && setOptions(o)).catch(() => {}), 250);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
   }, [q]);
+
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // Re-checked on every change once a save was tried; the API's answer stays until the next save.
+  const problem = (tried && !delegate && t('Choose a delegate.')) || error;
 
   const save = async (e) => {
     e.preventDefault();
+    if (busy) return undefined;
+    setTried(true);
     setError(null);
-    if (!delegate) return setError(t('Choose a delegate.'));
+    if (!delegate) return undefined;
+    setBusy(true);
     try {
       await delegationApi.create({ delegateUserId: delegate.id, from, until, reason });
       setToast(t('Delegation saved. {name} has been notified.', { name: delegate.name }));
       setDelegate(null);
+      setTried(false);
       load();
     } catch (err) {
       setError(apiError(err).message);
     }
+    setBusy(false);
     return undefined;
   };
 
@@ -61,7 +76,7 @@ export default function DelegationPage() {
         <Card component="form" onSubmit={save} noValidate>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('Set a delegate')}</h3></div>
           <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
-            {error && <Alert severity="error">{error}</Alert>}
+            {problem && <Alert severity="error">{problem}</Alert>}
             <Autocomplete
               options={options}
               value={delegate}
@@ -76,7 +91,7 @@ export default function DelegationPage() {
               <TextField label={t('Until')} type="date" required value={until} onChange={(e) => setUntil(e.target.value)} inputProps={{ min: from }} />
             </div>
             <TextField label={t('Reason')} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('For example, annual leave')} />
-            <div className="row"><Button type="submit" variant="contained">{t('Save delegation')}</Button></div>
+            <div className="row"><Button type="submit" variant="contained" disabled={busy}>{t('Save delegation')}</Button></div>
           </CardContent>
         </Card>
         <Card>

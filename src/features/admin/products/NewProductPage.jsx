@@ -6,6 +6,7 @@ import { Alert, Button, Card, CardContent, Link, TextField } from '@mui/material
 import { productsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { todayEat } from '../../../lib/dates';
+import { failureShown, useLiveErrors } from '../../../lib/validation';
 import ProductForm, { EMPTY_PRODUCT } from './ProductForm';
 import s from './products.module.css';
 import { useT } from '../../../i18n';
@@ -18,12 +19,14 @@ export default function NewProductPage() {
   const [note, setNote] = useState('');
   const [values, setValues] = useState(EMPTY_PRODUCT);
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
   const [busy, setBusy] = useState(false);
+  const live = useLiveErrors(errors, { ...values, code, effectiveFrom });
 
   const create = async () => {
+    if (busy) return;
     setBusy(true);
-    setError(null);
+    setFailure(null);
     try {
       const v = await productsApi.create({ code: code.trim().toUpperCase(), effectiveFrom, note, values });
       navigate(`/admin/products/versions/${v.id}`);
@@ -34,7 +37,7 @@ export default function NewProductPage() {
         details[k.replace(/^values\./, '')] = msgs;
       });
       setErrors(details);
-      setError(x.message);
+      setFailure(x);
       setBusy(false);
     }
   };
@@ -51,17 +54,17 @@ export default function NewProductPage() {
         </div>
       </div>
       <div className="stack">
-        {error && <Alert severity="error">{error}</Alert>}
+        {failureShown(failure, errors, live) && <Alert severity="error">{failure.message}</Alert>}
         <div className={s.layout}>
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <ProductForm values={values} onChange={setValues} errors={errors} />
+              <ProductForm values={values} onChange={setValues} errors={live} />
             </CardContent>
           </Card>
           <Card className={s.sticky}>
             <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
-              <TextField label={t('Product code')} required value={code} onChange={(e) => setCode(e.target.value)} error={!!errors.code} helperText={errors.code?.join(' ') || '2 to 10 capital letters or digits. It never changes.'} inputProps={{ maxLength: 10, autoCapitalize: 'characters' }} />
-              <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
+              <TextField label={t('Product code')} required value={code} onChange={(e) => setCode(e.target.value)} error={!!live.code} helperText={live.code?.join(' ') || '2 to 10 capital letters or digits. It never changes.'} inputProps={{ maxLength: 10, autoCapitalize: 'characters' }} />
+              <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
               <TextField label={t('Why this product')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
               <Button variant="contained" onClick={create} disabled={busy}>{t('Save draft')}</Button>
             </CardContent>

@@ -7,6 +7,7 @@ import { Alert, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions
 import { settingsApi } from '../../../api/reports';
 import { apiError } from '../../../api/client';
 import { formatDate } from '../../../lib/format';
+import { failureShown, useLiveErrors } from '../../../lib/validation';
 import s from '../../apply/apply.module.css';
 import { useT } from '../../../i18n';
 
@@ -37,18 +38,24 @@ const NUMBERS = [
 function EditDialog({ settings, onClose, onSaved }) {
   const t = useT();
   const [form, setForm] = useState({ ...settings, start: hhmm(settings.dayStartMinutes), end: hhmm(settings.dayEndMinutes) });
-  const [error, setError] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [failure, setFailure] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  // Each error until its field changes; the end of the day is checked against the start too.
+  const fieldErrors = useLiveErrors(errors, { ...form, dayEndMinutes: `${form.start}-${form.end}` });
   const save = async (e) => {
     e.preventDefault();
+    if (busy) return;
     const body = { workingDays: form.workingDays, dayStartMinutes: toMin(form.start), dayEndMinutes: toMin(form.end) };
     NUMBERS.forEach(([k]) => { body[k] = Number(form[k]); });
+    setBusy(true);
     try {
       onSaved(await settingsApi.update(body));
     } catch (err) {
       const x = apiError(err);
-      setError(x.message);
-      setFieldErrors(x.details || {});
+      setFailure(x);
+      setErrors(x.details || {});
+      setBusy(false);
     }
   };
   return (
@@ -71,11 +78,11 @@ function EditDialog({ settings, onClose, onSaved }) {
               />
             ))}
           </fieldset>
-          {error && <Alert severity="error" role="alert" sx={{ gridColumn: '1 / -1' }}>{error}</Alert>}
+          {failureShown(failure, errors, fieldErrors) && <Alert severity="error" role="alert" sx={{ gridColumn: '1 / -1' }}>{failure.message}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained">{t('Save')}</Button>
+          <Button type="submit" variant="contained" disabled={busy}>{t('Save')}</Button>
         </DialogActions>
       </form>
     </Dialog>

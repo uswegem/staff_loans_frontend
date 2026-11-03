@@ -45,13 +45,19 @@ const pick = async (label, option) => {
 };
 
 describe('profile validation (D-93)', () => {
-  it('a required field is red while empty and turns normal as soon as a valid value is typed', async () => {
+  it('an empty required field is neutral on open, red once left empty, and normal as soon as a valid value is typed', async () => {
     stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], ...LOCATIONS });
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
     const nida = await screen.findByLabelText(/NIDA number/);
-    expect(invalid(nida)).toBe(true);
-    expect(screen.getAllByText('Required to apply.').length).toBeGreaterThan(0);
+    expect(invalid(nida)).toBe(false);
+    expect(screen.queryByText('Required to apply.')).toBeNull();
 
+    await userEvent.click(nida);
+    await userEvent.tab();
+    expect(invalid(nida)).toBe(true);
+    expect(screen.getByText('Required to apply.')).toBeInTheDocument();
+
+    // While it is wrong, the message follows what is typed.
     await userEvent.type(nida, '1980063013140000');
     expect(nida).toHaveValue('19800630-13140-000');
     expect(invalid(nida)).toBe(true);
@@ -97,13 +103,13 @@ describe('profile validation (D-93)', () => {
     expect(calls.some((c) => c.key === 'GET /reference-data/regions/Mwanza/districts')).toBe(true);
   });
 
-  it('House/Plot Number is optional: never red, and the address saves without it', async () => {
+  it('saving shows the missing address parts; House/Plot Number is optional: never red, and the address saves without it', async () => {
     const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], 'PATCH /me/profile/personal': () => [200, { data: profile() }], ...LOCATIONS });
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
     const house = await screen.findByLabelText(/House\/Plot Number/);
     expect(invalid(house)).toBe(false);
     const street = field('Street');
-    expect(invalid(street)).toBe(true);
+    expect(invalid(street)).toBe(false);
     await pick('Region', 'Dodoma');
     await pick('District', 'Dodoma');
     await pick('Ward', 'Chamwino');
@@ -129,13 +135,19 @@ describe('profile validation (D-93)', () => {
   });
 
   it('bank: Branch and Account number turn normal once valid; a wrong account number gets its own message', async () => {
-    stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], ...LOCATIONS });
+    const VALIDATION = { code: 'VALIDATION_FAILED', message: 'Check the highlighted fields.', details: { branch: ['Required to apply.'], accountNo: ['Required to apply.'] } };
+    stubHttp({ 'GET /me/profile': () => [200, { data: profile() }], 'PATCH /me/profile/bank': () => [400, VALIDATION], ...LOCATIONS });
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
     await userEvent.click(await screen.findByRole('tab', { name: /Bank details/ }));
     const branch = field('Branch');
     const acct = field('Account number');
+    expect(invalid(branch)).toBe(false);
+    expect(invalid(acct)).toBe(false);
+    // Saving shows what is still missing; each field then turns normal as soon as it is valid.
+    await userEvent.click(screen.getByRole('button', { name: 'Save bank details' }));
     expect(invalid(branch)).toBe(true);
     expect(invalid(acct)).toBe(true);
+    expect(await screen.findByText('Check the highlighted fields.')).toBeInTheDocument();
     await userEvent.type(branch, 'Dodoma');
     await userEvent.type(acct, '12a');
     expect(invalid(branch)).toBe(false);
@@ -144,5 +156,7 @@ describe('profile validation (D-93)', () => {
     await userEvent.type(acct, '4010 2283 1170');
     expect(invalid(acct)).toBe(false);
     expect(screen.queryByText('Required to apply.')).toBeNull();
+    // Both flagged fields corrected: the summary goes with them.
+    expect(screen.queryByText('Check the highlighted fields.')).toBeNull();
   });
 });

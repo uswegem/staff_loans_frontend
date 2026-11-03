@@ -3,7 +3,9 @@
 // - the normal border as soon as the value meets the rule, while the person types;
 // - a message that says what is wrong ("Enter nine digits after +255…"), and the
 //   required message only for an empty field;
-// - an error returned by the server shows until that field is changed.
+// - an error returned by the server shows until that field is changed;
+// - nothing is red when a form opens empty: a field's message waits until it is left or the
+//   form is submitted, then follows every change.
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ACCOUNT_NO, ACCOUNT_NO_MESSAGE, BRANCH_MESSAGE, NIDA_MESSAGE, PHONE_MESSAGE, isNida, isPhone } from './formats';
@@ -48,13 +50,52 @@ export function useServerErrors(errors, values) {
 }
 
 /**
- * Form state with rules checked on every change.
+ * Whether the message of a failed save still applies. "Check the highlighted fields" (the
+ * API's field validation, VALIDATION_FAILED with field details) shows while one of those
+ * fields still shows its error and goes once they are all corrected; any other failure
+ * (connection, permission, a business rule) stays until the next save or until dismissed.
+ * failure: apiError(...) of the last save; errors: its details; server: useServerErrors(...).
+ */
+export function failureShown(failure, errors, server) {
+  if (!failure) return false;
+  const fields = Object.keys(errors || {});
+  if (failure.code !== 'VALIDATION_FAILED' || !fields.length) return true;
+  const still = typeof server === 'function' ? server : (k) => server?.[k];
+  return fields.some((k) => still(k));
+}
+
+/**
+ * The server's field errors in their own shape ({ field: [messages] }), keeping only the
+ * fields not changed since they were returned: for forms that read errors[k] directly.
+ */
+export function useLiveErrors(errors, values) {
+  const server = useServerErrors(errors, values);
+  return useMemo(() => Object.fromEntries(Object.entries(errors || {}).filter(([k]) => server(k))), [errors, server]);
+}
+
+/**
+ * Form state with rules checked on every change, shown progressively:
+ * - a field's rule message shows once the field has been left (touch) or the form submitted
+ *   (attempt); a saved value that already breaks its format rule shows at once;
+ * - from then on it is re-checked on every change: it goes as soon as the value is right
+ *   and follows the value while it is still wrong;
+ * - a server error shows until that field is changed.
  * rules: { field: rule } (see checkValue). Returns
- * { values, set(k) → onChange handler, setValues, errorOf(k), setServerErrors, invalid }.
+ * { values, set(k) → onChange handler, touch(k) → onBlur handler, attempt(), shown(k),
+ *   setValues, errorOf(k), setServerErrors, invalid }.
  */
 export function useValidatedForm(initial, rules = {}) {
   const [values, setValues] = useState(initial);
   const [server, setServer] = useState({});
+  const start = useRef(initial);
+  const [touched, setTouched] = useState({});
+  const [attempted, setAttempted] = useState(false);
+  const touch = useCallback((k) => () => setTouched((x) => (x[k] ? x : { ...x, [k]: true })), []);
+  const attempt = useCallback(() => setAttempted(true), []);
+  const shown = useCallback(
+    (k) => attempted || !!touched[k] || (!empty(values[k]) && typeof values[k] !== 'object' && values[k] === start.current[k]),
+    [attempted, touched, values]
+  );
   const set = useCallback(
     (k) => (e) => {
       const v = e?.target ? e.target.value : e;
@@ -68,7 +109,7 @@ export function useValidatedForm(initial, rules = {}) {
     },
     []
   );
-  const errorOf = useCallback((k) => joined(server[k]) || checkValue(values[k], rules[k]) || undefined, [server, values, rules]);
+  const errorOf = useCallback((k) => joined(server[k]) || (shown(k) ? checkValue(values[k], rules[k]) : null) || undefined, [server, values, rules, shown]);
   const invalid = useMemo(() => Object.keys(rules).filter((k) => checkValue(values[k], rules[k])), [values, rules]);
-  return { values, set, setValues, errorOf, setServerErrors: setServer, invalid };
+  return { values, set, touch, attempt, shown, setValues, errorOf, setServerErrors: setServer, serverLeft: Object.keys(server).length, invalid };
 }

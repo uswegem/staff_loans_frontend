@@ -68,13 +68,22 @@ export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = 
   return (
     <div>
       <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-        <h3>{t('Your loan')}</h3>
+        <h3>{t('Your loan estimate')}</h3>
         <span className="xs muted">{t('{rate} a year, reducing', { rate: pct(q.rates.interestBps) })}</span>
       </div>
       <div style={{ padding: 24 }} aria-live="polite">
-        <div className="small muted">{t('Monthly instalment')}</div>
-        <div className={s.big}>{ready ? formatNumber(q.instalment) : '—'}</div>
-        {ready ? <Meter q={q} /> : <p className="small muted">{hasPayslip ? t('Enter an amount and tenor to see your instalment.') : t('Attach your latest payslip to see your limit.')}</p>}
+        {ready ? (
+          <>
+            <div className="small muted">{t('Monthly instalment')}</div>
+            <div className={s.big}>{formatNumber(q.instalment)}</div>
+            <Meter q={q} />
+          </>
+        ) : (
+          <>
+            <p className={s.empty}>{t('Your estimated monthly instalment and repayment breakdown will appear here once you enter your loan amount and repayment period.')}</p>
+            {!hasPayslip && <p className={s.empty} style={{ marginTop: 8 }}>{t('Attach your latest payslip to see your limit.')}</p>}
+          </>
+        )}
         {hasPayslip && (
           <div className={s.calc} style={{ marginTop: 12 }}>
             <div className={s.line}><span>{t('Remaining combined capacity')}</span><b>{t('TZS {amount} a month', { amount: formatNumber(Math.max(0, q.combined.remaining)) })}</b></div>
@@ -82,14 +91,18 @@ export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = 
             {ready && tenor !== q.maxTenor && <div className={s.line}><span>{t('Over {n} months, up to', { n: tenor })}</span><b>TZS {formatNumber(q.maxAmountAtTenor)}</b></div>}
           </div>
         )}
-        <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', margin: '16px 0' }} />
-        <div className={s.calc}>
-          <div className={s.line}><span>{t('Total interest')}</span><b>{formatNumber(q.totalInterest)}</b></div>
-          <div className={s.line}><span>{t('Total to repay')}</span><b>{formatNumber(q.totalRepayable)}</b></div>
-          <div className={s.line}><span>{topUp ? t('Processing fee ({rate}, top-up)', { rate: pct(q.rates.processingFeeBps) }) : t('Processing fee ({rate})', { rate: pct(q.rates.processingFeeBps) })}</span><b>{formatNumber(q.processingFee)}</b></div>
-          <div className={s.line}><span>{t('Insurance ({rate} × {n} years)', { rate: pct(q.rates.insuranceBps), n: years })}</span><b>{formatNumber(q.insuranceFee)}</b></div>
-          {q.firstDueDate && ready && <div className={s.line}><span>{t('First instalment')}</span><b>{q.firstDueDate.split('-').reverse().join('/')}</b></div>}
-        </div>
+        {ready && (
+          <>
+            <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', margin: '16px 0' }} />
+            <div className={s.calc}>
+              <div className={s.line}><span>{t('Total interest')}</span><b>{formatNumber(q.totalInterest)}</b></div>
+              <div className={s.line}><span>{t('Total to repay')}</span><b>{formatNumber(q.totalRepayable)}</b></div>
+              <div className={s.line}><span>{topUp ? t('Processing fee ({rate}, top-up)', { rate: pct(q.rates.processingFeeBps) }) : t('Processing fee ({rate})', { rate: pct(q.rates.processingFeeBps) })}</span><b>{formatNumber(q.processingFee)}</b></div>
+              <div className={s.line}><span>{t('Insurance ({rate} × {n} years)', { rate: pct(q.rates.insuranceBps), n: years })}</span><b>{formatNumber(q.insuranceFee)}</b></div>
+              {q.firstDueDate && <div className={s.line}><span>{t('First instalment')}</span><b>{q.firstDueDate.split('-').reverse().join('/')}</b></div>}
+            </div>
+          </>
+        )}
         {hasPayslip && (
           <details style={{ marginTop: 12 }}>
             <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>{t('How your limit is worked out')}</summary>

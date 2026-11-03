@@ -2,6 +2,7 @@
 // bulk upload apply on the server; its messages appear next to each field until the
 // field is changed. Phone numbers are checked as they are typed (D-93).
 
+import { useRef, useState } from 'react';
 import { MenuItem, TextField } from '@mui/material';
 import MoneyInput from '../../components/MoneyInput';
 import PhoneField from '../../components/fields/PhoneField';
@@ -35,13 +36,21 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
   const t = useT();
   const set = (k) => (e) => onChange({ ...values, [k]: e?.target ? e.target.value : e });
   const server = useServerErrors(errors, values);
-  const phoneErr = (v) => checkValue(v, { validate: RULES.phone });
+  // A phone's format is checked once the field is left (or for a saved number), then on every change.
+  const start = useRef(values);
+  const [left, setLeft] = useState({});
+  const leave = (k) => () => setLeft((x) => (x[k] ? x : { ...x, [k]: true }));
+  const phoneOf = (v, k) => (k === 'stationHead.phone' ? v?.stationHead?.phone : v?.[k]);
+  const phoneErr = (k) => {
+    const v = phoneOf(values, k);
+    return left[k] || (v && v === phoneOf(start.current, k)) ? checkValue(v, { validate: RULES.phone }) : null;
+  };
   const err = (k) => {
-    const m = server(k) || (['workPhone', 'mobile', 'stationHead.phone'].includes(k) ? phoneErr(k === 'stationHead.phone' ? values.stationHead?.phone : values[k]) : null);
+    const m = server(k) || (['workPhone', 'mobile', 'stationHead.phone'].includes(k) ? phoneErr(k) : null);
     return m ? t(m) : undefined;
   };
   const f = (k, label, { hint, ...props } = {}) => <TextField {...props} label={t(label)} value={values[k] ?? ''} onChange={set(k)} error={!!err(k)} helperText={err(k) || (hint && t(hint))} disabled={readOnly} />;
-  const phone = (k, label, hint) => <PhoneField label={t(label)} value={values[k] ?? ''} onChange={set(k)} error={!!err(k)} helperText={err(k) || (hint ? t(hint) : t('Optional.'))} disabled={readOnly} />;
+  const phone = (k, label, hint) => <PhoneField label={t(label)} value={values[k] ?? ''} onChange={set(k)} onBlur={leave(k)} error={!!err(k)} helperText={err(k) || (hint ? t(hint) : t('Optional.'))} disabled={readOnly} />;
 
   return (
     <div className={s.form}>
@@ -65,7 +74,7 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
           {f('station', 'Work station', { required: true, hint: 'Branch or Head Office.' })}
           {f('lineManagerStaffNo', 'Line manager staff number', { hint: 'Employee code, for example AT637' })}
           <TextField label={t('Head of station')} value={values.stationHead?.name || ''} onChange={(e) => onChange({ ...values, stationHead: { ...values.stationHead, name: e.target.value } })} disabled={readOnly} />
-          <PhoneField label={t('Head of station phone')} value={values.stationHead?.phone || ''} onChange={(v) => onChange({ ...values, stationHead: { ...values.stationHead, phone: v } })} error={!!err('stationHead.phone')} helperText={err('stationHead.phone') || t('Optional.')} disabled={readOnly} />
+          <PhoneField label={t('Head of station phone')} value={values.stationHead?.phone || ''} onChange={(v) => onChange({ ...values, stationHead: { ...values.stationHead, phone: v } })} onBlur={leave('stationHead.phone')} error={!!err('stationHead.phone')} helperText={err('stationHead.phone') || t('Optional.')} disabled={readOnly} />
           {f('category', 'Employee category', {
             select: true,
             required: true,

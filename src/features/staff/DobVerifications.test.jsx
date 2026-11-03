@@ -44,6 +44,7 @@ describe('date of birth verifications (D-82)', () => {
     expect(within(dialog).getByText('Give a reason for the rejection.')).toBeInTheDocument();
     expect(calls.some((c) => c.key === 'POST /dob-verifications/c1/reject')).toBe(false);
     await userEvent.type(within(dialog).getByLabelText(/Reason/), 'Does not match the NIDA card.');
+    expect(within(dialog).queryByText('Give a reason for the rejection.')).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
     expect(await screen.findByText('Neema Mushi: proposed date of birth rejected.')).toBeInTheDocument();
     expect(JSON.parse(calls.find((c) => c.key === 'POST /dob-verifications/c1/reject').config.data)).toEqual({ reason: 'Does not match the NIDA card.' });

@@ -46,16 +46,23 @@ function CredentialsStep({ onResult }) {
   const [formError, setFormError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const staffNoError = (v) => {
+    const sn = v.trim().toUpperCase();
+    if (!sn) return t('Enter your staff number.');
+    return STAFF_NO.test(sn) ? undefined : t(STAFF_NO_MESSAGE);
+  };
+  const passwordError = (v) => (v ? undefined : t('Enter your password.'));
+  // After a sign-in attempt each field is checked again on every change: its message goes once
+  // it is right and comes back if it goes wrong again.
+  const recheck = (k, v, rule) => setErrors((x) => (k in x ? { ...x, [k]: rule(v) } : x));
+
   const submit = async (e) => {
     e.preventDefault();
     const sn = staffNo.trim().toUpperCase();
-    const errs = {};
-    if (!sn) errs.staffNo = t('Enter your staff number.');
-    else if (!STAFF_NO.test(sn)) errs.staffNo = t(STAFF_NO_MESSAGE);
-    if (!password) errs.password = t('Enter your password.');
+    const errs = { staffNo: staffNoError(staffNo), password: passwordError(password) };
     setErrors(errs);
     setFormError(null);
-    if (Object.keys(errs).length) return;
+    if (errs.staffNo || errs.password) return;
     setBusy(true);
     try {
       onResult(await authApi.login(sn, password), sn);
@@ -93,7 +100,10 @@ function CredentialsStep({ onResult }) {
           label={t('Staff number')}
           placeholder={STAFF_NO_EXAMPLE}
           value={staffNo}
-          onChange={(e) => setStaffNo(e.target.value)}
+          onChange={(e) => {
+            setStaffNo(e.target.value);
+            recheck('staffNo', e.target.value, staffNoError);
+          }}
           error={!!errors.staffNo}
           helperText={errors.staffNo || t('Your employee code, as on your payslip.')}
           inputProps={{ autoCapitalize: 'characters', spellCheck: false }}
@@ -103,7 +113,10 @@ function CredentialsStep({ onResult }) {
           label={t('Password')}
           type={show ? 'text' : 'password'}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            recheck('password', e.target.value, passwordError);
+          }}
           error={!!errors.password}
           helperText={errors.password}
           InputProps={{

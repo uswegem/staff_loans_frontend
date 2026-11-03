@@ -113,12 +113,24 @@ function Report({ def, options }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
+  // Rows for the filters as they are now: an answer for earlier filters is dropped.
   useEffect(() => {
     setData(null);
+    let current = true;
     const timer = setTimeout(() => {
-      reportsApi.get(def.key, filters).then((d) => { setData(d); setError(null); }).catch((e) => setError(apiError(e).message));
+      reportsApi
+        .get(def.key, filters)
+        .then((d) => {
+          if (!current) return;
+          setData(d);
+          setError(null);
+        })
+        .catch((e) => current && setError(apiError(e).message));
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
   }, [def.key, filters]);
 
   const exportAs = (format) => reportsApi.exportFile(def.key, format, filters).catch((e) => setError(apiError(e).message));

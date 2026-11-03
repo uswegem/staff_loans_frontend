@@ -14,14 +14,23 @@ function RejectDialog({ row, onClose, onDone }) {
   const t = useT();
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // The reason rule follows the text once a submit was tried; the API's answer stays until the next one.
+  const shown = (tried && !reason.trim() && t('Give a reason for the rejection.')) || error;
   const submit = async (e) => {
     e.preventDefault();
-    if (!reason.trim()) return setError(t('Give a reason for the rejection.'));
+    if (busy) return undefined;
+    setTried(true);
+    setError(null);
+    if (!reason.trim()) return undefined;
+    setBusy(true);
     try {
       await dobApi.reject(row.id, reason.trim());
       onDone(t('{name}: proposed date of birth rejected.', { name: row.staff.name }));
     } catch (err) {
       setError(apiError(err).message);
+      setBusy(false);
     }
     return undefined;
   };
@@ -31,11 +40,11 @@ function RejectDialog({ row, onClose, onDone }) {
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Reject {date} for {name}?', { date: formatDate(row.proposed), name: row.staff.name })}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{t('The staff member sees the reason.')} {row.current ? t('{date} stays in use.', { date: formatDate(row.current) }) : t('They cannot apply for a loan until a date is verified.')}</p>
-          <TextField label={t('Reason')} required multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} error={!!error} helperText={error || t('For example: does not match the NIDA card.')} autoFocus />
+          <TextField label={t('Reason')} required multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} error={!!shown} helperText={shown || t('For example: does not match the NIDA card.')} autoFocus />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained">{t('Reject')}</Button>
+          <Button type="submit" variant="contained" disabled={busy}>{t('Reject')}</Button>
         </DialogActions>
       </form>
     </Dialog>

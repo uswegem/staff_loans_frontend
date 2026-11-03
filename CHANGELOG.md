@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – Calmer loan details step (3 Nov 2026)
+
+- Loan details opens without errors: a field's error shows once it has been left or Continue was pressed, and clears as soon as the value changes; Continue lists every missing field and focuses the first one. The rules are still the API's.
+- Payslip: neutral "Upload your latest payslip…" with "PDF · From the Seamless HR System · Not older than 45 days"; after upload, the file name with a tick and Replace. Red only for a real upload problem, or a missing payslip after Continue.
+- Retirement cutoff (D-82) as a neutral note; a tenor longer than allowed says "The longest tenor you can take is N months."
+- "Your loan estimate" shows a short explanation instead of a dash and zeros until there is an amount, tenor and payslip. Calculations unchanged.
+- "Fix this before you continue" always describes the values on screen: it shows the API's checks only for the values it last checked, marks them "Checking your changes…" while newer values are on their way, and goes when the answer has nothing left. A save that fails says so ("Your latest changes are not saved or checked yet", with Try again) instead of leaving old checks looking current. Answers that arrive out of order are dropped, and a payslip upload is no longer undone by a save that was still on its way.
+- Same behaviour across the app: required fields wait until left or submitted, then follow every change (My profile, staff form phones); a server's field error goes when its field is changed, and "Check the highlighted fields" goes with the last of them (staff record, salary, product versions and new product, product change, workflow settings, temporary password); check messages that follow choices clear as soon as the choice is put right (sign-in, review decision, disbursement, delegation, date of birth and product rejections); double submits are blocked on those dialogs.
+- Lists that load as you choose (districts and wards, delegate search, report filter, agreement preview) ignore answers for an earlier choice.
+
 ## 0.12.0 – Profile formats, address, language and theme (2 Nov 2026)
 
 - One validation behaviour for every form: red only when empty-and-required or wrong, normal as soon as valid, a specific message for the format (D-93).

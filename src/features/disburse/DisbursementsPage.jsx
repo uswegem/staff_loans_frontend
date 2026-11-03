@@ -47,13 +47,24 @@ function ConfirmDialog({ id, onClose, onDone }) {
     disbursementsApi.get(id).then((x) => { setD(x); setDate(x.today); }).catch((e) => setError(apiError(e).message));
   }, [id]);
 
+  /** What still stops the confirmation, from the current entries (null when it can be sent). */
+  const blocker = () => {
+    if (d?.topUp && !topUp) return t('Confirm the old loan balance has been settled.');
+    if (!comment.trim()) return t('Add a comment confirming the disbursement.');
+    if (!date) return t('Enter the disbursement date.');
+    return null;
+  };
+  const [tried, setTried] = useState(false);
+  // Re-checked on every change once a submit was tried; the API's answer stays until the next submit.
+  const problem = (tried && d && blocker()) || error;
+
   const submit = async (e) => {
     e.preventDefault();
-    if (d.topUp && !topUp) return setError(t('Confirm the old loan balance has been settled.'));
-    if (!comment.trim()) return setError(t('Add a comment confirming the disbursement.'));
-    if (!date) return setError(t('Enter the disbursement date.'));
-    setBusy(true);
+    if (busy) return undefined;
+    setTried(true);
     setError(null);
+    if (blocker()) return undefined;
+    setBusy(true);
     try {
       const res = await disbursementsApi.confirm(id, { date, transactionRef: ref.trim(), comment: comment.trim(), ...(d.topUp ? { topUpSettled: topUp } : {}) });
       onDone(res.message);
@@ -90,7 +101,7 @@ function ConfirmDialog({ id, onClose, onDone }) {
               <TextField label={t('Comment')} required multiline minRows={2} value={comment} onChange={(e) => setComment(e.target.value)} helperText={t('Required. Confirms the loan has been disbursed.')} />
             </>
           )}
-          {error && <Alert severity="error" role="alert">{error}</Alert>}
+          {problem && <Alert severity="error" role="alert">{problem}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>

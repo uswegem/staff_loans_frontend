@@ -7,7 +7,7 @@ import { useT } from '../../i18n';
 
 let cache = null;
 
-export default function CountryField({ value, onChange, label, required, error, helperText }) {
+export default function CountryField({ value, onChange, onBlur, label, required, error, helperText }) {
   const t = useT();
   const [list, setList] = useState(cache?.countries || []);
   useEffect(() => {
@@ -25,6 +25,7 @@ export default function CountryField({ value, onChange, label, required, error, 
       options={list}
       value={value || null}
       onChange={(_, v) => onChange(v || '')}
+      onBlur={onBlur}
       autoHighlight
       noOptionsText={t('No country matches')}
       renderInput={(params) => <TextField {...params} label={label} required={required} error={error} helperText={helperText} />}

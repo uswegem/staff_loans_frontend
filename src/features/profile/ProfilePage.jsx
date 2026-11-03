@@ -6,7 +6,7 @@
 // person types (src/lib/validation.js), not the last saved state. The completeness count
 // and the Missing list come from the server and update on save.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
 import { dobApi, profileApi } from '../../api/staff';
@@ -45,7 +45,16 @@ const ruleFor = (required, validate) => ({ required, requiredMessage: REQUIRED, 
 /** Server field errors ({ field: [messages] }) as { field: message }. */
 const flat = (errors) => Object.fromEntries(Object.entries(errors || {}).map(([k, v]) => [k, Array.isArray(v) ? v.join(' ') : v]));
 
-function PersonalTab({ profile, requiredKeys, onSave }) {
+/** Calls onFixed once the last field the API flagged has been changed. */
+function useFixed(left, onFixed) {
+  const prev = useRef(left);
+  useEffect(() => {
+    if (prev.current > 0 && left === 0) onFixed?.();
+    prev.current = left;
+  }, [left]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
   const t = useT();
   const p = profile.personal || {};
   const dob = profile.dateOfBirth || {};
@@ -75,7 +84,8 @@ function PersonalTab({ profile, requiredKeys, onSave }) {
     },
     rules
   );
-  const { values: v, set, errorOf } = form;
+  const { values: v, set, touch, errorOf } = form;
+  useFixed(form.serverLeft, onFixed);
   useEffect(() => form.setServerErrors(flat(profile.errors)), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const msg = (k) => {
@@ -85,16 +95,17 @@ function PersonalTab({ profile, requiredKeys, onSave }) {
   const addressError = (part) => {
     const server = profile.errors?.[`address.${part}`];
     if (server && (form.values.address?.[part] || '') === (p.address?.[part] || '')) return t(flat({ x: server }).x);
+    if (!form.shown('address')) return undefined;
     const m = checkValue(v.address?.[part], ruleFor(req(`address.${part}`) && ADDRESS_REQUIRED.includes(part)));
     return m ? t(m) : undefined;
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
+    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
       <div className={s.grid}>
         <TextField label={t('First Name')} value={profile.firstName || ''} disabled helperText={t('From your staff record. Ask People and Culture to correct it.')} />
         <TextField label={t('Surname')} value={profile.lastName || ''} disabled />
-        <TextField select label={t('Marital status')} required={req('maritalStatus')} value={v.maritalStatus} onChange={set('maritalStatus')} error={!!errorOf('maritalStatus')} helperText={msg('maritalStatus')}>
+        <TextField select label={t('Marital status')} required={req('maritalStatus')} value={v.maritalStatus} onChange={set('maritalStatus')} onBlur={touch('maritalStatus')} error={!!errorOf('maritalStatus')} helperText={msg('maritalStatus')}>
           {MARITAL.map((m) => <MenuItem key={m} value={m}>{t(m)}</MenuItem>)}
         </TextField>
         <TextField
@@ -102,7 +113,7 @@ function PersonalTab({ profile, requiredKeys, onSave }) {
           type="date"
           required={req('dob')}
           value={v.dob}
-          onChange={set('dob')}
+          onChange={set('dob')} onBlur={touch('dob')}
           error={!!errorOf('dob')}
           disabled={!!dob.pending}
           InputLabelProps={{ shrink: true }}
@@ -111,10 +122,10 @@ function PersonalTab({ profile, requiredKeys, onSave }) {
         <div className={s.full}>
           <DobStatus status={dob} canWithdraw={!!dob.pending && dob.pending.submittedById === myId} onWithdraw={() => onSave(() => dobApi.withdraw(dob.pending.id).then(() => profileApi.get()))} />
         </div>
-        <NidaField label={t('NIDA number')} required={req('nida')} value={v.nida} onChange={set('nida')} error={!!errorOf('nida')} helperText={msg('nida') || t('20 digits as on your national ID card, for example 19800630-13140-00004-20. The hyphens are added for you.')} />
-        <CountryField label={t('Nationality')} required={req('nationality')} value={v.nationality} onChange={set('nationality')} error={!!errorOf('nationality')} helperText={msg('nationality')} />
-        <PhoneField label={t('Mobile phone')} required={req('mobile')} value={v.mobile} onChange={set('mobile')} error={!!errorOf('mobile')} helperText={msg('mobile')} />
-        <PhoneField label={t('Work phone')} value={v.workPhone} onChange={set('workPhone')} error={!!errorOf('workPhone')} helperText={msg('workPhone') || t('Optional.')} />
+        <NidaField label={t('NIDA number')} required={req('nida')} value={v.nida} onChange={set('nida')} onBlur={touch('nida')} error={!!errorOf('nida')} helperText={msg('nida') || t('20 digits as on your national ID card, for example 19800630-13140-00004-20. The hyphens are added for you.')} />
+        <CountryField label={t('Nationality')} required={req('nationality')} value={v.nationality} onChange={set('nationality')} onBlur={touch('nationality')} error={!!errorOf('nationality')} helperText={msg('nationality')} />
+        <PhoneField label={t('Mobile phone')} required={req('mobile')} value={v.mobile} onChange={set('mobile')} onBlur={touch('mobile')} error={!!errorOf('mobile')} helperText={msg('mobile')} />
+        <PhoneField label={t('Work phone')} value={v.workPhone} onChange={set('workPhone')} onBlur={touch('workPhone')} error={!!errorOf('workPhone')} helperText={msg('workPhone') || t('Optional.')} />
       </div>
 
       <h4 style={{ marginTop: 24 }}>{t('Residence')}</h4>
@@ -124,7 +135,9 @@ function PersonalTab({ profile, requiredKeys, onSave }) {
         </p>
       )}
       <div className={s.grid}>
-        <AddressFields value={v.address} onChange={set('address')} errorOf={addressError} />
+        <div style={{ display: 'contents' }} onBlur={touch('address')}>
+          <AddressFields value={v.address} onChange={set('address')} errorOf={addressError} />
+        </div>
       </div>
       <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save personal details')}</Button></div>
     </form>
@@ -165,7 +178,7 @@ function EmploymentTab({ profile, roles, permissions, mfaRequired }) {
   );
 }
 
-function BankTab({ profile, requiredKeys, onSave }) {
+function BankTab({ profile, requiredKeys, onSave, onFixed }) {
   const t = useT();
   const b = profile.bank || {};
   const req = (k) => requiredKeys.has(`bank.${k}`);
@@ -174,14 +187,15 @@ function BankTab({ profile, requiredKeys, onSave }) {
     [requiredKeys] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const form = useValidatedForm({ bank: b.bank || '', branch: b.branch || '', accountName: b.accountName || '', accountNo: b.accountNo || '' }, rules);
-  const { values: v, set, errorOf } = form;
+  const { values: v, set, touch, errorOf } = form;
+  useFixed(form.serverLeft, onFixed);
   useEffect(() => form.setServerErrors(flat(profile.errors)), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
   const field = (k, label, extra = {}) => {
     const m = errorOf(k);
-    return <TextField label={t(label)} required={req(k)} value={v[k]} onChange={set(k)} error={!!m} helperText={m ? t(m) : undefined} {...extra} />;
+    return <TextField label={t(label)} required={req(k)} value={v[k]} onChange={set(k)} onBlur={touch(k)} error={!!m} helperText={m ? t(m) : undefined} {...extra} />;
   };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.saveBank(v)); }} noValidate>
+    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveBank(v)); }} noValidate>
       <p className="small muted">{t('Your LFB account is filled in for you. Check the branch and account number.')}</p>
       <div className={s.grid}>
         {field('bank', 'Bank')}
@@ -194,7 +208,7 @@ function BankTab({ profile, requiredKeys, onSave }) {
   );
 }
 
-function KinTab({ profile, requiredKeys, onSave }) {
+function KinTab({ profile, requiredKeys, onSave, onFixed }) {
   const t = useT();
   const k = profile.nextOfKin?.[0] || {};
   const req = (f) => requiredKeys.has(`nextOfKin.0.${f}`);
@@ -203,24 +217,25 @@ function KinTab({ profile, requiredKeys, onSave }) {
     [requiredKeys] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const form = useValidatedForm({ firstName: k.firstName || '', lastName: k.lastName || '', relationship: k.relationship || '', phone: k.phone || '', employer: k.employer || '', address: k.address || '' }, rules);
-  const { values: v, set, errorOf } = form;
+  const { values: v, set, touch, errorOf } = form;
+  useFixed(form.serverLeft, onFixed);
   useEffect(() => form.setServerErrors(Object.fromEntries(Object.entries(flat(profile.errors)).map(([key, m]) => [key.replace(/^nextOfKin\.0\./, ''), m]))), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
   const msg = (f) => {
     const m = errorOf(f);
     return m ? t(m) : undefined;
   };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(() => profileApi.saveKin([v, ...(profile.nextOfKin || []).slice(1)])); }} noValidate>
+    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveKin([v, ...(profile.nextOfKin || []).slice(1)])); }} noValidate>
       <p className="small muted">{t('At least one next of kin is required.')}</p>
       <div className={s.grid}>
-        <TextField label={t('First Name')} required={req('firstName')} value={v.firstName} onChange={set('firstName')} error={!!msg('firstName')} helperText={msg('firstName')} />
-        <TextField label={t('Surname')} required={req('lastName')} value={v.lastName} onChange={set('lastName')} error={!!msg('lastName')} helperText={msg('lastName')} />
-        <TextField select label={t('Relationship')} required={req('relationship')} value={v.relationship} onChange={set('relationship')} error={!!msg('relationship')} helperText={msg('relationship')}>
+        <TextField label={t('First Name')} required={req('firstName')} value={v.firstName} onChange={set('firstName')} onBlur={touch('firstName')} error={!!msg('firstName')} helperText={msg('firstName')} />
+        <TextField label={t('Surname')} required={req('lastName')} value={v.lastName} onChange={set('lastName')} onBlur={touch('lastName')} error={!!msg('lastName')} helperText={msg('lastName')} />
+        <TextField select label={t('Relationship')} required={req('relationship')} value={v.relationship} onChange={set('relationship')} onBlur={touch('relationship')} error={!!msg('relationship')} helperText={msg('relationship')}>
           {RELATIONSHIPS.map((r) => <MenuItem key={r} value={r}>{t(r)}</MenuItem>)}
         </TextField>
-        <PhoneField label={t('Phone')} required={req('phone')} value={v.phone} onChange={set('phone')} error={!!msg('phone')} helperText={msg('phone')} />
+        <PhoneField label={t('Phone')} required={req('phone')} value={v.phone} onChange={set('phone')} onBlur={touch('phone')} error={!!msg('phone')} helperText={msg('phone')} />
         <TextField label={t('Employer')} value={v.employer} onChange={set('employer')} helperText={t('Optional.')} />
-        <TextField label={t('Residential address')} required={req('address')} value={v.address} onChange={set('address')} error={!!msg('address')} helperText={msg('address')} className={s.full} />
+        <TextField label={t('Residential address')} required={req('address')} value={v.address} onChange={set('address')} onBlur={touch('address')} error={!!msg('address')} helperText={msg('address')} className={s.full} />
       </div>
       <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save next of kin')}</Button></div>
     </form>
@@ -287,6 +302,11 @@ export default function ProfilePage() {
   const [toast, setToast] = useState(null);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  // "Check the highlighted fields" goes once those fields are corrected; other failures stay.
+  const [errorCode, setErrorCode] = useState(null);
+  const fixed = () => {
+    if (errorCode === 'VALIDATION_FAILED') setError(null);
+  };
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -320,6 +340,7 @@ export default function ProfilePage() {
       const x = apiError(err);
       setFieldErrors(x.details || {});
       setError(x.message);
+      setErrorCode(x.code);
     }
   };
 
@@ -353,10 +374,10 @@ export default function ProfilePage() {
                 <Tab key={k} value={k} label={<span>{t(l)}{missIn(k) ? <span className={s.count}>{missIn(k)}</span> : null}</span>} />
               ))}
             </Tabs>
-            {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} />}
+            {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} />}
-            {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} />}
-            {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} />}
+            {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
+            {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'pay' && <PayTab key={`pay${version}`} profile={shown} onSave={save} />}
           </CardContent>
         </Card>

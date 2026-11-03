@@ -40,7 +40,8 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await rehema.getByLabel(/Residential address/).fill('Kikuyu, Dodoma');
   await rehema.getByRole('button', { name: 'Save next of kin' }).click();
   // Pay figures now come from the payslip attached when applying (D-80).
-  await expect(rehema.getByText('Profile complete. You can now apply for a loan.')).toBeVisible();
+  // D-97: complete, but not "you can now apply" while her date of birth waits for People and Culture.
+  await expect(rehema.getByText('Profile complete.', { exact: true })).toBeVisible();
 
   // People and Culture verify the date of birth she entered before she can apply (D-82).
   await rehema.goto('/apply');
@@ -68,14 +69,17 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
   await expect(juma.getByText('3,000,000')).toHaveCount(0);
   await decide(juma, { action: 'approve', crb: true, comment: 'Bureau clear.' });
+  await juma.context().close();
 
   const grace = await as(browser, 'LFB0051');
   await openFromQueue(grace, ref);
   await decide(grace, { action: 'approve', hrChecks: true, comment: 'Employment and salary confirmed.' });
+  await grace.context().close();
 
   const joseph = await as(browser, 'LFB0002');
   await openFromQueue(joseph, ref);
   await decide(joseph, { action: 'approve', comment: 'Approved.' });
+  await joseph.context().close();
 
   // The signed agreement is in force; OPS is told.
   await rehema.goto(url);

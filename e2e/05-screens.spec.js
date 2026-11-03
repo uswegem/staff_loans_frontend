@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { as } from './helpers';
+import { as, attachPayslip } from './helpers';
 
 const OUT = path.resolve('test-results', 'screens');
 fs.mkdirSync(OUT, { recursive: true });
@@ -99,4 +99,50 @@ test('the account keeps the choice for the next sign-in', async ({ browser }) =>
   await shot(again, 'home-sw-dark');
   await choose(again, { lang: 'en', theme: 'light' });
   await again.context().close();
+});
+
+test('loan details step: calm on open, errors after Continue, estimate once filled', async ({ browser }) => {
+  const daniel = await as(browser, 'LFB0067');
+  // The earlier tests leave the account in another language and theme; this one reads English.
+  await choose(daniel, { lang: 'en', theme: 'light' });
+  await daniel.goto('/apply');
+  await daniel.getByRole('button', { name: /^Personal Loan/ }).click();
+  await expect(daniel).toHaveURL(/\/apply\/[0-9a-f]{24}/);
+  await expect(daniel.getByText('Upload your latest payslip to calculate your eligible loan amount.')).toBeVisible();
+  await expect(daniel.getByText(/will appear here once you enter your loan amount/)).toBeVisible();
+  await expect(daniel.getByText('Enter the amount you want to borrow.')).toHaveCount(0);
+  await expect(daniel.getByRole('alert')).toHaveCount(0);
+  await expect(daniel.getByLabel('Amount')).toHaveAttribute('aria-invalid', 'false');
+  await shot(daniel, 'apply-details-open');
+
+  await daniel.getByRole('button', { name: 'Continue to documents' }).click();
+  await expect(daniel.getByText('Fill in the required fields.')).toBeVisible();
+  await expect(daniel.getByText('Enter the amount you want to borrow.')).toBeVisible();
+  await expect(daniel.getByText('Say what the loan is for.')).toBeVisible();
+  await shot(daniel, 'apply-details-continue');
+
+  await attachPayslip(daniel, 'LFB0067');
+  await daniel.getByLabel('Amount').fill('5000000');
+  await daniel.getByLabel('Tenor (months)').fill('24');
+  await daniel.getByLabel('Purpose of the loan').fill('Solar installation at home');
+  await expect(daniel.getByText('Say what the loan is for.')).toHaveCount(0);
+  await expect(daniel.getByText('Total to repay')).toBeVisible();
+
+  // The reported case: an amount over the product maximum is flagged by the API, and the
+  // message goes as soon as the amount is corrected, without pressing Continue again.
+  await daniel.getByLabel('Amount').fill('350000000');
+  await expect(daniel.getByText('Fix this before you continue')).toBeVisible({ timeout: 10_000 });
+  await expect(daniel.getByText(/The maximum for Personal Loan is TZS 300,000,000/)).toBeVisible();
+  await shot(daniel, 'apply-details-over-maximum');
+  await daniel.getByLabel('Amount').fill('5000000');
+  await expect(daniel.getByText(/The maximum for Personal Loan/)).toHaveCount(0, { timeout: 10_000 });
+  await expect(daniel.getByText('Fix this before you continue')).toHaveCount(0);
+  await expect(daniel.getByText('Checking your changes…')).toHaveCount(0);
+  await shot(daniel, 'apply-details-filled');
+  await daniel.setViewportSize({ width: 390, height: 844 });
+  await shot(daniel, 'apply-details-filled-phone');
+
+  await daniel.getByRole('button', { name: 'Cancel application' }).click();
+  await expect(daniel).toHaveURL(/\/$/);
+  await daniel.context().close();
 });

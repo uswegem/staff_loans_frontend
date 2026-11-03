@@ -58,6 +58,23 @@ describe('review screen', () => {
     expect(body.recommended).toBeUndefined();
   });
 
+  it('a decision message follows the choices: it goes once what it asks for is done (reactive)', async () => {
+    stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    await screen.findByText('Your decision');
+    await userEvent.click(screen.getByRole('radio', { name: /Return for correction/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Return to applicant' }));
+    expect(screen.getByText('Add a comment so the applicant knows what to do.')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(/Comment/), 'Attach a newer payslip.');
+    expect(screen.queryByText('Add a comment so the applicant knows what to do.')).toBeNull();
+    // A different choice brings up its own requirement straight away.
+    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
+    expect(screen.getByText('Record the credit bureau outcome before approving.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('Clear'));
+    expect(screen.queryByText('Record the credit bureau outcome before approving.')).toBeNull();
+  });
+
   it('explains when the reviewer is the applicant', async () => {
     stubHttp({ 'GET /review/r1': () => [403, { code: 'SELF_REVIEW', message: 'You cannot review your own application.' }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.ceo'] });

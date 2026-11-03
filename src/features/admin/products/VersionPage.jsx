@@ -10,6 +10,7 @@ import { versionsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { formatDate, formatDateTime } from '../../../lib/format';
 import { todayEat } from '../../../lib/dates';
+import { failureShown, useLiveErrors } from '../../../lib/validation';
 import StateChip from '../../../components/StateChip';
 import ProductForm from './ProductForm';
 import PricingForm from './PricingForm';
@@ -61,13 +62,23 @@ function RejectDialog({ onClose, onReject }) {
   const t = useT();
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const tooShort = reason.trim().length < 5;
+  // The length rule follows the text once a submit was tried; the API's answer stays until the next one.
+  const shown = (tried && tooShort && t('Give a reason the maker can act on.')) || error;
   const submit = async (e) => {
     e.preventDefault();
-    if (reason.trim().length < 5) return setError(t('Give a reason the maker can act on.'));
+    if (busy) return undefined;
+    setTried(true);
+    setError(null);
+    if (tooShort) return undefined;
+    setBusy(true);
     try {
       await onReject(reason.trim());
     } catch (err) {
       setError(apiError(err).message);
+      setBusy(false);
     }
     return undefined;
   };
@@ -76,11 +87,11 @@ function RejectDialog({ onClose, onReject }) {
       <form onSubmit={submit} noValidate>
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Reject and return to the maker')}</DialogTitle>
         <DialogContent>
-          <TextField label={t('Reason')} required multiline minRows={3} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} error={!!error} helperText={error || t('The maker sees this and can correct the draft.')} />
+          <TextField label={t('Reason')} required multiline minRows={3} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} error={!!shown} helperText={shown || t('The maker sees this and can correct the draft.')} />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained">{t('Reject')}</Button>
+          <Button type="submit" variant="contained" disabled={busy}>{t('Reject')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -101,8 +112,11 @@ export default function VersionPage({ kind }) {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  // The last save's field errors, each until its field is changed.
+  const live = useLiveErrors(errors, values && { ...values, effectiveFrom });
 
   const show = useCallback((data) => {
     setV(data);
@@ -117,8 +131,9 @@ export default function VersionPage({ kind }) {
   }, [vid]);
 
   const act = async (fn, done) => {
+    if (busy) return null;
     setBusy(true);
-    setError(null);
+    setFailure(null);
     setMessage(null);
     try {
       const data = await fn();
@@ -129,7 +144,7 @@ export default function VersionPage({ kind }) {
     } catch (err) {
       const x = apiError(err);
       setErrors(x.details || {});
-      setError(x.message);
+      setFailure(x);
       return null;
     } finally {
       setBusy(false);
@@ -166,7 +181,7 @@ export default function VersionPage({ kind }) {
 
       <div className="stack">
         {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
-        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+        {failureShown(failure, errors, live) && <Alert severity="error" onClose={() => setFailure(null)}>{failure.message}</Alert>}
         {v.rejectionReason && ['draft', 'rejected'].includes(v.state) && (
           <Alert severity="warning">
             <AlertTitle>{t('Rejected by {name}', { name: v.checker?.name })}</AlertTitle>
@@ -195,7 +210,7 @@ export default function VersionPage({ kind }) {
         <div className={s.layout}>
           <Card>
             <CardContent sx={{ p: 3 }}>
-              {kind === 'pricing' ? <PricingForm values={values} onChange={setValues} errors={errors} readOnly={readOnly} /> : <ProductForm values={values} onChange={setValues} errors={errors} readOnly={readOnly} />}
+              {kind === 'pricing' ? <PricingForm values={values} onChange={setValues} errors={live} readOnly={readOnly} /> : <ProductForm values={values} onChange={setValues} errors={live} readOnly={readOnly} />}
             </CardContent>
           </Card>
           <div className={`${s.sticky} stack`}>
@@ -205,7 +220,7 @@ export default function VersionPage({ kind }) {
                 <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
                   {v.canEdit && (
                     <>
-                      <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!errors.effectiveFrom} helperText={errors.effectiveFrom?.join(' ')} />
+                      <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
                       <TextField label={t('Why this change')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
                       <Button onClick={save} disabled={busy}>{t('Save draft')}</Button>
                       <Button variant="contained" onClick={submit} disabled={busy}>{t('Submit for approval')}</Button>

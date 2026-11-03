@@ -43,25 +43,35 @@ export default function AddressFields({ value, onChange, errorOf = () => undefin
   useEffect(() => {
     referenceApi.regions().then(setRegions).catch(() => setRegions([]));
   }, []);
+  // Each list is for the region (and district) chosen when it was asked for: an answer that
+  // arrives after the choice has changed again is dropped.
   useEffect(() => {
     setDistricts([]);
-    if (!a.region) return;
+    if (!a.region) return undefined;
+    let current = true;
     setLoading('district');
     referenceApi
       .districts(a.region)
-      .then(setDistricts)
-      .catch(() => setDistricts([]))
-      .finally(() => setLoading(''));
+      .then((x) => current && setDistricts(x))
+      .catch(() => current && setDistricts([]))
+      .finally(() => current && setLoading(''));
+    return () => {
+      current = false;
+    };
   }, [a.region]);
   useEffect(() => {
     setWards([]);
-    if (!a.region || !a.district) return;
+    if (!a.region || !a.district) return undefined;
+    let current = true;
     setLoading('ward');
     referenceApi
       .wards(a.region, a.district)
-      .then(setWards)
-      .catch(() => setWards([]))
-      .finally(() => setLoading(''));
+      .then((x) => current && setWards(x))
+      .catch(() => current && setWards([]))
+      .finally(() => current && setLoading(''));
+    return () => {
+      current = false;
+    };
   }, [a.region, a.district]);
 
   const set = (part, v) => {

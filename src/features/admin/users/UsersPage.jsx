@@ -8,6 +8,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TablePagination, TextField } from '@mui/material';
 import { rolesApi, usersApi } from '../../../api/admin';
 import { apiError } from '../../../api/client';
+import { failureShown, useServerErrors } from '../../../lib/validation';
 import { formatDate } from '../../../lib/format';
 import UserRolesDialog from './UserRolesDialog';
 import { useT } from '../../../i18n';
@@ -22,17 +23,22 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
   const t = useT();
   const [staffNo, setStaffNo] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
+  const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  // A field's error shows on the field until it is changed; the summary goes with them.
+  const server = useServerErrors(errors, { staffNo, password });
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
-    setError(null);
+    setFailure(null);
     try {
       await onSubmit({ staffNo: staffNo.trim().toUpperCase(), password });
     } catch (err) {
       const e2 = apiError(err);
-      setError(e2.details?.password?.join(' ') || e2.details?.staffNo?.[0] || e2.message);
+      setErrors(e2.details || {});
+      setFailure(e2);
     } finally {
       setBusy(false);
     }
@@ -43,9 +49,9 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{title}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{intro}</p>
-          {error && <Alert severity="error">{error}</Alert>}
-          {staffNoField && <TextField label={t('Staff number')} placeholder={t('AT637')} required value={staffNo} onChange={(e) => setStaffNo(e.target.value)} helperText={t('The staff record must already exist in People and Culture\'s records.')} />}
-          <TextField label={t('Temporary password')} required value={password} onChange={(e) => setPassword(e.target.value)} helperText={t('At least 8 characters with three of: lower case, capitals, numbers, symbols. Give it to the person directly; they change it at first sign-in.')} autoComplete="off" />
+          {failureShown(failure, errors, server) && <Alert severity="error">{failure.message}</Alert>}
+          {staffNoField && <TextField label={t('Staff number')} placeholder={t('AT637')} required value={staffNo} onChange={(e) => setStaffNo(e.target.value)} error={!!server('staffNo')} helperText={server('staffNo') || t('The staff record must already exist in People and Culture\'s records.')} />}
+          <TextField label={t('Temporary password')} required value={password} onChange={(e) => setPassword(e.target.value)} error={!!server('password')} helperText={server('password') || t('At least 8 characters with three of: lower case, capitals, numbers, symbols. Give it to the person directly; they change it at first sign-in.')} autoComplete="off" />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>

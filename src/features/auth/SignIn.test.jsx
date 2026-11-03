@@ -51,6 +51,24 @@ describe('Sign in (FR-53)', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('clears a field message as soon as the field is corrected, without signing in again', async () => {
+    const calls = stubHttp({});
+    renderSignIn();
+    await fill('AT-637', '');
+    const message = 'Enter your staff number as on your payslip (employee code), for example AT637.';
+    expect(screen.getByText(message)).toBeInTheDocument();
+    const sn = screen.getByLabelText('Staff number');
+    await userEvent.clear(sn);
+    await userEvent.type(sn, 'AT-6');
+    expect(screen.getByText(message)).toBeInTheDocument(); // still wrong: still shown
+    await userEvent.clear(sn);
+    await userEvent.type(sn, 'AT637');
+    expect(screen.queryByText(message)).toBeNull();
+    await userEvent.type(screen.getByLabelText('Password'), 'x');
+    expect(screen.queryByText('Enter your password.')).toBeNull();
+    expect(calls).toHaveLength(0);
+  });
+
   it('shows remaining attempts after a wrong password', async () => {
     stubHttp({ 'POST /auth/login': () => [401, { code: 'INVALID_CREDENTIALS', message: 'x', details: { remainingAttempts: 3 } }] });
     renderSignIn();
