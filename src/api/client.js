@@ -69,7 +69,8 @@ export function refreshSession() {
       .then((res) => {
         if (epoch !== sessionEpoch) throw stale();
         const data = res.data.data;
-        setAccessToken(data.accessToken);
+        // A routine token refresh is the same identity, not a new login.
+        accessToken = data.accessToken;
         onSessionChanged(data);
         return data;
       })
