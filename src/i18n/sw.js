@@ -1074,7 +1074,6 @@ const SW = {
   'Total interest': 'Jumla ya riba',
   'Total to repay': 'Jumla ya kulipa',
   'Transaction ref': 'Kumbukumbu ya muamala',
-  'Transaction reference': 'Kumbukumbu ya muamala',
   'Tue': 'Jumanne',
   'Turnaround by stage and approver': 'Muda wa kushughulikia kwa hatua na mwidhinishaji',
   'Type': 'Aina',
@@ -1283,6 +1282,18 @@ const SW = {
   '{ref} in Staff Loans is settled from this loan.': '{ref} katika Mikopo ya Wafanyakazi inalipwa kutoka kwenye mkopo huu.',
   'Payslip deduction label': 'Jina la makato kwenye hati ya mshahara',
   'As printed on the payslip, for example Staff Loan - Car. Each line is matched to its product by it; case, spacing and punctuation do not matter.': 'Kama lilivyochapishwa kwenye hati ya mshahara, kwa mfano Staff Loan - Car. Kila mstari unalinganishwa na bidhaa yake kwa jina hili; herufi kubwa au ndogo, nafasi na alama hazijalishi.',
+  'Application submitted successfully': 'Maombi ya mkopo yamewasilishwa kwa mafanikio',
+  'Application reference': 'Namba ya kumbukumbu ya maombi',
+  'Loan product': 'Aina ya mkopo',
+  'Requested amount': 'Kiasi kilichoombwa',
+  'Current status': 'Hali ya sasa',
+  'Action completed': 'Hatua imekamilika',
+  'Processing…': 'Inashughulikiwa…',
+  'Decision recorded successfully': 'Uamuzi umehifadhiwa kwa mafanikio',
+  'Continue reviewing': 'Endelea na mapitio',
+  'Disbursement confirmation recorded': 'Uthibitisho wa utoaji wa mkopo umehifadhiwa',
+  'Transaction reference': 'Kumbukumbu ya muamala',
+  'All notifications marked as read': 'Arifa zote zimewekwa kuwa zimesomwa',
 };
 
 export default SW;

@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField } from '@mui/material';
 import { disbursementsApi } from '../../api/disbursements';
+import SuccessScreen from '../../components/ux/SuccessScreen';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import { todayEat } from '../../lib/dates';
@@ -70,7 +72,7 @@ function ConfirmDialog({ id, onClose, onDone }) {
     setBusy(true);
     try {
       const res = await disbursementsApi.confirm(id, { date, transactionRef: ref.trim(), comment: comment.trim(), ...(d.topUp ? { topUpSettled: topUp } : {}) });
-      onDone(res.message);
+      onDone(res.message, { reference: d.ref, amount: d.amount, date, transactionRef: ref.trim() });
     } catch (err) {
       setError(apiError(err).message);
       setBusy(false);
@@ -166,6 +168,7 @@ export default function DisbursementsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [confirmed, setConfirmed] = useState(null);
   const [confirming, setConfirming] = useState(null);
   const [viewing, setViewing] = useState(null);
 
@@ -183,7 +186,19 @@ export default function DisbursementsPage() {
         </div>
         <Button onClick={() => disbursementsApi.exportRegister().catch((e) => setError(apiError(e).message))}>{t('Export disbursed register')}</Button>
       </div>
-      {toast && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
+      {confirmed && (
+        <SuccessScreen
+          title={t('Disbursement confirmation recorded')}
+          message={toast}
+          details={[
+            { label: t('Reference'), value: confirmed.reference },
+            { label: t('Amount'), value: confirmed.amount != null ? formatNumber(confirmed.amount) + ' TZS' : '—' },
+            { label: t('Disbursement date'), value: formatDate(confirmed.date) },
+            ...(confirmed.transactionRef ? [{ label: t('Transaction reference'), value: confirmed.transactionRef }] : []),
+          ]}
+          primaryAction={{ label: t('Continue'), onClick: () => { setConfirmed(null); setToast(null); } }}
+        />
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {tab === 'ready' && data?.counts.outsideSla > 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -196,7 +211,7 @@ export default function DisbursementsPage() {
           <Tab value="ready" label={`${t('Ready to disburse')}${data ? ` (${data.counts.ready})` : ''}`} />
           <Tab value="done" label={`Disbursed${data ? ` (${data.counts.done})` : ''}`} />
         </Tabs>
-        {data && data.items.length === 0 ? (
+        {!data && !error ? <div style={{ padding: 16 }}><LoadingSkeleton variant="table" rows={4} label={t('Loading…')} /></div> : data && data.items.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center' }}>
             <h3>{tab === 'ready' ? t('Nothing to disburse') : t('No disbursements yet')}</h3>
             <p className="muted">{tab === 'ready' ? t('Loans appear here once they have final approval.') : t('Confirmed disbursements appear here.')}</p>
@@ -250,9 +265,10 @@ export default function DisbursementsPage() {
         <ConfirmDialog
           id={confirming}
           onClose={() => setConfirming(null)}
-          onDone={(message) => {
+          onDone={(message, summary) => {
             setConfirming(null);
             setToast(message);
+            setConfirmed(summary);
             load();
           }}
         />

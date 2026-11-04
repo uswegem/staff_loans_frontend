@@ -12,6 +12,8 @@ import { todayEat } from '../../lib/dates';
 import { formatNumber, formatTzs, formatDate } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import LoanRoute from '../../components/LoanRoute';
+import StepTransition from '../../components/ux/StepTransition';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import CalculatorPanel from './CalculatorPanel';
 import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
@@ -632,7 +634,7 @@ export default function ApplyWizardPage() {
   };
 
   if (error && !app) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!app || !form) return <p className="muted" role="status">{t('Loading…')}</p>;
+  if (!app || !form) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={3} /></div>;
   if (!app.editable) {
     return (
       <div className="page">
@@ -659,10 +661,12 @@ export default function ApplyWizardPage() {
       <Steps step={step} />
       {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
+      <StepTransition stepKey={step}>
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}
+      </StepTransition>
     </div>
   );
 }

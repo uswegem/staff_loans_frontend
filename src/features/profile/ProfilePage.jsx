@@ -20,6 +20,8 @@ import DobStatus from '../../components/DobStatus';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import MoneyInput from '../../components/MoneyInput';
 import Meter from '../../components/Meter';
+import ActionFeedback from '../../components/ux/ActionFeedback';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import PhoneField from '../../components/fields/PhoneField';
 import NidaField from '../../components/fields/NidaField';
 import CountryField from '../../components/fields/CountryField';
@@ -313,7 +315,7 @@ export default function ProfilePage() {
   const requiredKeys = useMemo(() => new Set(profile?.completeness.required || []), [profile]);
 
   if (error && !profile) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!profile) return <p className="muted" role="status">{t('Loading…')}</p>;
+  if (!profile) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={5} /></div>;
 
   const c = profile.completeness;
   const missIn = (tb) => c.missing.filter((m) => m.tab === tb).length;
@@ -361,7 +363,7 @@ export default function ProfilePage() {
             {t('Missing: {list}.', { list: c.missing.map((m) => (m.invalid ? t('{label} (check the format)', { label: t(m.label) }) : t(m.label))).join(', ') })}
           </Alert>
         )}
-        {toast && <Alert severity="success" onClose={() => setToast(null)}>{toast}</Alert>}
+        <ActionFeedback open={Boolean(toast)} message={toast} onClose={() => setToast(null)} />
         {c.complete && <ApplyBlockers blockers={profile.applyBlockers} />}
         {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
         <Card>
