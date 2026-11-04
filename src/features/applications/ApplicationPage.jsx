@@ -11,6 +11,7 @@ import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
+import { STATUS } from '../../lib/statuses';
 import SuccessScreen from '../../components/ux/SuccessScreen';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import s from '../apply/apply.module.css';
@@ -121,7 +122,7 @@ export default function ApplicationPage() {
         </div>
       </div>
       <div className="stack">
-        {params.get('submitted') && app.cycle > 0 && app.history.some((h) => h.action === 'submit' || h.action === 'resubmit') && (
+        {params.get('submitted') && app.cycle > 0 && app.history.some((h) => h.action === 'submit' || h.action === 'resubmit') && !['draft', 'returned', 'rejected', 'withdrawn', 'declined'].includes(app.status) && (
           <SuccessScreen
             title={t('Application submitted successfully')}
             message={t('Your agreement {number} is signed. It takes effect when the application gets final approval on these terms.', { number: current?.number })}
@@ -129,7 +130,7 @@ export default function ApplicationPage() {
               { label: t('Application reference'), value: app.ref },
               { label: t('Loan product'), value: app.product.name },
               { label: t('Requested amount'), value: formatTzs(app.amount) },
-              { label: t('Current status'), value: t(app.statusLabel) },
+              { label: t('Current status'), value: t(app.statusLabel || STATUS[app.status]?.[0] || app.status) },
             ]}
           />
         )}
