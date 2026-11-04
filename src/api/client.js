@@ -19,6 +19,28 @@ let lastActivity = 0;
 let language = 'en';
 let sessionEpoch = 0;
 const pending = new Set();
+let channel = null;
+let externalSessionEnd = () => {};
+
+/** Cross-tab events carry no tokens, staff data or other confidential content. */
+export function startSessionSync(onEnd) {
+  externalSessionEnd = onEnd;
+  if (typeof BroadcastChannel === 'undefined' || channel) return () => { externalSessionEnd = () => {}; };
+  channel = new BroadcastChannel('slas-session');
+  channel.onmessage = (event) => {
+    if (event.data?.type !== 'SESSION_ENDED') return;
+    setAccessToken(null);
+    externalSessionEnd();
+  };
+  return () => {
+    channel?.close();
+    channel = null;
+    externalSessionEnd = () => {};
+  };
+}
+export function notifyOtherTabsSessionEnded() {
+  channel?.postMessage({ type: 'SESSION_ENDED' });
+}
 
 export const currentSessionEpoch = () => sessionEpoch;
 export function invalidateSessionRequests() {
@@ -64,7 +86,7 @@ const csrfHeaders = () => ({ 'X-XSRF-TOKEN': readCookie('XSRF-TOKEN') });
 export function refreshSession() {
   if (!refreshing) {
     const epoch = sessionEpoch;
-    refreshing = axios
+    const flight = axios
       .post(`${API_BASE}/auth/refresh`, null, { withCredentials: true, headers: csrfHeaders() })
       .then((res) => {
         if (epoch !== sessionEpoch) throw stale();
@@ -75,8 +97,9 @@ export function refreshSession() {
         return data;
       })
       .finally(() => {
-        if (epoch === sessionEpoch || accessToken) refreshing = null;
+        if (refreshing === flight) refreshing = null;
       });
+    refreshing = flight;
   }
   return refreshing;
 }
