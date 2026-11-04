@@ -45,3 +45,16 @@ a { color: var(--brand-500); }
   body, .MuiPaper-root, .MuiCard-root { background: #fff !important; color: #000 !important; }
   h1, h2, h3, h4 { color: #000 !important; }
 }
+
+/* Shared UX motion: progressive enhancement, never delays navigation or API work. */
+@keyframes slas-success-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slas-step-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slas-step-enter { animation: slas-step-enter 220ms ease-out both; }
+}
