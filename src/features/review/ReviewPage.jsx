@@ -13,6 +13,7 @@ import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/f
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
 import DueClock from '../../components/DueClock';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { Breakdown, Meter } from '../apply/CalculatorPanel';
 import DecisionPanel from './DecisionPanel';
 import s from '../apply/apply.module.css';
@@ -226,7 +227,7 @@ export default function ReviewPage() {
       </div>
     );
   }
-  if (!app) return <p className="muted" role="status">{t('Loading…')}</p>;
+  if (!app) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={4} /></div>;
   const onDone = (res) => navigate('/queue', { state: { toast: DONE[res.outcome]?.(app.ref), outcome: res.outcome, reference: app.ref } });
   return (
     <>
