@@ -666,7 +666,7 @@ export default function ApplyWizardPage() {
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />
-      </StepTransition>}
+      </StepTransition>
     </div>
   );
 }
