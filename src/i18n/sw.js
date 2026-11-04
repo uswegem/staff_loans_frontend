@@ -1290,6 +1290,12 @@ const SW = {
   'Current status': 'Hali ya sasa',
   'Action completed': 'Hatua imekamilika',
   'Processing…': 'Inashughulikiwa…',
+  'Decision recorded successfully': 'Uamuzi umehifadhiwa kwa mafanikio',
+  'Continue reviewing': 'Endelea na mapitio',
+  'Disbursement confirmation recorded': 'Uthibitisho wa utoaji wa mkopo umehifadhiwa',
+  'Disbursement date': 'Tarehe ya utoaji wa mkopo',
+  'Transaction reference': 'Kumbukumbu ya muamala',
+  'All notifications marked as read': 'Arifa zote zimewekwa kuwa zimesomwa',
 };
 
 export default SW;
