@@ -1074,7 +1074,6 @@ const SW = {
   'Total interest': 'Jumla ya riba',
   'Total to repay': 'Jumla ya kulipa',
   'Transaction ref': 'Kumbukumbu ya muamala',
-  'Transaction reference': 'Kumbukumbu ya muamala',
   'Tue': 'Jumanne',
   'Turnaround by stage and approver': 'Muda wa kushughulikia kwa hatua na mwidhinishaji',
   'Type': 'Aina',
@@ -1293,7 +1292,6 @@ const SW = {
   'Decision recorded successfully': 'Uamuzi umehifadhiwa kwa mafanikio',
   'Continue reviewing': 'Endelea na mapitio',
   'Disbursement confirmation recorded': 'Uthibitisho wa utoaji wa mkopo umehifadhiwa',
-  'Disbursement date': 'Tarehe ya utoaji wa mkopo',
   'Transaction reference': 'Kumbukumbu ya muamala',
   'All notifications marked as read': 'Arifa zote zimewekwa kuwa zimesomwa',
 };
