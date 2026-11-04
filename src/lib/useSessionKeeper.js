@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { authApi } from '../api/auth';
-import { currentSessionEpoch, lastApiActivity } from '../api/client';
+import { currentSessionEpoch, lastApiActivity, notifyOtherTabsSessionEnded } from '../api/client';
 import { profileUpdated, sessionEnded } from '../store/authSlice';
 
 const CHECK_EVERY_MS = 30 * 1000;
@@ -39,6 +39,7 @@ export default function useSessionKeeper() {
       if (now - lastInput.current > timeoutMin * 60 * 1000) {
         clearInterval(timer);
         await authApi.logout().catch(() => {});
+        notifyOtherTabsSessionEnded();
         dispatch(sessionEnded('idle'));
         return;
       }
