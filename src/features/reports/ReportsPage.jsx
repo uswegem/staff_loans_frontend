@@ -210,7 +210,7 @@ export default function ReportsPage() {
         </Tabs>
       )}
       {tab === 'overview' && !overview && !error && catalogue && <LoadingSkeleton label={t('Loading…')} rows={3} />}
-      {tab === 'overview' && overview && <Overview data={overview} />
+      {tab === 'overview' && overview && <Overview data={overview} />}
       {def && <Report key={def.key} def={def} options={catalogue.options} />}
     </div>
   );
