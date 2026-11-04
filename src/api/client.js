@@ -143,6 +143,7 @@ api.interceptors.response.use(
         if (config._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
         setAccessToken(null);
         onSessionEnded(refreshError.response?.data);
+        notifyOtherTabsSessionEnded();
         return Promise.reject(error);
       }
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -151,6 +152,7 @@ api.interceptors.response.use(
     if (response?.status === 401 && ['SESSION_ENDED', 'SESSION_IDLE', 'ACCOUNT_INACTIVE'].includes(code)) {
       setAccessToken(null);
       onSessionEnded(response.data);
+      notifyOtherTabsSessionEnded();
     }
     return Promise.reject(error);
   }
