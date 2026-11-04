@@ -150,6 +150,35 @@ describe('review screen', () => {
     expect(screen.queryByText(/staff record:/)).toBeNull();
   });
 
+  it('shows reviewers the Room steps and each payslip line with its matched product (D-101)', async () => {
+    const calcAtSubmission = {
+      payslip: { basic: 1850000, pension: 185000, taxable: 1665000, tax: 327500, totalDeductions: 512500, net: 1337500 },
+      combined: { basis: 'payslip', cap: 668750, payslipDeductions: 170000, slasNotOnPayslip: 0, topUp: true, available: 498750, newInstalment: 136900, remaining: 361850 },
+      rates: { interestBps: 600, affordabilityBps: 5000, pensionBps: 1000 },
+      instalment: 136900,
+      maxInstalment: 498750,
+      pass: true,
+      maxTenor: 60,
+      maxAmount: 25000000,
+    };
+    const deductions = {
+      lines: [
+        { label: 'Staff Loan - Personal', amount: 150000, productId: 'pl', product: 'Personal Loan' },
+        { label: 'Staff Loan', amount: 170000, productId: null, product: null },
+      ],
+      topUpLine: 0,
+      slas: [],
+    };
+    stubHttp({ 'GET /review/r2': () => [200, { data: { ...full, calcAtSubmission, deductions, topUp: { on: true, payslipLine: { label: 'Staff Loan - Personal', amount: 150000 } } } }] });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
+    expect(await screen.findByText('Less payslip deductions other than the product being topped up')).toBeInTheDocument();
+    expect(screen.getByText('Less SLAS loans not yet on the payslip')).toBeInTheDocument();
+    expect(screen.getByText('Room: the instalment you can afford')).toBeInTheDocument();
+    expect(screen.getByText('(being topped up, not counted)')).toBeInTheDocument();
+    expect(screen.getByText('(matches no product: counted, check with Payroll)')).toBeInTheDocument();
+    expect(screen.getByText('Staff Loan - Personal, TZS 150,000 a month')).toBeInTheDocument();
+  });
+
   it('explains when the reviewer is the applicant', async () => {
     stubHttp({ 'GET /review/r1': () => [403, { code: 'SELF_REVIEW', message: 'You cannot review your own application.' }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.ceo'] });

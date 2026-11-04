@@ -7,7 +7,7 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, Checkbox, FormControlLabel, MenuItem, Slider, TextField } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { apiError } from '../../api/client';
-import { quote as calcQuote } from '../../lib/calc/loanCalculator';
+import { quote as calcQuote, roomInputs } from '../../lib/calc/loanCalculator';
 import { todayEat } from '../../lib/dates';
 import { formatNumber, formatTzs, formatDate } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
@@ -46,7 +46,7 @@ function formOf(app) {
     tenor: app.tenor || Math.min(app.product.maxTenor, Math.max(app.product.minTenor, 12)),
     purpose: app.purpose || '',
     productFields: app.productFields || {},
-    topUp: { on: !!app.topUp?.on, applicationId: app.topUp?.applicationId || '' },
+    topUp: { on: !!app.topUp?.on, payslipLine: app.topUp?.payslipLine?.label ? app.topUp.payslipLine : null },
     probationReason: app.probation?.reason || '',
   };
 }
@@ -57,20 +57,27 @@ function bodyOf(form, app) {
     tenor: form.tenor ?? null,
     purpose: form.purpose,
     productFields: form.productFields,
-    topUp: form.topUp.on ? { on: true, applicationId: form.topUp.applicationId || null } : { on: false },
+    topUp: form.topUp.on ? { on: true, payslipLine: form.topUp.payslipLine || null } : { on: false },
   };
   if (app.probation.onProbation) body.probationReason = form.probationReason;
   return body;
 }
 
+/** The payslip line being topped up (D-101): the only one of this product, or the one chosen. */
+function topUpLineOf(d, form) {
+  if (!form.topUp.on) return -1;
+  if (d.ownLines.length === 1) return d.ownLines[0];
+  const c = form.topUp.payslipLine;
+  return c ? d.ownLines.find((i) => d.lines[i].label === c.label && d.lines[i].amount === c.amount) ?? -1 : -1;
+}
+
 /**
- * D-87: the staff member's other running loans in Staff Loans count against one 50% cap;
- * the loan chosen for a top-up is added back (its instalment as recorded in Staff Loans).
+ * Room inputs (D-101), as the API works them out: the payslip's staff loan deductions (less
+ * the line topped up) and the SLAS loans not yet on the payslip (less the one topped up).
  */
-function existingFor(app, form) {
-  const loans = app.existingLoans || [];
-  const chosen = form.topUp.on ? loans.find((l) => l.applicationId === form.topUp.applicationId) : null;
-  return { others: loans.filter((l) => l !== chosen).reduce((n, l) => n + l.instalment, 0), addBack: chosen?.instalment || 0 };
+function roomFor(app, form) {
+  const d = app.deductions || { lines: [], ownLines: [], slas: [] };
+  return roomInputs({ lines: d.lines, topUpLine: topUpLineOf(d, form), slas: d.slas, topUpLoanId: form.topUp.on ? d.topUpCandidate?.applicationId : null });
 }
 
 /** The same calculation as the API, for instant feedback while typing. */
@@ -82,7 +89,7 @@ function useLiveQuote(app, form) {
         tenor: form.tenor || 0,
         topUp: form.topUp.on,
         pay: app.payInputs,
-        existing: existingFor(app, form),
+        existing: roomFor(app, form),
         pricing: app.pricing,
         startDay: todayEat(),
         dueDay: app.firstDueDay,
@@ -129,10 +136,11 @@ function useShownErrors(app, form, errors, attempted) {
     tenor: app.tenor,
     purpose: app.purpose,
     probationReason: app.probation?.reason,
-    'topUp.applicationId': app.topUp?.applicationId,
+    'topUp.on': app.topUp?.on,
+    'topUp.payslipLine': app.topUp?.payslipLine?.label ? `${app.topUp.payslipLine.label}|${app.topUp.payslipLine.amount}` : null,
     ...Object.fromEntries(Object.entries(form.productFields).map(([k]) => [`productFields.${k}`, app.productFields?.[k]])),
   };
-  const current = { amount: form.amount, tenor: form.tenor, purpose: form.purpose, probationReason: form.probationReason, 'topUp.applicationId': form.topUp.applicationId, ...Object.fromEntries(Object.entries(form.productFields).map(([k, v]) => [`productFields.${k}`, v])) };
+  const current = { amount: form.amount, tenor: form.tenor, purpose: form.purpose, probationReason: form.probationReason, 'topUp.on': form.topUp.on, 'topUp.payslipLine': form.topUp.payslipLine ? `${form.topUp.payslipLine.label}|${form.topUp.payslipLine.amount}` : null, ...Object.fromEntries(Object.entries(form.productFields).map(([k, v]) => [`productFields.${k}`, v])) };
   const shown = (key) => ((attempted || touched[key]) && same(current[key], saved[key]) ? errors[key] : undefined);
   const touch = (key) => () => setTouched((x) => (x[key] ? x : { ...x, [key]: true }));
   return { shown, touch, touched };
@@ -146,7 +154,8 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
   const formRef = useRef(null);
   const attempted = attempt > 0;
   const { shown, touch, touched } = useShownErrors(app, form, errors, attempted);
-  const topUpLoans = (app.existingLoans || []).filter((l) => l.canTopUp);
+  const ded = app.deductions || { lines: [], ownLines: [] };
+  const ownLines = ded.ownLines.map((i) => ded.lines[i]);
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
   const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
@@ -226,10 +235,32 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
                 }
               />
               {form.topUp.on && (
-                <div className={s.grid} style={{ margin: '8px 0 8px 32px' }}>
-                  <TextField select label={t('Loan being topped up')} value={form.topUp.applicationId || ''} onChange={(e) => set({ topUp: { ...form.topUp, applicationId: e.target.value } })} onBlur={touch('topUp.applicationId')} error={!!shown('topUp.applicationId')} helperText={shown('topUp.applicationId') || (topUpLoans.length ? t('One of your running loans in Staff Loans') : t('You have no running loan of this product in Staff Loans to top up.'))}>
-                    {topUpLoans.map((l) => <MenuItem key={l.applicationId} value={l.applicationId}>{l.ref}: {t('TZS {amount} a month', { amount: formatNumber(l.instalment) })}</MenuItem>)}
-                  </TextField>
+                // D-101: the loan topped up is a deduction on the payslip, in Staff Loans or not.
+                <div style={{ margin: '4px 0 8px 32px' }}>
+                  {shown('topUp.on') && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '0 0 8px' }}>{shown('topUp.on')}</p>}
+                  {!app.payslip && <p className="small muted" style={{ margin: 0 }}>{t('Attach your payslip: the deduction being topped up is read from it.')}</p>}
+                  {ownLines.length === 1 && (
+                    <p className="small" style={{ margin: 0 }}>{t('Topping up the payslip deduction {label}: {amount} a month.', { label: ownLines[0].label, amount: formatTzs(ownLines[0].amount) })}</p>
+                  )}
+                  {ownLines.length > 1 && (
+                    <div className={s.grid}>
+                      <TextField
+                        select
+                        label={t('Payslip deduction being topped up')}
+                        value={form.topUp.payslipLine ? `${form.topUp.payslipLine.label}|${form.topUp.payslipLine.amount}` : ''}
+                        onChange={(e) => {
+                          const l = ownLines.find((x) => `${x.label}|${x.amount}` === e.target.value);
+                          set({ topUp: { ...form.topUp, payslipLine: l ? { label: l.label, amount: l.amount } : null } });
+                        }}
+                        onBlur={touch('topUp.payslipLine')}
+                        error={!!shown('topUp.payslipLine')}
+                        helperText={shown('topUp.payslipLine') || t('Your payslip shows more than one deduction for this product. The others count as other deductions.')}
+                      >
+                        {ownLines.map((l, i) => <MenuItem key={`${l.label}|${l.amount}|${i}`} value={`${l.label}|${l.amount}`}>{l.label}: {t('TZS {amount} a month', { amount: formatNumber(l.amount) })}</MenuItem>)}
+                      </TextField>
+                    </div>
+                  )}
+                  {ded.topUpCandidate && <p className="xs muted" style={{ margin: '6px 0 0' }}>{t('{ref} in Staff Loans is settled from this loan.', { ref: ded.topUpCandidate.ref })}</p>}
                 </div>
               )}
             </div>
@@ -258,7 +289,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
         </form>
       </Card>
       <Card className={s.sticky}>
-        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} hasPayslip={!!app.payslip} />
+        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} hasPayslip={!!app.payslip} deductions={app.deductions && { ...app.deductions, topUpLine: topUpLineOf(app.deductions, form) }} />
       </Card>
     </div>
   );
@@ -336,7 +367,11 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
               <Fragment key={f.key}><dt>{f.label}</dt><dd>{f.type === 'money' ? formatTzs(form.productFields[f.key]) : String(form.productFields[f.key] ?? '—')}</dd></Fragment>
             ))}
             <dt>{t('Repayment')}</dt><dd>{t('Salary deduction')}</dd>
-            {form.topUp.on && (<><dt>{t('Top-up of')}</dt><dd>{(app.existingLoans || []).find((l) => l.applicationId === form.topUp.applicationId)?.ref || '—'}</dd></>)}
+            {form.topUp.on && (() => {
+              const d = app.deductions || { lines: [], ownLines: [] };
+              const line = d.lines[topUpLineOf(d, form)];
+              return (<><dt>{t('Top-up of')}</dt><dd>{line ? `${line.label}, ${t('{amount} a month', { amount: formatTzs(line.amount) })}` : '—'}{d.topUpCandidate ? ` (${d.topUpCandidate.ref})` : ''}</dd></>);
+            })()}
             {app.probation.onProbation && (<><dt>{t('Probation reason')}</dt><dd>{form.probationReason}</dd></>)}
           </dl>
         </Card>
@@ -356,7 +391,7 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
         </Card>
       </div>
       <Card className={s.sticky}>
-        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} />
+        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} deductions={app.deductions && { ...app.deductions, topUpLine: topUpLineOf(app.deductions, form) }} />
         <div style={{ padding: 24, borderTop: '1px solid var(--line-2)' }}>
           <p className="small muted" style={{ margin: '0 0 12px' }}>{t('Next you read the loan agreement for these terms and sign it. Signing submits the application.')}</p>
           <Button variant="contained" fullWidth onClick={onNext}>{t('Continue to agreement')}</Button>

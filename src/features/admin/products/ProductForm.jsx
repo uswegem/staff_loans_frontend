@@ -26,6 +26,7 @@ export const EMPTY_PRODUCT = {
   maxConcurrent: 1,
   reapplyCoolingMonths: 6,
   topUpAllowed: false,
+  payslipLabel: '',
   contractStaffAllowed: false,
   eligibleCategories: ['Management', 'Non-management'],
   repaymentMethods: ['payroll'],
@@ -91,6 +92,17 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
           <FormControlLabel label={t('Top-up allowed')} control={<Checkbox checked={!!values.topUpAllowed} onChange={(e) => set('topUpAllowed')(e.target.checked)} disabled={readOnly} />} />
           <FormControlLabel label={t('Contract staff may apply')} control={<Checkbox checked={!!values.contractStaffAllowed} onChange={(e) => set('contractStaffAllowed')(e.target.checked)} disabled={readOnly} />} />
         </FormGroup>
+        {/* D-101: the deduction's label on the payslip; required when top-ups are allowed. */}
+        <TextField
+          label={t('Payslip deduction label')}
+          required={!!values.topUpAllowed}
+          value={values.payslipLabel || ''}
+          onChange={(e) => set('payslipLabel')(e.target.value)}
+          error={!!errors.payslipLabel}
+          helperText={err('payslipLabel') || t('As printed on the payslip, for example Staff Loan - Car. Each line is matched to its product by it; case, spacing and punctuation do not matter.')}
+          disabled={readOnly}
+          inputProps={{ maxLength: 80 }}
+        />
       </Section>
 
       <section className={s.section}>

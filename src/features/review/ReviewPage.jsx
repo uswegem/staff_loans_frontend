@@ -109,7 +109,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>{t('Purpose')}</dt><dd>{app.purpose}</dd>
               {app.product.fields.map((f) => [<dt key={`t${f.key}`}>{f.label}</dt>, <dd key={`d${f.key}`}>{f.type === 'money' ? formatTzs(app.productFields[f.key]) : String(app.productFields[f.key] ?? '—')}</dd>])}
               <dt>{t('Repayment')}</dt><dd>{t('Salary deduction')}</dd>
-              {app.topUp?.on && (<><dt>{t('Top-up of')}</dt><dd>{app.topUp.loanRef}, instalment {formatTzs(app.topUp.instalment)}</dd></>)}
+              {app.topUp?.on && (<><dt>{t('Top-up of')}</dt><dd>{[app.topUp.payslipLine?.label && `${app.topUp.payslipLine.label}, ${t('{amount} a month', { amount: formatTzs(app.topUp.payslipLine.amount) })}`, app.topUp.loanRef].filter(Boolean).join('; ') || '—'}</dd></>)}
               {app.probation.onProbation && (<><dt>{t('Probation reason')}</dt><dd>{app.probation.reason}</dd></>)}
             </dl>
             {app.recommended && <Alert severity="warning" sx={{ mt: 2 }}>{t('Credit Analyst ({name}) recommended {amount} over {n} months', { name: app.recommended.by, amount: formatTzs(app.recommended.amount), n: app.recommended.tenor })}{app.recommended.reason ? `: ${app.recommended.reason}` : ''}.</Alert>}
@@ -130,7 +130,7 @@ function FullReview({ app, onDone, onError }) {
               <Meter q={q} />
               <details open style={{ marginTop: 12 }}>
                 <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>{t('Step-by-step calculation')}</summary>
-                <div style={{ marginTop: 8, maxWidth: 520 }}><Breakdown q={q} /></div>
+                <div style={{ marginTop: 8, maxWidth: 520 }}><Breakdown q={q} deductions={app.deductions} topUp={app.topUp?.on} /></div>
               </details>
               {app.checks.length ? (
                 <Alert severity="error" sx={{ mt: 2 }}><AlertTitle>{t('Rule checks to note')}</AlertTitle><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{app.checks.map((c) => <li key={c}>{c}</li>)}</ul></Alert>

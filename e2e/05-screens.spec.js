@@ -189,3 +189,40 @@ test('review, staff details and staff upload after D-99 and D-100, in both langu
     await grace.context().close();
   }
 });
+
+test('Room from the payslip on apply and review, in both languages and themes (D-101)', async ({ browser }) => {
+  const LINES = [{ label: 'Staff Loan - Personal', amount: 150000 }, { label: 'Staff Loan', amount: 70000 }];
+  for (const m of MODES) {
+    const daniel = await as(browser, 'LFB0067');
+    await choose(daniel, { lang: 'en', theme: 'light' });
+    await daniel.goto('/apply');
+    await daniel.getByRole('button', { name: /^Personal Loan/ }).click();
+    await expect(daniel).toHaveURL(/\/apply\/[0-9a-f]{24}/);
+    await attachPayslip(daniel, 'LFB0067', { lfbLines: LINES });
+    await daniel.getByLabel('Amount').fill('5000000');
+    await daniel.getByLabel('Tenor (months)').fill('24');
+    await choose(daniel, m);
+    await daniel.getByText(m.lang === 'sw' ? /Jinsi kikomo chako/ : 'How your limit is worked out').click();
+    await expect(daniel.getByText(m.lang === 'sw' ? 'Toa makato ya hati ya mshahara' : 'Less payslip deductions', { exact: true })).toBeVisible();
+    await expect(daniel.getByText(m.lang === 'sw' ? 'Toa mikopo ya Mikopo ya Wafanyakazi ambayo bado haijaonekana kwenye hati ya mshahara' : 'Less SLAS loans not yet on the payslip')).toBeVisible();
+    await expect(daniel.getByText('−220,000')).toBeVisible();
+    await shot(daniel, `room-new-${m.lang}-${m.theme}`);
+
+    // A top-up of the Personal Loan line on the payslip, with no Staff Loans record.
+    await daniel.getByRole('checkbox', { name: m.lang === 'sw' ? /nyongeza|ongeza/i : /This tops up an existing staff loan/ }).check();
+    await expect(daniel.getByText(m.lang === 'sw' ? /Unaongeza makato ya hati ya mshahara Staff Loan - Personal/ : /Topping up the payslip deduction Staff Loan - Personal/)).toBeVisible();
+    await expect(daniel.getByText('−70,000')).toBeVisible();
+    await shot(daniel, `room-topup-${m.lang}-${m.theme}`);
+    await daniel.getByRole('button', { name: m.lang === 'sw' ? /Ghairi ombi/ : 'Cancel application' }).click();
+    await daniel.context().close();
+
+    // A reviewer sees the same steps on an application already submitted.
+    const grace = await as(browser, 'LFB0051');
+    await choose(grace, { lang: 'en', theme: 'light' });
+    await openFromQueue(grace, 'SL-2026-00025');
+    await choose(grace, m);
+    await expect(grace.getByText(m.lang === 'sw' ? 'Nafasi: rejesho unaloweza kumudu' : 'Room: the instalment you can afford')).toBeVisible();
+    await shot(grace, `room-review-${m.lang}-${m.theme}`);
+    await grace.context().close();
+  }
+});

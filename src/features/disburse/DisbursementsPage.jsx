@@ -14,6 +14,9 @@ import { useT } from '../../i18n';
 
 const DEFAULT_COMMENT = 'Loan disbursed to staff account.';
 
+
+/** The loan a top-up settles (D-101): its Staff Loans reference, or the payslip deduction when it has none. */
+const topUpName = (u) => [u.loanRef, u.payslipLine?.label && `${u.payslipLine.label} (${u.payslipLine.amount.toLocaleString('en-US')} a month)`].filter(Boolean).join(', ') || '—';
 function Summary({ d }) {
   const t = useT();
   const bank = d.creditTo;
@@ -28,7 +31,7 @@ function Summary({ d }) {
       <dt>{t('Credit to')}</dt><dd>{bank?.accountNo ? `${bank.bank || ''}, ${bank.accountNo}` : t('No bank account in the profile')}</dd>
       <dt>{t('Instalment')}</dt><dd>{t('{amount} for {n} months', { amount: formatTzs(d.instalment), n: d.tenor })}</dd>
       <dt>{t('Recovery set-up')}</dt><dd>{t('Salary deduction (HR and Finance)')}</dd>
-      {d.topUp && <><dt>{t('Top-up')}</dt><dd>{t('Settle {ref} from this loan', { ref: d.topUp.loanRef })}</dd></>}
+      {d.topUp && <><dt>{t('Top-up')}</dt><dd>{t('Settle {ref} from this loan', { ref: topUpName(d.topUp) })}</dd></>}
     </dl>
   );
 }
@@ -91,7 +94,7 @@ function ConfirmDialog({ id, onClose, onDone }) {
               {d.topUp && (
                 <div>
                   <h4 style={{ margin: '0 0 4px' }}>{t('Before you confirm')}</h4>
-                  <FormControlLabel sx={{ display: 'flex' }} control={<Checkbox checked={topUp} onChange={(e) => setTopUp(e.target.checked)} />} label={t('Balance of {ref} confirmed in core banking and settled', { ref: d.topUp.loanRef })} />
+                  <FormControlLabel sx={{ display: 'flex' }} control={<Checkbox checked={topUp} onChange={(e) => setTopUp(e.target.checked)} />} label={t('Balance of {ref} confirmed in core banking and settled', { ref: topUpName(d.topUp) })} />
                 </div>
               )}
               <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>

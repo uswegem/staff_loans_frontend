@@ -123,8 +123,8 @@ export async function startApplication(page, { staffNo, product, amount, tenor, 
 }
 
 /** Attaches the person's latest payslip on the loan details step and waits for it to be read. */
-export async function attachPayslip(page, staffNo) {
-  await page.getByLabel('Choose payslip PDF').setInputFiles({ name: 'payslip.pdf', mimeType: 'application/pdf', buffer: await payslipFor(staffNo) });
+export async function attachPayslip(page, staffNo, { lfbLines = [] } = {}) {
+  await page.getByLabel('Choose payslip PDF').setInputFiles({ name: 'payslip.pdf', mimeType: 'application/pdf', buffer: await payslipFor(staffNo, { lfbLines }) });
   await expect(page.getByRole('button', { name: 'Replace' })).toBeVisible({ timeout: 30_000 });
 }
 

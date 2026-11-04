@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 – Room from the payslip (4 Nov 2026)
+
+- The calculator works out Room: the combined limit, less the staff loan deductions on the payslip (for a top-up, those other than the line topped up), less the Staff Loans loans not yet on the payslip. It shows each payslip line with the product it matched, and the Staff Loans loans counted. Calculations saved before still show "Your other loans in Staff Loans" as they were (D-101).
+- Top-up no longer asks for a loan recorded in Staff Loans: it tops up the product's deduction on the payslip, and asks which line when the payslip shows more than one. Review and disbursement name the payslip line, and the Staff Loans loan when there is one (D-101).
+- Products have a "Payslip deduction label", required when top-ups are allowed (D-101).
+
 ## 0.13.0 – Credit review, staff details and staff upload (4 Nov 2026)
 
 - Credit Analyst review: the explanation card and the "Not shared with the Credit Analyst" card are gone; Outcome offers Low Risk, Average Risk, High Risk and No Record Found; no appraisal or arrears note. Later approvers still see an outcome and notes recorded before (D-99).
