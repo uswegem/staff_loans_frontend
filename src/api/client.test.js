@@ -58,7 +58,7 @@ describe('API client (ported refresh interceptor)', () => {
     expect(currentSessionEpoch()).toBeGreaterThan(after);
   });
 
-  it('never exposes an old user's delayed API response after account switching', async () => {
+  it("never exposes an old user's delayed API response after account switching", async () => {
     let release;
     const previousAdapter = api.defaults.adapter;
     api.defaults.adapter = (config) => new Promise((resolve) => {
