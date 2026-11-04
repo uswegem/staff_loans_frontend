@@ -1283,6 +1283,13 @@ const SW = {
   '{ref} in Staff Loans is settled from this loan.': '{ref} katika Mikopo ya Wafanyakazi inalipwa kutoka kwenye mkopo huu.',
   'Payslip deduction label': 'Jina la makato kwenye hati ya mshahara',
   'As printed on the payslip, for example Staff Loan - Car. Each line is matched to its product by it; case, spacing and punctuation do not matter.': 'Kama lilivyochapishwa kwenye hati ya mshahara, kwa mfano Staff Loan - Car. Kila mstari unalinganishwa na bidhaa yake kwa jina hili; herufi kubwa au ndogo, nafasi na alama hazijalishi.',
+  'Application submitted successfully': 'Maombi ya mkopo yamewasilishwa kwa mafanikio',
+  'Application reference': 'Namba ya kumbukumbu ya maombi',
+  'Loan product': 'Aina ya mkopo',
+  'Requested amount': 'Kiasi kilichoombwa',
+  'Current status': 'Hali ya sasa',
+  'Action completed': 'Hatua imekamilika',
+  'Processing…': 'Inashughulikiwa…',
 };
 
 export default SW;
