@@ -1,0 +1,55 @@
+name: Staff loan browser security regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/api/**'
+      - 'src/components/FileDrop*'
+      - 'src/components/RequireAuth.jsx'
+      - 'src/features/apply/**'
+      - 'e2e/06-session-isolation.spec.js'
+      - '.github/workflows/session-security-e2e.yml'
+
+jobs:
+  account-switch-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out frontend
+        uses: actions/checkout@v4
+        with:
+          path: staff_loans_frontend
+      - name: Check out backend
+        uses: actions/checkout@v4
+        with:
+          repository: uswegem/staff_loans_backend
+          ref: main
+          path: staff_loans_backend
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        working-directory: staff_loans_frontend
+        run: npm ci
+      - name: Install backend dependencies
+        working-directory: staff_loans_backend
+        run: npm ci
+      - name: Install Chromium and OS dependencies
+        working-directory: staff_loans_frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run cross-account browser regression
+        working-directory: staff_loans_frontend
+        env:
+          E2E_BACKEND_DIR: ../staff_loans_backend
+        run: npx playwright test e2e/06-session-isolation.spec.js
+      - name: Save failed browser traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-isolation-playwright-report
+          path: |
+            staff_loans_frontend/playwright-report
+            staff_loans_frontend/test-results
+          retention-days: 7

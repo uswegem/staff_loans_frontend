@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { api, hasAccessToken, setAccessToken, setSessionHandlers } from './client';
+import { api, hasAccessToken, setAccessToken, setSessionHandlers, currentSessionEpoch, invalidateSessionRequests } from './client';
 import { stubHttp } from '../test/http';
 
 const profile = { accessToken: 'new-token', user: { fullName: 'Neema Mushi' }, roles: [], permissions: ['loan.apply'] };
@@ -45,6 +45,42 @@ describe('API client (ported refresh interceptor)', () => {
     await expect(api.get('/users')).rejects.toBeTruthy();
     expect(hasAccessToken()).toBe(false);
     expect(ended).toBeTruthy();
+  });
+
+  it('invalidates the request generation when the logged-in identity changes', () => {
+    const before = currentSessionEpoch();
+    setAccessToken('AT637-session');
+    expect(currentSessionEpoch()).toBeGreaterThan(before);
+    const after = currentSessionEpoch();
+    setAccessToken('AT637-session');
+    expect(currentSessionEpoch()).toBe(after);
+    setAccessToken('AT656-session');
+    expect(currentSessionEpoch()).toBeGreaterThan(after);
+  });
+
+  it("never exposes an old user's delayed API response after account switching", async () => {
+    let release;
+    const previousAdapter = api.defaults.adapter;
+    api.defaults.adapter = (config) => new Promise((resolve) => {
+      release = () => resolve({ config, status: 200, statusText: 'OK', headers: {}, data: { data: { salary: 900000 } } });
+    });
+    try {
+      setAccessToken('AT637-session');
+      const request = api.get('/applications/AT637');
+      await Promise.resolve();
+      await Promise.resolve();
+      setAccessToken('AT656-session');
+      release();
+      await expect(request).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+    } finally {
+      api.defaults.adapter = previousAdapter;
+    }
+  });
+
+  it('invalidates pending requests explicitly on session termination', () => {
+    const before = currentSessionEpoch();
+    invalidateSessionRequests();
+    expect(currentSessionEpoch()).toBe(before + 1);
   });
 
   it('does not try to refresh on a failed sign-in', async () => {

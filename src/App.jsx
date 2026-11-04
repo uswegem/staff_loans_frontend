@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
-import { refreshSession } from './api/client';
+import { refreshSession, startSessionSync } from './api/client';
 import { sessionEnded, sessionStarted } from './store/authSlice';
 import AppShell from './components/AppShell';
 import { RequireAuth, RequirePermission } from './components/RequireAuth';
@@ -53,11 +53,13 @@ function NotFound() {
 export default function App() {
   const dispatch = useDispatch();
 
+  useEffect(() => startSessionSync(() => dispatch(sessionEnded('expired'))), [dispatch]);
+
   // On load, restore the session silently from the refresh cookie (the access token is never stored).
   useEffect(() => {
     refreshSession()
       .then((data) => dispatch(sessionStarted(data)))
-      .catch(() => dispatch(sessionEnded(null)));
+      .catch((error) => { if (error?.code !== 'ERR_CANCELED') dispatch(sessionEnded(null)); });
   }, [dispatch]);
 
   return (

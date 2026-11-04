@@ -18,6 +18,7 @@ import CalculatorPanel from './CalculatorPanel';
 import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
 import SupportingDocuments from '../../components/SupportingDocuments';
+import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
 
@@ -335,13 +336,13 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
               <h4>{d.name} {d.mandatory ? '*' : ''}</h4>
               {d.description && <p className="small muted">{d.description}</p>}
               <p className="xs">{uploaded.length} / {d.minFiles} {t('minimum files')} · {d.maxFiles} {t('maximum files')}</p>
-              <input type="file" multiple accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} disabled={busy || uploaded.length >= d.maxFiles} aria-label={d.name} onChange={(e) => { add(e.target.files, d); e.target.value = ''; }} />
+              <FileDrop accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} label={d.name} busy={busy || uploaded.length >= d.maxFiles} onFile={(file) => add([file], d)} />
               {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName}</div>)}
               {d.mandatory && uploaded.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
             </div>
           );
         })}
-        {!requirements.length && <div><p className="small muted">{t('No additional supporting documents are configured for this product.')}</p><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" disabled={busy} aria-label={t('Other supporting documents')} onChange={(e) => { add(e.target.files); e.target.value = ''; }} /></div>}
+        {!requirements.length && <div><p className="small muted">{t('No additional supporting documents are configured for this product.')}</p><FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('Other supporting documents')} busy={busy} onFile={(file) => add([file])} /></div>}
         <SupportingDocuments documents={app.documents} onRemove={async (d) => { try { setError(null); await applicationsApi.removeDocument(app.id, d.id); onChanged(); } catch (err) { setError(apiError(err).message); } }} />
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
           <Button onClick={onBack}>{t('Back')}</Button>

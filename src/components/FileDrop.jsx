@@ -18,7 +18,7 @@ export default function FileDrop({ accept, label, hint, buttonLabel, onFile, bus
   const allowed = (file) => !exts.length || exts.some((e) => file.name.toLowerCase().endsWith(e));
 
   const take = (file, setError) => {
-    if (!file) return;
+    if (!file || busy) return;
     if (!allowed(file)) {
       setError?.(t('Only {types} files.', { types: exts.join(', ').toUpperCase() }));
       return;
@@ -33,14 +33,14 @@ export default function FileDrop({ accept, label, hint, buttonLabel, onFile, bus
         className={`${s.drop} ${over ? s.over : ''} ${error || localError ? s.bad : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
-          setOver(true);
+          if (!busy) setOver(true);
         }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
           setLocalError(null);
-          take(e.dataTransfer.files?.[0], setLocalError);
+          if (!busy) take(e.dataTransfer.files?.[0], setLocalError);
         }}
         role="group"
         aria-label={label}
@@ -60,6 +60,7 @@ export default function FileDrop({ accept, label, hint, buttonLabel, onFile, bus
           type="file"
           accept={accept}
           hidden
+          disabled={busy}
           aria-label={inputLabel || label}
           onChange={(e) => {
             const file = e.target.files?.[0];

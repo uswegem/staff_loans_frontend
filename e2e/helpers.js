@@ -13,7 +13,7 @@ export const PASSWORD = process.env.E2E_PASSWORD || 'Sample#2026';
 
 // The backend's fictional people and payslip generator, so each applicant attaches a
 // payslip with their fictional pay (D-79, D-100).
-const backend = createRequire(path.join(process.env.E2E_BACKEND_DIR || path.resolve('..', 'staff_loans_backend'), 'package.json'));
+const backend = createRequire(path.join(path.resolve(process.env.E2E_BACKEND_DIR || path.resolve('..', 'staff_loans_backend')), 'package.json'));
 const { PEOPLE } = backend('./seed/data/people.js');
 const { PRICING } = backend('./seed/pricing.js');
 const { samplePayslip } = backend('./seed/samplePayslip.js');

@@ -17,6 +17,39 @@ let onSessionChanged = () => {};
 let onSessionEnded = () => {};
 let lastActivity = 0;
 let language = 'en';
+let sessionEpoch = 0;
+const pending = new Set();
+let channel = null;
+let externalSessionEnd = () => {};
+
+/** Cross-tab events carry no tokens, staff data or other confidential content. */
+export function startSessionSync(onEnd) {
+  externalSessionEnd = onEnd;
+  if (typeof BroadcastChannel === 'undefined' || channel) return () => { externalSessionEnd = () => {}; };
+  channel = new BroadcastChannel('slas-session');
+  channel.onmessage = (event) => {
+    if (event.data?.type !== 'SESSION_ENDED') return;
+    setAccessToken(null);
+    externalSessionEnd();
+  };
+  return () => {
+    channel?.close();
+    channel = null;
+    externalSessionEnd = () => {};
+  };
+}
+export function notifyOtherTabsSessionEnded() {
+  channel?.postMessage({ type: 'SESSION_ENDED' });
+}
+
+export const currentSessionEpoch = () => sessionEpoch;
+export function invalidateSessionRequests() {
+  sessionEpoch += 1;
+  for (const controller of pending) controller.abort();
+  pending.clear();
+  refreshing = null;
+}
+const stale = () => new axios.CanceledError('Request belongs to a previous authentication session');
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -25,7 +58,9 @@ export const api = axios.create({
 });
 
 export function setAccessToken(token) {
-  accessToken = token || null;
+  const next = token || null;
+  if (accessToken !== next) invalidateSessionRequests();
+  accessToken = next;
 }
 export const hasAccessToken = () => !!accessToken;
 /** Messages from the API come back in this language (D-94). */
@@ -50,22 +85,35 @@ const csrfHeaders = () => ({ 'X-XSRF-TOKEN': readCookie('XSRF-TOKEN') });
 /** Calls /auth/refresh once even if many requests ask at the same time. */
 export function refreshSession() {
   if (!refreshing) {
-    refreshing = axios
+    const epoch = sessionEpoch;
+    const flight = axios
       .post(`${API_BASE}/auth/refresh`, null, { withCredentials: true, headers: csrfHeaders() })
       .then((res) => {
+        if (epoch !== sessionEpoch) throw stale();
         const data = res.data.data;
-        setAccessToken(data.accessToken);
+        // A routine token refresh is the same identity, not a new login.
+        accessToken = data.accessToken;
         onSessionChanged(data);
         return data;
       })
       .finally(() => {
-        refreshing = null;
+        if (refreshing === flight) refreshing = null;
       });
+    refreshing = flight;
   }
   return refreshing;
 }
 
 api.interceptors.request.use((config) => {
+  config._sessionEpoch = sessionEpoch;
+  const controller = new AbortController();
+  config._sessionController = controller;
+  pending.add(controller);
+  if (config.signal) {
+    if (config.signal.aborted) controller.abort();
+    else config.signal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+  config.signal = controller.signal;
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   config.headers['Accept-Language'] = language;
   lastActivity = Date.now();
@@ -76,17 +124,26 @@ api.interceptors.request.use((config) => {
 const REFRESHABLE = new Set(['NO_TOKEN', 'TOKEN_INVALID']);
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    pending.delete(res.config._sessionController);
+    if (res.config._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
+    return res;
+  },
   async (error) => {
     const { response, config } = error;
+    if (config?._sessionController) pending.delete(config._sessionController);
+    if (config?._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
     const code = response?.data?.code;
     if (response?.status === 401 && REFRESHABLE.has(code) && config && !config._retried && !config.url.startsWith('/auth/')) {
       config._retried = true;
       try {
         await refreshSession();
+        if (config._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
       } catch (refreshError) {
+        if (config._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
         setAccessToken(null);
         onSessionEnded(refreshError.response?.data);
+        notifyOtherTabsSessionEnded();
         return Promise.reject(error);
       }
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -95,6 +152,7 @@ api.interceptors.response.use(
     if (response?.status === 401 && ['SESSION_ENDED', 'SESSION_IDLE', 'ACCOUNT_INACTIVE'].includes(code)) {
       setAccessToken(null);
       onSessionEnded(response.data);
+      notifyOtherTabsSessionEnded();
     }
     return Promise.reject(error);
   }
