@@ -58,6 +58,25 @@ describe('API client (ported refresh interceptor)', () => {
     expect(currentSessionEpoch()).toBeGreaterThan(after);
   });
 
+  it('never exposes an old user's delayed API response after account switching', async () => {
+    let release;
+    const previousAdapter = api.defaults.adapter;
+    api.defaults.adapter = (config) => new Promise((resolve) => {
+      release = () => resolve({ config, status: 200, statusText: 'OK', headers: {}, data: { data: { salary: 900000 } } });
+    });
+    try {
+      setAccessToken('AT637-session');
+      const request = api.get('/applications/AT637');
+      await Promise.resolve();
+      await Promise.resolve();
+      setAccessToken('AT656-session');
+      release();
+      await expect(request).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+    } finally {
+      api.defaults.adapter = previousAdapter;
+    }
+  });
+
   it('invalidates pending requests explicitly on session termination', () => {
     const before = currentSessionEpoch();
     invalidateSessionRequests();
