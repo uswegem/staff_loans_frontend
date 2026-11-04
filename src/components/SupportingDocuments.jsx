@@ -8,7 +8,7 @@ import { formatDateTime } from '../lib/format';
 import { useT } from '../i18n';
 
 /** Previews are fetched with the normal bearer-token API; no public file URL is exposed. */
-export default function SupportingDocuments({ documents = [], documentChecklist = [] }) {
+export default function SupportingDocuments({ documents = [], documentChecklist = [], onRemove = null }) {
   const t = useT();
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -72,6 +72,7 @@ export default function SupportingDocuments({ documents = [], documentChecklist 
                     <div className="row" style={{ gap: 8 }}>
                       <Button size="small" disabled={loading === d.id} onClick={() => openPreview(d)}>{t('Preview')}</Button>
                       <Link component="button" type="button" onClick={() => download(d)}>{t('Download')}</Link>
+                      {onRemove && <Button size="small" color="error" onClick={() => onRemove(d)}>{t('Remove')}</Button>}
                     </div>
                   </TableCell>
                 </TableRow>
