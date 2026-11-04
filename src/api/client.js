@@ -74,7 +74,7 @@ export function refreshSession() {
         return data;
       })
       .finally(() => {
-        if (epoch === sessionEpoch || !refreshing) refreshing = null;
+        if (epoch === sessionEpoch || accessToken) refreshing = null;
       });
   }
   return refreshing;
