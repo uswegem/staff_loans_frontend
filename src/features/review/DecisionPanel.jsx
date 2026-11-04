@@ -18,10 +18,9 @@ export default function DecisionPanel({ app, onDone }) {
   const p = app.panel;
   const [action, setAction] = useState('');
   const [comment, setComment] = useState('');
-  const [crb, setCrb] = useState({ outcome: app.crb?.outcome || '', reportDate: app.crb?.reportDate || todayEat(), fileId: app.crb?.fileId || null });
+  // An outcome recorded before D-99 (Clear, Adverse: …) is shown on the review, not offered again.
+  const [crb, setCrb] = useState({ outcome: p?.crbOutcomes?.includes(app.crb?.outcome) ? app.crb.outcome : '', reportDate: app.crb?.reportDate || todayEat(), fileId: app.crb?.fileId || null });
   const [crbFile, setCrbFile] = useState(null);
-  const [note, setNote] = useState(app.appraisalNote || '');
-  const [arrears, setArrears] = useState('');
   const [checks, setChecks] = useState({ employment: false, category: false, salary: false, probationReasonVerified: false });
   // error: what the API said about the last submit; the checks below follow the current choices.
   const [error, setError] = useState(null);
@@ -59,8 +58,6 @@ export default function DecisionPanel({ app, onDone }) {
         let fileId = crb.fileId;
         if (crbFile) fileId = (await reviewApi.crbReport(app.id, crbFile)).id;
         if (crb.outcome) body.crb = { outcome: crb.outcome, reportDate: crb.reportDate, ...(fileId ? { fileId } : {}) };
-        if (note) body.appraisalNote = note;
-        if (arrears) body.arrearsNote = arrears;
       }
       if (p.needsHrChecks) body.hrChecks = checks;
       const res = await reviewApi.decide(app.id, body);
@@ -95,7 +92,7 @@ export default function DecisionPanel({ app, onDone }) {
             <p className="xs muted" style={{ margin: 0 }}>{t('Search the bureau with the name, NIDA number and mobile, then record the result.')}</p>
             <div className={s.grid}>
               <TextField select label={t('Outcome')} required value={crb.outcome} onChange={(e) => setCrb({ ...crb, outcome: e.target.value })}>
-                {p.crbOutcomes.map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                {p.crbOutcomes.map((o) => <MenuItem key={o} value={o}>{t(o)}</MenuItem>)}
               </TextField>
               <TextField label={t('Report date')} type="date" required value={crb.reportDate} onChange={(e) => setCrb({ ...crb, reportDate: e.target.value })} />
             </div>
@@ -103,8 +100,6 @@ export default function DecisionPanel({ app, onDone }) {
               <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>{t('Report (optional)')}</div>
               <FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('The bureau report')} inputLabel={t('Choose bureau report')} buttonLabel={t('Choose file')} hint={crbFile ? t('Attached: {name}', { name: crbFile.name }) : t('PDF, JPG or PNG.')} onFile={setCrbFile} />
             </div>
-            <TextField label={t('Appraisal note')} multiline minRows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('What the bureau report shows, anything later approvers should know')} />
-            <TextField label={t('Arrears on existing staff loans (BR-10)')} value={arrears} onChange={(e) => setArrears(e.target.value)} helperText={t('Later approvers must comment on any arrears you record.')} />
             <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', width: '100%' }} />
           </>
         )}
@@ -112,9 +107,9 @@ export default function DecisionPanel({ app, onDone }) {
         {p.needsHrChecks && (
           <>
             <h4>{t('Confirm the staff record')}</h4>
-            <FormControlLabel control={<Checkbox checked={checks.employment} onChange={(e) => setChecks({ ...checks, employment: e.target.checked })} />} label={t('Employment status is {type} and active', { type: t(app.applicant.employmentType).toLowerCase() })} />
+            <FormControlLabel control={<Checkbox checked={checks.employment} onChange={(e) => setChecks({ ...checks, employment: e.target.checked })} />} label={app.applicant.employmentType ? t('Employment status is {type} and active', { type: t(app.applicant.employmentType).toLowerCase() }) : t('Employment is active')} />
             <FormControlLabel control={<Checkbox checked={checks.category} onChange={(e) => setChecks({ ...checks, category: e.target.checked })} />} label={t('Category is {category}', { category: t(app.applicant.category) })} />
-            <FormControlLabel control={<Checkbox checked={checks.salary} onChange={(e) => setChecks({ ...checks, salary: e.target.checked })} />} label={t('Basic Pay of {amount} on the payslip matches payroll', { amount: formatTzs(app.payslip?.basic ?? app.applicant.salaryAtSubmission?.basic) })} />
+            <FormControlLabel control={<Checkbox checked={checks.salary} onChange={(e) => setChecks({ ...checks, salary: e.target.checked })} />} label={t('Basic Pay of {amount} confirmed from the attached payslip', { amount: formatTzs(app.payslip?.basic) })} />
             {p.needsProbationCheck && (
               <Alert severity="warning" icon={false}>
                 <AlertTitle>{t('Applied during probation')}</AlertTitle>
@@ -134,7 +129,7 @@ export default function DecisionPanel({ app, onDone }) {
                 <li key={`${h.stage}${h.at}`}><b>{h.stageLabel}</b> approved{h.comment ? `: ${h.comment}` : ''}</li>
               ))}
             </ul>
-            <p className="small" style={{ margin: 0 }}>{app.crb ? <>{t('Credit bureau:')}{' '}<b>{app.crb.outcome}</b>, {app.crb.reportDate}</> : t('No credit bureau check recorded.')}</p>
+            <p className="small" style={{ margin: 0 }}>{app.crb ? <>{t('Credit bureau:')}{' '}<b>{t(app.crb.outcome)}</b>, {app.crb.reportDate}</> : t('No credit bureau check recorded.')}</p>
             <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', width: '100%' }} />
           </>
         )}

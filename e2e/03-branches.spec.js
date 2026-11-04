@@ -25,5 +25,5 @@ test('returned for correction, corrected and resubmitted with a new agreement', 
 
   // Back at the first stage for the Credit Analyst.
   await openFromQueue(juma, ref);
-  await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
+  await expect(juma.getByText('Details for the credit bureau check')).toBeVisible();
 });

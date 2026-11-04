@@ -1,14 +1,14 @@
-// One staff record (FR-01, FR-03, FR-04): employment details, salary history, status,
+// One staff record (FR-01, FR-04): employment details, the worked-out probation end and
+// retirement dates (D-100), status,
 // and the staff member's profile completeness (read-only here).
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, MenuItem, TextField } from '@mui/material';
 import { staffApi } from '../../api/staff';
 import { apiError } from '../../api/client';
-import { formatDate, formatDateTime, formatNumber } from '../../lib/format';
-import MoneyInput from '../../components/MoneyInput';
+import { formatDate, formatDateTime } from '../../lib/format';
 import Meter from '../../components/Meter';
 import { failureShown, useServerErrors } from '../../lib/validation';
 import StaffForm, { EMPTY_STAFF, toBody } from './StaffForm';
@@ -22,46 +22,6 @@ const toForm = (d) => ({
   stationHead: { name: d.stationHead?.name || '', phone: d.stationHead?.phone || '' },
   lineManagerStaffNo: d.lineManager?.staffNo || '',
 });
-
-function SalaryDialog({ onClose, onSave }) {
-  const t = useT();
-  const [v, setV] = useState({ basic: null, allowances: 0, effectiveFrom: '' });
-  const [errors, setErrors] = useState({});
-  const [failure, setFailure] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const server = useServerErrors(errors, v);
-  const submit = async (e) => {
-    e.preventDefault();
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onSave({ ...v, allowances: v.allowances || 0 });
-    } catch (err) {
-      const x = apiError(err);
-      setErrors(x.details || {});
-      setFailure(x);
-      setBusy(false);
-    }
-  };
-  return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={submit} noValidate>
-        <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Record a salary change')}</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2 }}>
-          <p className="small muted" style={{ margin: 0 }}>{t('The old salary is kept as history. Applications use the salary in force on the day they are submitted (FR-03).')}</p>
-          {failureShown(failure, errors, server) && <Alert severity="error">{failure.message}</Alert>}
-          <MoneyInput label={t('Basic salary')} required value={v.basic} onChange={(x) => setV({ ...v, basic: x })} error={!!server('basic')} helperText={server('basic')} />
-          <MoneyInput label={t('Allowances')} value={v.allowances} onChange={(x) => setV({ ...v, allowances: x })} helperText={t('Not counted for affordability.')} />
-          <TextField label={t('Effective from')} type="date" required value={v.effectiveFrom} onChange={(e) => setV({ ...v, effectiveFrom: e.target.value })} error={!!server('effectiveFrom')} helperText={server('effectiveFrom')} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained" disabled={busy}>{t('Save salary')}</Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-}
 
 function StatusDialog({ current, onClose, onSave }) {
   const t = useT();
@@ -236,31 +196,20 @@ export default function StaffDetailPage() {
             <StaffDobCard staffId={id} canManage={canManage} />
             <Card>
               <CardContent sx={{ p: 3 }}>
-                <div className="row" style={{ justifyContent: 'space-between' }}>
-                  <h3>{t('Salary')}</h3>
-                  {canManage && <Button size="small" onClick={() => setDialog('salary')}>{t('Record a change')}</Button>}
-                </div>
-                <p className="small muted">{t('In force:')} {d.salary ? t('TZS {amount} basic since {date}', { amount: formatNumber(d.salary.basic), date: formatDate(d.salary.effectiveFrom) }) : t('none')}</p>
-                <div className="tablewrap">
-                  <Table size="small" aria-label={t('Salary history')}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>{t('From')}</TableCell>
-                        <TableCell align="right">{t('Basic')}</TableCell>
-                        <TableCell align="right">{t('Allowances')}</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {d.salaries.map((x) => (
-                        <TableRow key={x.id}>
-                          <TableCell>{formatDate(x.effectiveFrom)}</TableCell>
-                          <TableCell align="right" className="num">{formatNumber(x.basic)}</TableCell>
-                          <TableCell align="right" className="num">{formatNumber(x.allowances)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <h3 style={{ marginBottom: 4 }}>{t('Worked out')}</h3>
+                <p className="xs muted" style={{ margin: '0 0 12px' }}>{t('Not entered: worked out from the settings, so they cannot be edited here.')}</p>
+                <dl className={s.kv}>
+                  <dt>{t('Probation ends')}</dt>
+                  <dd>
+                    {d.probation?.endsOn ? <>{formatDate(d.probation.endsOn)} <span className="small muted">({d.probation.onProbation ? t('on probation') : t('completed')})</span></> : t('Needs the date joined')}
+                    <div className="xs muted" style={{ fontWeight: 400 }}>{t('Date joined + {n} months', { n: d.probation?.months ?? 6 })}</div>
+                  </dd>
+                  <dt>{t('Retirement date')}</dt>
+                  <dd>
+                    {d.retirement?.date ? formatDate(d.retirement.date) : t('Not available: no verified date of birth')}
+                    <div className="xs muted" style={{ fontWeight: 400 }}>{t('Verified date of birth + {n} years', { n: d.retirement?.age ?? 60 })}</div>
+                  </dd>
+                </dl>
               </CardContent>
             </Card>
             <Card>
@@ -279,7 +228,6 @@ export default function StaffDetailPage() {
           </div>
         </div>
       </div>
-      {dialog === 'salary' && <SalaryDialog onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.addSalary(id, body), t('Salary recorded.'), { inDialog: true })} />}
       {dialog === 'status' && <StatusDialog current={d.status} onClose={() => setDialog(null)} onSave={(body) => run(() => staffApi.setStatus(id, body), t('Status saved.'), { inDialog: true })} />}
     </div>
   );

@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { as, attachPayslip } from './helpers';
+import { as, attachPayslip, openFromQueue } from './helpers';
 
 const OUT = path.resolve('test-results', 'screens');
 fs.mkdirSync(OUT, { recursive: true });
@@ -145,4 +145,47 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   await daniel.getByRole('button', { name: 'Cancel application' }).click();
   await expect(daniel).toHaveURL(/\/$/);
   await daniel.context().close();
+});
+
+test('review, staff details and staff upload after D-99 and D-100, in both languages and themes', async ({ browser }) => {
+  for (const m of MODES) {
+    // Credit Analyst: identity only, the four outcomes, no notes; no explanation cards.
+    const juma = await as(browser, 'LFB0233');
+    await choose(juma, { lang: 'en', theme: 'light' });
+    await openFromQueue(juma, 'SL-2026-00028');
+    await choose(juma, m);
+    await expect(juma.getByText('Not shared with the Credit Analyst')).toHaveCount(0);
+    await expect(juma.getByText('Identity details for the credit bureau check')).toHaveCount(0);
+    await expect(juma.getByLabel(/Appraisal note|Maelezo ya tathmini/)).toHaveCount(0);
+    await juma.getByRole('combobox', { name: /Outcome|Matokeo/ }).click();
+    await expect(juma.getByRole('option')).toHaveText(m.lang === 'sw' ? ['Hatari Ndogo', 'Hatari ya Wastani', 'Hatari Kubwa', 'Hakuna Kumbukumbu'] : ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found']);
+    await shot(juma, `review-credit-${m.lang}-${m.theme}`, { fullPage: false });
+    await juma.keyboard.press('Escape');
+    await juma.context().close();
+
+    // Head of People and Culture: an application decided before D-99 keeps its outcome and note.
+    const grace = await as(browser, 'LFB0051');
+    await choose(grace, { lang: 'en', theme: 'light' });
+    await openFromQueue(grace, 'SL-2026-00025');
+    await choose(grace, m);
+    await expect(grace.getByText(m.lang === 'sw' ? /^Safi, / : /^Clear, /)).toBeVisible();
+    await expect(grace.getByText('Bureau check on name, mobile and NIDA only: clear.')).toBeVisible();
+    await expect(grace.getByText(m.lang === 'sw' ? /umethibitishwa kutoka kwenye hati ya mshahara/ : /confirmed from the attached payslip/)).toBeVisible();
+    await shot(grace, `review-hr-${m.lang}-${m.theme}`);
+
+    // Staff details: probation end and retirement date worked out, no salary.
+    await grace.goto('/staff');
+    await grace.getByRole('row', { name: /Neema Mushi/ }).getByRole('link').click();
+    await expect(grace.getByRole('heading', { level: 1 })).toHaveText('Neema Mushi');
+    await expect(grace.getByText(m.lang === 'sw' ? 'Zimekokotolewa' : 'Worked out', { exact: true })).toBeVisible();
+    await expect(grace.getByText('12 Jul 2049')).toBeVisible();
+    await expect(grace.getByLabel(/Probation end date/)).toHaveCount(0);
+    await shot(grace, `staff-detail-${m.lang}-${m.theme}`);
+
+    // Staff upload: the eight columns.
+    await grace.goto('/staff/import');
+    await expect(grace.getByText(m.lang === 'sw' ? /Safu: Jina la kwanza/ : /Columns: First name, Surname, NIDA/)).toBeVisible();
+    await shot(grace, `staff-upload-${m.lang}-${m.theme}`, { fullPage: false });
+    await grace.context().close();
+  }
 });

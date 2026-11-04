@@ -1,6 +1,6 @@
 // My profile (prototype #/profile; BRD 6, decision 7, FR-05). Five tabs; staff complete
-// every required detail once and each application fills in from here. Employment and
-// salary are read-only: People and Culture maintain them.
+// every required detail once and each application fills in from here. Employment is
+// read-only: People and Culture maintain it. Pay comes from the payslip on each application (D-100).
 //
 // Validation (D-93): each field's border and message follow its current value as the
 // person types (src/lib/validation.js), not the last saved state. The completeness count
@@ -12,7 +12,7 @@ import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab
 import { dobApi, profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
 import { apiError } from '../../api/client';
-import { formatDate, formatTzs } from '../../lib/format';
+import { formatDate } from '../../lib/format';
 import { RULES, checkValue, useValidatedForm } from '../../lib/validation';
 import { countryOf } from '../../lib/formats';
 import { useT } from '../../i18n';
@@ -269,9 +269,6 @@ function PayTab({ profile, onSave }) {
     <form onSubmit={submit} noValidate>
       <h4>{t('Your pay')}</h4>
       <p className="small muted">{t('When you apply, you attach your latest payslip. Your limit is worked out from its Basic Pay: pension (10%) and PAYE come off Basic Pay to give your Net Pay, and all your staff loan instalments together may take up to half of it a month.')}</p>
-      <dl className={s.kv}>
-        <dt>{t('Basic salary on record')}</dt><dd>{formatTzs(profile.salary?.basic)} <span className="small muted">({t('People and Culture check it against your payslip')})</span></dd>
-      </dl>
 
       <h4 style={{ marginTop: 24 }}>{t('Existing LFB staff loans from before Staff Loans')}</h4>
       <p className="small muted">{t('Loans taken on paper are not in this system. If you know the product and the date it was paid out, add them; they count towards the loans you may have per product, and you can apply for the same product again six months after that date.')}</p>

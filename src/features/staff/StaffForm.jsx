@@ -1,10 +1,10 @@
 // Employment details People and Culture maintain (FR-01). The same rules as the
 // bulk upload apply on the server; its messages appear next to each field until the
-// field is changed. Phone numbers are checked as they are typed (D-93).
+// field is changed. Phone numbers are checked as they are typed (D-93). No salary,
+// probation end date or retirement date: they are worked out or come from the payslip (D-100).
 
 import { useRef, useState } from 'react';
 import { MenuItem, TextField } from '@mui/material';
-import MoneyInput from '../../components/MoneyInput';
 import PhoneField from '../../components/fields/PhoneField';
 import { RULES, checkValue, useServerErrors } from '../../lib/validation';
 import s from './staff.module.css';
@@ -23,13 +23,11 @@ export const EMPTY_STAFF = {
   category: 'Non-management',
   employmentType: 'Permanent',
   dateJoined: '',
-  probationEndDate: '',
   contractEndDate: '',
   email: '',
   workPhone: '',
   lfbAccountNo: '',
   mobile: '',
-  salary: { basic: null, allowances: 0, commission: 0, effectiveFrom: '' },
 };
 
 export default function StaffForm({ values, onChange, errors = {}, isNew, readOnly }) {
@@ -83,21 +81,10 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
           })}
           {f('employmentType', 'Employment type', { select: true, required: true, children: ['Permanent', 'Probation', 'Contract'].map((c) => <MenuItem key={c} value={c}>{t(c)}</MenuItem>) })}
           {f('dateJoined', 'Date joined', { type: 'date', required: true })}
-          {f('probationEndDate', 'Probation end date', { type: 'date', hint: 'Blank: the probation period in the settings, counted from the date joined.' })}
           {f('contractEndDate', 'Contract end date', { type: 'date', required: values.employmentType === 'Contract' })}
           {f('lfbAccountNo', 'LFB account number', { hint: 'Fills in the staff member\'s bank details.' })}
         </div>
       </section>
-      {isNew && (
-        <section>
-          <h3>{t('Salary')}</h3>
-          <div className={s.grid}>
-            <MoneyInput label={t('Basic salary')} required value={values.salary.basic} onChange={(v) => onChange({ ...values, salary: { ...values.salary, basic: v } })} error={!!err('salary.basic')} helperText={err('salary.basic')} />
-            <MoneyInput label={t('Allowances')} value={values.salary.allowances} onChange={(v) => onChange({ ...values, salary: { ...values.salary, allowances: v } })} helperText={t('Not counted for affordability.')} />
-            <TextField label={t('Salary effective from')} type="date" required value={values.salary.effectiveFrom} onChange={(e) => onChange({ ...values, salary: { ...values.salary, effectiveFrom: e.target.value } })} error={!!err('salary.effectiveFrom')} helperText={err('salary.effectiveFrom') || t('Usually the date joined.')} />
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -105,16 +92,11 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
 /** Turns form values into the API body: blanks become null or are dropped. */
 export function toBody(values, { isNew }) {
   const body = { ...values };
-  ['probationEndDate', 'contractEndDate'].forEach((k) => {
-    if (!body[k]) body[k] = null;
-  });
+  if (!body.contractEndDate) body.contractEndDate = null;
   if (!body.lineManagerStaffNo) body.lineManagerStaffNo = null;
   if (!isNew) {
     delete body.staffNo;
-    delete body.salary;
     delete body.mobile;
-  } else {
-    body.salary = { ...body.salary, allowances: body.salary.allowances || 0, commission: body.salary.commission || 0 };
   }
   return body;
 }

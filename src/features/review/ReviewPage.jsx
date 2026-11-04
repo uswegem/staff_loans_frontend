@@ -60,10 +60,6 @@ function LimitedReview({ app, onDone }) {
       </div>
       <div className={s.split}>
         <div className="stack">
-          <Alert severity="info">
-            <AlertTitle>{t('Identity details for the credit bureau check')}</AlertTitle>
-            The Credit Analyst receives only the applicant&apos;s first name, surname, NIDA number and mobile number. Use them for the credit bureau check. The loan, salary, payslip, affordability, documents and agreement are not shared with you.
-          </Alert>
           <Panel title={t('Details for the credit bureau check')} action={<span className="tag">{t('Shared with you')}</span>}>
             <dl className={s.kv}>
               <dt>{t('First Name')}</dt><dd>{app.applicant.firstName}</dd>
@@ -71,15 +67,6 @@ function LimitedReview({ app, onDone }) {
               <dt>{t('NIDA number')}</dt><dd className="num">{app.applicant.nida || t('Not on the profile')}</dd>
               <dt>{t('Mobile number')}</dt><dd>{app.applicant.mobile || '—'}</dd>
             </dl>
-          </Panel>
-          <Panel title={t('Not shared with the Credit Analyst')}>
-            <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
-              <li>{t('Product, amount, tenor, instalment and purpose')}</li>
-              <li>{t('Salary, payslip and affordability')}</li>
-              <li>{t('Position, employment record and next of kin')}</li>
-              <li>{t('Supporting documents and the signed agreement')}</li>
-              <li>{t("Other reviewers' comments")}</li>
-            </ul>
           </Panel>
           {app.myDecisions.length > 0 && (
             <Panel title={t('Your decisions')}>
@@ -139,7 +126,7 @@ function FullReview({ app, onDone, onError }) {
           )}
           {q && (
             <Panel title={t('Affordability at submission')} action={q.pass ? <Chip size="small" color="success" label={t('Within limit')} /> : <Chip size="small" color="error" label={t('Over limit')} />}>
-              <p className="small" style={{ margin: '0 0 8px' }}>{t('Instalment')}{' '}<b>TZS {formatNumber(q.instalment)}</b>{' '}{t('of a limit of')}{' '}<b>TZS {formatNumber(q.maxInstalment)}</b> {t('({pct}% used).', { pct: Math.round((q.instalment / Math.max(q.maxInstalment, 1)) * 100) })} {t('Salary in force on the submission date (FR-03).')}</p>
+              <p className="small" style={{ margin: '0 0 8px' }}>{t('Instalment')}{' '}<b>TZS {formatNumber(q.instalment)}</b>{' '}{t('of a limit of')}{' '}<b>TZS {formatNumber(q.maxInstalment)}</b> {t('({pct}% used).', { pct: Math.round((q.instalment / Math.max(q.maxInstalment, 1)) * 100) })} {t('From the payslip attached to the application.')}</p>
               <Meter q={q} />
               <details open style={{ marginTop: 12 }}>
                 <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>{t('Step-by-step calculation')}</summary>
@@ -151,7 +138,6 @@ function FullReview({ app, onDone, onError }) {
                 <p className="small" style={{ marginTop: 12, color: 'var(--ok)', fontWeight: 600 }}>{t('All rule checks pass: service, limits, tenor, retirement date and affordability.')}</p>
               )}
               {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
-              {app.arrearsNote && <Alert severity="warning" sx={{ mt: 1 }}><AlertTitle>{t('Arrears recorded by Credit (BR-10)')}</AlertTitle>{app.arrearsNote}</Alert>}
             </Panel>
           )}
           <Panel title={t('Applicant')}>
@@ -174,10 +160,19 @@ function FullReview({ app, onDone, onError }) {
             <Panel title={t('Payslip')}>
               <dl className={s.kv}>
                 <dt>{t('File')}</dt><dd><Link component="button" type="button" onClick={() => dl(`/files/${app.payslip.fileId}`, app.payslip.originalName)}>{app.payslip.originalName}</Link>, {t('dated {date}', { date: formatDate(app.payslip.payDate) })}</dd>
-                <dt>{t('Basic Pay read')}</dt><dd>{formatTzs(app.payslip.basic)}{a.salaryAtSubmission?.basic && a.salaryAtSubmission.basic !== app.payslip.basic ? <span className="small" style={{ color: 'var(--bad)' }}> {t('(staff record: {amount})', { amount: formatTzs(a.salaryAtSubmission.basic) })}</span> : null}</dd>
+                <dt>{t('Basic Pay read')}</dt><dd>{formatTzs(app.payslip.basic)}</dd>
                 <dt>{t('Staff loan deductions read')}</dt><dd>{formatTzs(app.payslip.lfbDeductions)}{app.payslip.lfbLines.length ? <span className="small muted"> ({app.payslip.lfbLines.map((l) => `${l.label} ${formatTzs(l.amount)}`).join('; ')})</span> : null}</dd>
               </dl>
               <p className="xs muted" style={{ margin: '8px 0 0' }}>{t('Read from the PDF when it was attached. Open it to confirm the figures before you decide.')}</p>
+            </Panel>
+          )}
+          {(app.crb || app.appraisalNote || app.arrearsNote) && (
+            <Panel title={t('Credit bureau check')}>
+              <dl className={s.kv}>
+                <dt>{t('Outcome')}</dt><dd>{app.crb ? `${t(app.crb.outcome)}, ${formatDate(app.crb.reportDate)}` : t('Not recorded')}</dd>
+                {app.appraisalNote && (<><dt>{t('Appraisal note')}</dt><dd style={{ fontWeight: 400 }}>{app.appraisalNote}</dd></>)}
+              </dl>
+              {app.arrearsNote && <Alert severity="warning" sx={{ mt: 1.5 }}><AlertTitle>{t('Arrears recorded by Credit (BR-10)')}</AlertTitle>{app.arrearsNote}</Alert>}
             </Panel>
           )}
           <Panel title={t('Documents')}>

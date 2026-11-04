@@ -7,7 +7,6 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Chip, MenuItem, Table, TableBody, TableCell, TableHead, TablePagination, TableRow, TextField } from '@mui/material';
 import { staffApi, downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
-import { formatNumber } from '../../lib/format';
 import { useT } from '../../i18n';
 
 const statusChip = (t) => ({ active: null, deactivated: <Chip size="small" label={t('Inactive')} />, exited: <Chip size="small" color="error" label={t('Exited')} /> });
@@ -47,7 +46,7 @@ export default function StaffListPage() {
       <div className="pagehead">
         <div>
           <h1>{t('Staff records')}</h1>
-          <p>{t('Employment and salary details that Staff Loans uses for routing and affordability. Staff complete the rest of their profile.')}</p>
+          <p>{t('Employment details that Staff Loans uses for routing and eligibility. Affordability comes from the payslip attached to each application. Staff complete the rest of their profile.')}</p>
         </div>
         {canManage && (
           <div className="row">
@@ -84,7 +83,6 @@ export default function StaffListPage() {
                 <TableCell>{t('Title')}</TableCell>
                 <TableCell>{t('Category')}</TableCell>
                 <TableCell>{t('Type')}</TableCell>
-                <TableCell align="right">{t('Basic salary (TZS)')}</TableCell>
                 <TableCell>{t('Profile')}</TableCell>
                 <TableCell>{t('Sign-in')}</TableCell>
                 <TableCell />
@@ -103,7 +101,6 @@ export default function StaffListPage() {
                   </TableCell>
                   <TableCell>{r.category}</TableCell>
                   <TableCell>{r.employmentType}</TableCell>
-                  <TableCell align="right" className="num">{formatNumber(r.basic)}</TableCell>
                   <TableCell>{r.profile.complete ? <Chip size="small" color="success" label={t('Complete')} /> : <Chip size="small" color="warning" label={`${r.profile.done}/${r.profile.total}`} />}</TableCell>
                   <TableCell className="small">{r.signIn ? (r.signIn === 'active' ? t('Yes') : t(r.signIn)) : <span className="muted">{t('None')}</span>}</TableCell>
                   <TableCell align="right">

@@ -1,6 +1,5 @@
 // What still stops a staff member with a complete profile from applying (D-97): a date
-// of birth People and Culture have not verified, or no employment record or salary on
-// file. The messages come from the API, already in the chosen language.
+// of birth People and Culture have not verified, or no date joined on file (D-100). The messages come from the API, already in the chosen language.
 
 import { Alert, AlertTitle } from '@mui/material';
 import { useT } from '../i18n';

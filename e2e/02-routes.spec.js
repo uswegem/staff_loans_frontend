@@ -13,7 +13,7 @@ async function limitedCredit(browser, ref, { amount, purpose }) {
   await expect(row.getByText('Limited details')).toBeVisible();
   await expect(row).not.toContainText(amount.toLocaleString('en-US'));
   await openFromQueue(juma, ref);
-  await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
+  await expect(juma.getByText('Details for the credit bureau check')).toBeVisible();
   await expect(juma.getByText(purpose)).toHaveCount(0);
   await expect(juma.getByText(amount.toLocaleString('en-US'))).toHaveCount(0);
   await expect(juma.getByLabel(/Recommended/)).toHaveCount(0);

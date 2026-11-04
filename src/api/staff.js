@@ -20,7 +20,6 @@ export const staffApi = {
   create: (body) => data(api.post('/staff', body)),
   update: (id, body) => data(api.patch(`/staff/${id}`, body)),
   setStatus: (id, body) => data(api.post(`/staff/${id}/status`, body)),
-  addSalary: (id, body) => data(api.post(`/staff/${id}/salaries`, body)),
   upload: (file) => {
     const form = new FormData();
     form.append('file', file);

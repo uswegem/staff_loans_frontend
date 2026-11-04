@@ -12,7 +12,7 @@ import { expect } from '@playwright/test';
 export const PASSWORD = process.env.E2E_PASSWORD || 'Sample#2026';
 
 // The backend's fictional people and payslip generator, so each applicant attaches a
-// payslip that matches their seeded salary (D-79).
+// payslip with their fictional pay (D-79, D-100).
 const backend = createRequire(path.join(process.env.E2E_BACKEND_DIR || path.resolve('..', 'staff_loans_backend'), 'package.json'));
 const { PEOPLE } = backend('./seed/data/people.js');
 const { PRICING } = backend('./seed/pricing.js');
@@ -168,12 +168,12 @@ export async function openFromQueue(page, ref) {
 export async function decide(page, { action = 'approve', comment, crb, hrChecks } = {}) {
   if (crb) {
     await page.getByRole('combobox', { name: /Outcome/ }).click();
-    await page.getByRole('option', { name: 'Clear' }).click();
+    await page.getByRole('option', { name: 'Low Risk' }).click();
     await page.getByLabel(/Report date/).fill(new Date().toISOString().slice(0, 10));
   }
 
   if (hrChecks) {
-    for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Category is|Basic Pay of|I have verified the probation reason)/ }).all()) await box.check();
+    for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Employment is active|Category is|Basic Pay of|I have verified the probation reason)/ }).all()) await box.check();
   }
   const radio = { approve: /^Approve/, return: /^Return for correction/, reject: /^Reject/ }[action];
   await page.getByRole('radio', { name: radio }).check();

@@ -66,7 +66,7 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await openFromQueue(juma, ref);
   // Identity only for the Credit Analyst (D-86): no amount, no payslip.
   await expect(juma.getByText('Rehema Ally').first()).toBeVisible();
-  await expect(juma.getByText('Identity details for the credit bureau check')).toBeVisible();
+  await expect(juma.getByText('Details for the credit bureau check')).toBeVisible();
   await expect(juma.getByText('3,000,000')).toHaveCount(0);
   await decide(juma, { action: 'approve', crb: true, comment: 'Bureau clear.' });
   await juma.context().close();

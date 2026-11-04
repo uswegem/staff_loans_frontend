@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 – Credit review, staff details and staff upload (4 Nov 2026)
+
+- Credit Analyst review: the explanation card and the "Not shared with the Credit Analyst" card are gone; Outcome offers Low Risk, Average Risk, High Risk and No Record Found; no appraisal or arrears note. Later approvers still see an outcome and notes recorded before (D-99).
+- Staff details: the Salary card and its dialog are gone; a read-only "Worked out" card shows the probation end (date joined + probation months) and the retirement date (verified date of birth + retirement age, or that it is not available). The staff form and staff list have no salary or probation end date (D-100).
+- HR review confirms Basic Pay from the attached payslip; My profile no longer shows a salary on record (D-100).
+- Staff upload page lists the eight template columns and says how many dates of birth wait for verification after applying (D-100).
+
 ## Unreleased – Calmer loan details step (3 Nov 2026)
 
 - Loan details opens without errors: a field's error shows once it has been left or Continue was pressed, and clears as soon as the value changes; Continue lists every missing field and focuses the first one. The rules are still the API's.
