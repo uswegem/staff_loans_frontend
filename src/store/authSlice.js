@@ -12,6 +12,7 @@ const initialState = {
   mfaRequired: false,
   inactivityTimeoutMin: 15,
   endedReason: null,
+  sessionGeneration: 0,
 };
 
 const authSlice = createSlice({
@@ -19,6 +20,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     sessionStarted(state, { payload }) {
+      state.sessionGeneration += 1;
       state.status = 'signedIn';
       state.user = payload.user;
       state.roles = payload.roles || [];
@@ -35,7 +37,7 @@ const authSlice = createSlice({
       state.mfaRequired = !!payload.mfaRequired;
     },
     sessionEnded(state, { payload }) {
-      return { ...initialState, status: 'signedOut', endedReason: payload || null };
+      return { ...initialState, status: 'signedOut', sessionGeneration: state.sessionGeneration + 1, endedReason: payload || null };
     },
   },
 });
