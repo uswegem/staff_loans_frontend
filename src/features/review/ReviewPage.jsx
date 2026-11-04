@@ -227,7 +227,7 @@ export default function ReviewPage() {
     );
   }
   if (!app) return <p className="muted" role="status">{t('Loading…')}</p>;
-  const onDone = (res) => navigate('/queue', { state: { toast: DONE[res.outcome]?.(app.ref) } });
+  const onDone = (res) => navigate('/queue', { state: { toast: DONE[res.outcome]?.(app.ref), outcome: res.outcome, reference: app.ref } });
   return (
     <>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error.message || error}</Alert>}
