@@ -9,6 +9,8 @@ import { apiError } from '../../api/client';
 import { formatDate, formatNumber } from '../../lib/format';
 import DueClock from '../../components/DueClock';
 import AppStatusChip from '../../components/AppStatusChip';
+import SuccessScreen from '../../components/ux/SuccessScreen';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { useT } from '../../i18n';
 
 export default function QueuePage() {
@@ -16,6 +18,8 @@ export default function QueuePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [toast, setToast] = useState(location.state?.toast || null);
+  const [outcome, setOutcome] = useState(location.state?.outcome || null);
+  const [reference] = useState(location.state?.reference || null);
   const [tab, setTab] = useState('waiting');
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -32,7 +36,9 @@ export default function QueuePage() {
           <p>{t('Applications waiting for your decision. Target: 8 working hours per stage, 48 for the CEO.')}</p>
         </div>
       </div>
-      {toast && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
+      {toast && ['moved', 'approved', 'revised'].includes(outcome) ? (
+        <SuccessScreen title={t('Decision recorded successfully')} message={toast} details={reference ? [{ label: t('Application reference'), value: reference }] : []} primaryAction={{ label: t('Continue reviewing'), onClick: () => { setToast(null); setOutcome(null); } }} />
+      ) : toast && <Alert severity={outcome === 'rejected' ? 'info' : 'success'} sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {data?.covering?.map((c) => (
         <Alert key={c.name} severity="info" sx={{ mb: 2 }}>
@@ -46,7 +52,7 @@ export default function QueuePage() {
           <Tab value="overdue" label={`${t('Overdue')}${data ? ` (${data.counts.overdue})` : ''}`} />
           <Tab value="handled" label={t('Handled by me')} />
         </Tabs>
-        {data && data.items.length === 0 ? (
+        {!data && !error ? <div style={{ padding: 16 }}><LoadingSkeleton variant="table" rows={4} label={t('Loading…')} /></div> : data && data.items.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center' }}>
             <h3>{tab === 'handled' ? t('Nothing handled yet') : t('Nothing waiting for you')}</h3>
             <p className="muted">{tab === 'handled' ? t('Applications you decide on appear here.') : t('New applications appear here, and you get an in-app notification.')}</p>
