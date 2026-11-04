@@ -31,6 +31,8 @@ export const EMPTY_PRODUCT = {
   eligibleCategories: ['Management', 'Non-management'],
   repaymentMethods: ['payroll'],
   fields: [],
+  requiredDocuments: [],
+  agreementTemplateId: null,
 };
 
 function Section({ title, hint, children }) {
@@ -61,6 +63,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
   );
   const toggleIn = (k, item, on) => set(k)(on ? [...new Set([...(values[k] || []), item])] : (values[k] || []).filter((x) => x !== item));
 
+  const setDocument = (i, patch) => set('requiredDocuments')((values.requiredDocuments || []).map((d, j) => j === i ? { ...d, ...patch } : d));
   const setField = (i, patch) => set('fields')(values.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)));
 
   return (
@@ -105,6 +108,28 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         />
       </Section>
 
+      <section className={s.section}>
+        <h3>{t('Required Documents')}</h3>
+        <p className="small muted">{t('Configure document categories independently for this product.')}</p>
+        {(values.requiredDocuments || []).map((d, i) => (
+          <div key={d.code + i} style={{ display: 'grid', gap: 8, padding: 12, border: '1px solid var(--line-2)', marginBottom: 12 }}>
+            <TextField label={t('Document code')} size="small" value={d.code} disabled={readOnly} onChange={(e) => setDocument(i, { code: e.target.value })} />
+            <TextField label={t('Document name')} size="small" value={d.name} disabled={readOnly} onChange={(e) => setDocument(i, { name: e.target.value })} />
+            <TextField label={t('Instructions')} size="small" value={d.description || ''} disabled={readOnly} onChange={(e) => setDocument(i, { description: e.target.value })} />
+            <FormControlLabel label={t('Mandatory')} control={<Checkbox checked={!!d.mandatory} disabled={readOnly} onChange={(e) => setDocument(i, { mandatory: e.target.checked, minFiles: e.target.checked ? Math.max(1, d.minFiles) : 0 })} />} />
+            <TextField label={t('Minimum files')} type="number" size="small" value={d.minFiles} disabled={readOnly} onChange={(e) => setDocument(i, { minFiles: Number(e.target.value) })} />
+            <TextField label={t('Maximum files')} type="number" size="small" value={d.maxFiles} disabled={readOnly} onChange={(e) => setDocument(i, { maxFiles: Number(e.target.value) })} />
+            <TextField label={t('Allowed file types (comma separated)')} size="small" value={(d.allowedTypes || []).join(', ')} disabled={readOnly} onChange={(e) => setDocument(i, { allowedTypes: e.target.value.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean) })} />
+            <TextField label={t('Maximum file size (MB)')} type="number" size="small" value={d.maxFileMb} disabled={readOnly} onChange={(e) => setDocument(i, { maxFileMb: Number(e.target.value) })} />
+            <FormControlLabel label={t('Active')} control={<Checkbox checked={d.active !== false} disabled={readOnly} onChange={(e) => setDocument(i, { active: e.target.checked })} />} />
+            {!readOnly && <Button onClick={() => set('requiredDocuments')((values.requiredDocuments || []).filter((_, j) => i !== j))}>{t('Remove document')}</Button>}
+          </div>
+        ))}
+        {!readOnly && <Button onClick={() => set('requiredDocuments')([...(values.requiredDocuments || []), { code: '', name: '', description: '', mandatory: false, minFiles: 0, maxFiles: 1, allowedTypes: ['pdf', 'jpg', 'jpeg', 'png'], maxFileMb: 10, displayOrder: (values.requiredDocuments || []).length, active: true }])}>{t('Add document requirement')}</Button>}
+      </section>
+      <Section title="Loan Agreement" hint="Select an approved agreement template ID for this product.">
+        <TextField label={t('Agreement template ID')} value={values.agreementTemplateId || ''} disabled={readOnly} onChange={(e) => set('agreementTemplateId')(e.target.value || null)} helperText={err('agreementTemplateId') || t('The template must be approved and effective before applications can be submitted.')} error={!!errors.agreementTemplateId} />
+      </Section>
       <section className={s.section}>
         <h3>{t('Application fields')}</h3>
         <p className="small muted">{t('Extra questions this product asks on the application form.')}</p>
