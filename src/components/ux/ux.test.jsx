@@ -4,6 +4,7 @@ import SuccessScreen from './SuccessScreen';
 import LoadingSkeleton from './LoadingSkeleton';
 import StepTransition from './StepTransition';
 import AsyncActionButton from './AsyncActionButton';
+import ActionFeedback from './ActionFeedback';
 
 describe('shared UX foundation', () => {
   it('renders confirmed outcome details and next action', () => {
@@ -20,6 +21,11 @@ describe('shared UX foundation', () => {
   it('preserves step content', () => {
     renderAt('/', '/', <StepTransition stepKey="details"><input aria-label="Amount" /></StepTransition>);
     expect(screen.getByRole('textbox', { name: 'Amount' })).toBeInTheDocument();
+  });
+
+  it('shows non-blocking feedback only when open', () => {
+    renderAt('/', '/', <ActionFeedback open message="Profile saved" onClose={() => {}} />);
+    expect(screen.getByText('Profile saved')).toBeInTheDocument();
   });
 
   it('prevents clicks while an action is pending', () => {
