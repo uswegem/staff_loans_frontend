@@ -58,7 +58,7 @@ const full = {
 };
 
 describe('review screen', () => {
-  it('the Credit Analyst sees first name, surname, NIDA and mobile only (D-86)', async () => {
+  it('the Credit Analyst sees identity but no financial loan details (D-86)', async () => {
     stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     expect(await screen.findByText('Details for the credit bureau check')).toBeInTheDocument();
@@ -73,6 +73,28 @@ describe('review screen', () => {
     expect(screen.queryByText('Product, amount, tenor, instalment and purpose')).toBeNull();
     expect(screen.queryByLabelText(/Recommended amount/)).toBeNull();
     expect(screen.queryByText(/Affordability/)).toBeNull();
+  });
+
+  it('the Credit Analyst can inspect supporting documents without seeing financial details', async () => {
+    const withDocuments = {
+      ...limited,
+      documents: [{
+        id: 'file-front', documentCode: 'front', label: 'Vehicle front photograph',
+        originalName: 'vehicle-front.jpg', mime: 'image/jpeg', size: 1500,
+        uploadedAt: '2026-10-29T08:00:00Z', uploadedBy: 'Daniel Mrema',
+      }],
+      documentChecklist: [{
+        code: 'front', name: 'Vehicle front photograph',
+        mandatory: true, minFiles: 1, uploaded: 1,
+      }],
+    };
+    stubHttp({ 'GET /review/r1': () => [200, { data: withDocuments }] });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    expect(await screen.findByText('vehicle-front.jpg')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeInTheDocument();
+    expect(screen.getByText('Vehicle front photograph', { selector: 'td' })).toBeInTheDocument();
+    expect(screen.queryByText('Loan amount')).toBeNull();
+    expect(screen.queryByText('Affordability')).toBeNull();
   });
 
   it('the Credit Analyst must record the bureau outcome to approve, and comment to return', async () => {

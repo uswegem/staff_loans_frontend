@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, Chip, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { productsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { formatDate, formatNumber } from '../../../lib/format';
@@ -92,14 +92,16 @@ export default function ProductsPage() {
   const canCheck = permissions.includes('products.approveCredit') || permissions.includes('products.approveRisk');
   const [rows, setRows] = useState([]);
   const [pricing, setPricing] = useState(null);
+  const [configuration, setConfiguration] = useState(null);
   const [error, setError] = useState(null);
   const [dialog, setDialog] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [p, pr] = await Promise.all([productsApi.adminList(), productsApi.pricing()]);
+      const [p, pr, config] = await Promise.all([productsApi.adminList(), productsApi.pricing(), productsApi.readiness()]);
       setRows(p);
       setPricing(pr);
+      setConfiguration(config);
     } catch (err) {
       setError(apiError(err).message);
     }
@@ -138,6 +140,11 @@ export default function ProductsPage() {
           <AlertTitle>{t('Some product values are still samples')}</AlertTitle>
           {t('Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).')}
         </Alert>
+        {configuration && <Alert severity={configuration.enforcementEnabled && configuration.incomplete ? 'error' : 'info'}>
+          <AlertTitle>{t('Product configuration readiness')}</AlertTitle>
+          {configuration.ready} / {configuration.total} {t('live products ready')}. {configuration.incomplete} {t('require configuration')}.
+          {' '}{configuration.enforcementEnabled ? t('Enforcement is active.') : t('Enforcement is not active. Existing products remain available until authorized activation.')}
+        </Alert>}
         <PricingCard pricing={pricing} canMake={canMake} onChange={() => setDialog({ kind: 'pricing' })} />
         <Card>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
@@ -154,6 +161,7 @@ export default function ProductsPage() {
                   <TableCell>{t('Min service')}</TableCell>
                   <TableCell>{t('Top-up')}</TableCell>
                   <TableCell>{t('Status')}</TableCell>
+                  <TableCell>{t('Configuration')}</TableCell>
                   <TableCell>{t('Open change')}</TableCell>
                   <TableCell />
                 </TableRow>
@@ -177,6 +185,7 @@ export default function ProductsPage() {
                       <TableCell>{v ? `${v.minServiceMonths} m` : '—'}</TableCell>
                       <TableCell>{v ? (v.topUpAllowed ? t('Allowed') : t('No')) : '—'}</TableCell>
                       <TableCell><StateChip state={r.status} map={PRODUCT_STATUS} /></TableCell>
+                      <TableCell>{r.configuration ? <Chip size="small" color={r.configuration.ready ? 'success' : 'warning'} label={t(r.configuration.ready ? 'Ready' : 'Configuration incomplete')} title={r.configuration.missing?.join(' ')} /> : '—'}</TableCell>
                       <TableCell><OpenChange change={r.openChange} href={`/admin/products/versions/${r.openChange?.id}`} /></TableCell>
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         {canMake && !r.openChange && r.status !== 'not_live' && (

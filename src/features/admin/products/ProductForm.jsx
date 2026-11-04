@@ -1,7 +1,9 @@
 // Every product parameter from FR-57, edited by the maker. The API validates the
 // same rules (FR-58); messages it returns are shown next to the fields.
 
-import { Button, Checkbox, FormControlLabel, FormGroup, IconButton, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { productsApi } from '../../../api/products';
+import { Alert, Button, Checkbox, FormControlLabel, FormGroup, IconButton, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import MoneyInput from '../../../components/MoneyInput';
 import s from './products.module.css';
 import { useT } from '../../../i18n';
@@ -31,6 +33,8 @@ export const EMPTY_PRODUCT = {
   eligibleCategories: ['Management', 'Non-management'],
   repaymentMethods: ['payroll'],
   fields: [],
+  requiredDocuments: [],
+  agreementTemplateId: null,
 };
 
 function Section({ title, hint, children }) {
@@ -45,6 +49,11 @@ function Section({ title, hint, children }) {
 
 export default function ProductForm({ values, onChange, errors = {}, readOnly }) {
   const t = useT();
+  const [agreementOptions, setAgreementOptions] = useState([]);
+  const [agreementError, setAgreementError] = useState(null);
+  useEffect(() => {
+    productsApi.approvedAgreements().then(setAgreementOptions).catch(() => setAgreementError('Agreement options could not be loaded.'));
+  }, []);
   const set = (k) => (v) => onChange({ ...values, [k]: v });
   const err = (k) => (errors[k] ? errors[k].join(' ') : undefined);
   const num = (k, label, props = {}) => (
@@ -61,6 +70,13 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
   );
   const toggleIn = (k, item, on) => set(k)(on ? [...new Set([...(values[k] || []), item])] : (values[k] || []).filter((x) => x !== item));
 
+  const moveDocument = (from, to) => {
+    const docs = [...(values.requiredDocuments || [])];
+    if (to < 0 || to >= docs.length) return;
+    [docs[from], docs[to]] = [docs[to], docs[from]];
+    set('requiredDocuments')(docs.map((d, i) => ({ ...d, displayOrder: i })));
+  };
+  const setDocument = (i, patch) => set('requiredDocuments')((values.requiredDocuments || []).map((d, j) => j === i ? { ...d, ...patch } : d));
   const setField = (i, patch) => set('fields')(values.fields.map((f, j) => (j === i ? { ...f, ...patch } : f)));
 
   return (
@@ -105,6 +121,36 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         />
       </Section>
 
+      <section className={s.section}>
+        <h3>{t('Required Documents')}</h3>
+        <p className="small muted">{t('Configure document categories independently for this product.')}</p>
+        {values.requiredDocuments === undefined && <Alert severity="warning">{t('Document requirements have not been configured for this version.')} {!readOnly && <Button size="small" onClick={() => set('requiredDocuments')([])}>{t('Confirm no additional documents required')}</Button>}</Alert>}
+        {(values.requiredDocuments || []).map((d, i) => (
+          <div key={d.code + i} style={{ display: 'grid', gap: 8, padding: 12, border: '1px solid var(--line-2)', marginBottom: 12 }}>
+            <TextField label={t('Document code')} size="small" value={d.code} disabled={readOnly} onChange={(e) => setDocument(i, { code: e.target.value })} />
+            <TextField label={t('Document name')} size="small" value={d.name} disabled={readOnly} onChange={(e) => setDocument(i, { name: e.target.value })} />
+            <TextField label={t('Instructions')} size="small" value={d.description || ''} disabled={readOnly} onChange={(e) => setDocument(i, { description: e.target.value })} />
+            <FormControlLabel label={t('Mandatory')} control={<Checkbox checked={!!d.mandatory} disabled={readOnly} onChange={(e) => setDocument(i, { mandatory: e.target.checked, minFiles: e.target.checked ? Math.max(1, d.minFiles) : 0 })} />} />
+            <TextField label={t('Minimum files')} type="number" size="small" value={d.minFiles} disabled={readOnly} onChange={(e) => setDocument(i, { minFiles: Number(e.target.value) })} />
+            <TextField label={t('Maximum files')} type="number" size="small" value={d.maxFiles} disabled={readOnly} onChange={(e) => setDocument(i, { maxFiles: Number(e.target.value) })} />
+            <TextField label={t('Allowed file types (comma separated)')} size="small" value={(d.allowedTypes || []).join(', ')} disabled={readOnly} onChange={(e) => setDocument(i, { allowedTypes: e.target.value.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean) })} />
+            <TextField label={t('Maximum file size (MB)')} type="number" size="small" value={d.maxFileMb} disabled={readOnly} onChange={(e) => setDocument(i, { maxFileMb: Number(e.target.value) })} />
+            <FormControlLabel label={t('Active')} control={<Checkbox checked={d.active !== false} disabled={readOnly} onChange={(e) => setDocument(i, { active: e.target.checked })} />} />
+            {!readOnly && <div className="row"><Button disabled={i === 0} onClick={() => moveDocument(i, i - 1)}>{t('Move up')}</Button><Button disabled={i === (values.requiredDocuments || []).length - 1} onClick={() => moveDocument(i, i + 1)}>{t('Move down')}</Button><Button onClick={() => set('requiredDocuments')((values.requiredDocuments || []).filter((_, j) => i !== j))}>{t('Remove document')}</Button></div>}
+          </div>
+        ))}
+        {!readOnly && <Button onClick={() => set('requiredDocuments')([...(values.requiredDocuments || []), { code: '', name: '', description: '', mandatory: false, minFiles: 0, maxFiles: 1, allowedTypes: ['pdf', 'jpg', 'jpeg', 'png'], maxFileMb: 10, displayOrder: (values.requiredDocuments || []).length, active: true }])}>{t('Add document requirement')}</Button>}
+      </section>
+      <Section title="Loan Agreement" hint="Choose the legally approved agreement that applicants for this product must sign.">
+        {agreementError && <Alert severity="warning">{agreementError}</Alert>}
+        <TextField select fullWidth label={t('Approved loan agreement')} value={values.agreementTemplateId || ''} disabled={readOnly || !!agreementError} onChange={(e) => set('agreementTemplateId')(e.target.value || null)} helperText={err('agreementTemplateId') || t('A valid approved agreement is mandatory before configuration enforcement is activated.')} error={!!errors.agreementTemplateId}>
+          <MenuItem value="">{t('Select a loan agreement')}</MenuItem>
+          {values.agreementTemplateId && !agreementOptions.some((a) => a.id === values.agreementTemplateId) && (
+            <MenuItem value={values.agreementTemplateId}>{t('Previously assigned agreement (not available for selection)')}</MenuItem>
+          )}
+          {agreementOptions.map((a) => <MenuItem key={a.id} value={a.id}>{a.version}{a.note ? ` — ${a.note}` : ''}</MenuItem>)}
+        </TextField>
+      </Section>
       <section className={s.section}>
         <h3>{t('Application fields')}</h3>
         <p className="small muted">{t('Extra questions this product asks on the application form.')}</p>

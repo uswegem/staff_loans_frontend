@@ -17,6 +17,7 @@ import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import CalculatorPanel from './CalculatorPanel';
 import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
+import SupportingDocuments from '../../components/SupportingDocuments';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
 
@@ -301,13 +302,16 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const t = useT();
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const add = async (files) => {
+  const requirements = (app.product?.requiredDocuments || []).filter((d) => d.active !== false).sort((a, b) => a.displayOrder - b.displayOrder);
+  const missing = requirements.filter((d) => d.mandatory && app.documents.filter((f) => f.documentCode === d.code).length < d.minFiles);
+  const add = async (files, category) => {
+    if (!files?.length) return;
     setBusy(true);
     setError(null);
     try {
-      for (const f of [...files]) {
+      for (const file of [...files]) {
         // eslint-disable-next-line no-await-in-loop
-        await applicationsApi.addDocument(app.id, f);
+        await applicationsApi.addDocument(app.id, file, category?.name, category?.code);
       }
     } catch (err) {
       setError(apiError(err).message);
@@ -318,29 +322,30 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   };
   return (
     <Card>
-      <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
+      <div style={{ padding: 24, borderBottom: '1px solid var(--line-2)' }}>
         <h3>{t('Supporting documents')}</h3>
-        <span className="tag">{t('Optional')}</span>
+        <p className="small muted">{t('Upload the supporting documents required for this loan product.')}</p>
       </div>
       <div style={{ padding: 24 }}>
-        <p>{t('Documents are optional. Adding them can help reviewers decide faster.')}</p>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <label className={s.drop}>
-          <div><b style={{ color: 'var(--strong)' }}>{busy ? t('Uploading…') : t('Choose files')}</b>{busy ? '' : ` ${t('or drag them here')}`}</div>
-          <div className="xs">{t('PDF, JPG or PNG, up to the size limit set by the bank')}</div>
-          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" aria-label={t('Choose files')} disabled={busy} onChange={(e) => add(e.target.files)} />
-        </label>
-        <ul className={s.files}>
-          {app.documents.map((d) => (
-            <li key={d.id}>
-              <span>{d.originalName} <span className="muted xs">{Math.ceil(d.size / 1024)} KB</span></span>
-              <Button size="small" variant="text" sx={{ color: 'var(--bad)' }} onClick={async () => { await applicationsApi.removeDocument(app.id, d.id); onChanged(); }} aria-label={`Remove ${d.originalName}`}>{t('Remove')}</Button>
-            </li>
-          ))}
-        </ul>
+        {requirements.map((d) => {
+          const uploaded = app.documents.filter((f) => f.documentCode === d.code);
+          return (
+            <div key={d.code} style={{ marginBottom: 20, padding: 16, border: '1px solid var(--line-2)', borderRadius: 8 }}>
+              <h4>{d.name} {d.mandatory ? '*' : ''}</h4>
+              {d.description && <p className="small muted">{d.description}</p>}
+              <p className="xs">{uploaded.length} / {d.minFiles} {t('minimum files')} · {d.maxFiles} {t('maximum files')}</p>
+              <input type="file" multiple accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} disabled={busy || uploaded.length >= d.maxFiles} aria-label={d.name} onChange={(e) => { add(e.target.files, d); e.target.value = ''; }} />
+              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName}</div>)}
+              {d.mandatory && uploaded.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
+            </div>
+          );
+        })}
+        {!requirements.length && <div><p className="small muted">{t('No additional supporting documents are configured for this product.')}</p><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" disabled={busy} aria-label={t('Other supporting documents')} onChange={(e) => { add(e.target.files); e.target.value = ''; }} /></div>}
+        <SupportingDocuments documents={app.documents} onRemove={async (d) => { try { setError(null); await applicationsApi.removeDocument(app.id, d.id); onChanged(); } catch (err) { setError(apiError(err).message); } }} />
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
           <Button onClick={onBack}>{t('Back')}</Button>
-          <Button variant="contained" onClick={onNext}>{t('Review application')}</Button>
+          <Button variant="contained" disabled={busy || missing.length > 0} onClick={onNext}>{t('Review application')}</Button>
         </div>
       </div>
     </Card>

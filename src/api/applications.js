@@ -11,10 +11,11 @@ export const applicationsApi = {
   preview: (id) => data(api.get(`/applications/${id}/agreement/preview`)),
   signAndSubmit: (id, body) => data(api.post(`/applications/${id}/sign-and-submit`, body)),
   withdraw: (id, reason) => data(api.post(`/applications/${id}/withdraw`, { reason })),
-  addDocument: (id, file, label) => {
+  addDocument: (id, file, label, documentCode) => {
     const form = new FormData();
     form.append('file', file);
     if (label) form.append('label', label);
+    if (documentCode) form.append('documentCode', documentCode);
     return data(api.post(`/applications/${id}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
   },
   /** The latest payslip PDF; the API reads Basic Pay, LFB deductions and the pay date (D-79). */
