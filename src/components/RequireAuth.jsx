@@ -6,12 +6,12 @@ import { useT } from '../i18n';
 /** Routes for signed-in users. A temporary password must be changed first. */
 export function RequireAuth() {
   const t = useT();
-  const { status, user } = useSelector((st) => st.auth);
+  const { status, user, sessionGeneration } = useSelector((st) => st.auth);
   const location = useLocation();
   if (status === 'checking') return <p className="muted" style={{ padding: 32 }} role="status">{t('Loading Staff Loans…')}</p>;
   if (status !== 'signedIn') return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (user.mustChangePassword && location.pathname !== '/change-password') return <Navigate to="/change-password" replace />;
-  return <Outlet />;
+  return <Outlet key={`${user?.id || user?._id || 'unknown'}:${sessionGeneration}`} />;
 }
 
 /** Hides a screen from users without the permission. The API enforces it as well. */
