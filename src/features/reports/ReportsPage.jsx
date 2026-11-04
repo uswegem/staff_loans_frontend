@@ -10,6 +10,7 @@ import { formatDate, formatNumber, formatTzs } from '../../lib/format';
 import { useSelector } from 'react-redux';
 import s from './reports.module.css';
 import { translate, useT } from '../../i18n';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 
 const hm = (h) => translate('{h} h {m} min', { h: Math.floor(h), m: String(Math.round((h % 1) * 60)).padStart(2, '0') });
 
@@ -156,7 +157,7 @@ function Report({ def, options }) {
           {data.truncated && t('Showing the first {n} of {total} rows; the export has them all.', { n: data.rows.length, total: data.total })}
         </Alert>
       )}
-      {!data && !error && <p className="muted" role="status" style={{ padding: 16 }}>{t('Loading…')}</p>}
+      {!data && !error && <div style={{ padding: 16 }}><LoadingSkeleton variant="table" rows={5} label={t('Loading…')} /></div>}
       {data && (
         <div className="tablewrap">
           <Table size="small" aria-label={t(def.name)}>
@@ -201,13 +202,15 @@ export default function ReportsPage() {
         </div>
       </div>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {!catalogue && !error && <LoadingSkeleton label={t('Loading…')} rows={3} />}
       {catalogue && (
         <Tabs value={tab || false} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }} aria-label={t('Reports')}>
           {canOverview && <Tab value="overview" label={t('Overview')} />}
           {catalogue.reports.map((r) => <Tab key={r.key} value={r.key} label={t(r.name)} />)}
         </Tabs>
       )}
-      {tab === 'overview' && overview && <Overview data={overview} />}
+      {tab === 'overview' && !overview && !error && catalogue && <LoadingSkeleton label={t('Loading…')} rows={3} />}
+      {tab === 'overview' && overview && <Overview data={overview} />
       {def && <Report key={def.key} def={def} options={catalogue.options} />}
     </div>
   );
