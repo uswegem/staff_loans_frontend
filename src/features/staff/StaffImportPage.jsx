@@ -83,7 +83,7 @@ export default function StaffImportPage() {
           <CardContent sx={{ p: 3 }}>
             {!imp ? (
               <>
-                <FileDrop accept=".xlsx,.xls,.csv" label={t('Staff import file')} hint={t('.xlsx, .xls or .csv, one row per staff member, up to 5,000 rows and 5 MB')} busy={busy} onFile={send} />
+                <FileDrop accept=".xlsx,.xls,.csv" label={t('Staff import file')} inputLabel={t('Choose an Excel file')} hint={t('.xlsx, .xls or .csv, one row per staff member, up to 5,000 rows and 5 MB')} busy={busy} onFile={send} />
                 <p className="small muted" style={{ marginTop: 12 }}>
                   {t('No file yet?')}{' '}
                   <Link component="button" type="button" onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>{t('Download the Excel template')}</Link>
