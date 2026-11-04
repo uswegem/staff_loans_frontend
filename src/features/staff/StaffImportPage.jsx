@@ -3,6 +3,7 @@
 // download as Excel in the template's columns, to fix and upload again.
 
 import { useState } from 'react';
+import FileDrop from '../../components/FileDrop';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, CardContent, Chip, Link, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs } from '@mui/material';
 import { staffApi, downloadFile } from '../../api/staff';
@@ -24,7 +25,6 @@ export default function StaffImportPage() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('all');
-  const [over, setOver] = useState(false);
 
   const send = async (file) => {
     if (!file) return;
@@ -83,11 +83,7 @@ export default function StaffImportPage() {
           <CardContent sx={{ p: 3 }}>
             {!imp ? (
               <>
-                <label className={`${s.drop} ${over ? s.over : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={(e) => { e.preventDefault(); setOver(false); send(e.dataTransfer.files[0]); }}>
-                  <div><b style={{ color: 'var(--strong)' }}>{busy ? t('Checking the rows…') : t('Choose an Excel file')}</b>{busy ? '' : ` ${t('or drag it here')}`}</div>
-                  <div className="xs">{t('.xlsx, .xls or .csv, one row per staff member, up to 5,000 rows and 5 MB')}</div>
-                  <input type="file" accept=".xlsx,.xls,.csv" aria-label={t('Choose an Excel file')} disabled={busy} onChange={(e) => send(e.target.files[0])} />
-                </label>
+                <FileDrop accept=".xlsx,.xls,.csv" label={t('Staff import file')} hint={t('.xlsx, .xls or .csv, one row per staff member, up to 5,000 rows and 5 MB')} busy={busy} onFile={send} />
                 <p className="small muted" style={{ marginTop: 12 }}>
                   {t('No file yet?')}{' '}
                   <Link component="button" type="button" onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>{t('Download the Excel template')}</Link>
