@@ -11,6 +11,8 @@ import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
+import SuccessScreen from '../../components/ux/SuccessScreen';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 
@@ -101,7 +103,7 @@ export default function ApplicationPage() {
   }, [id]);
 
   if (error && !app) return <div className="page"><Alert severity="error">{error}</Alert></div>;
-  if (!app) return <p className="muted" role="status">{t('Loading…')}</p>;
+  if (!app) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={3} /></div>;
   const current = app.agreements.find((a) => a.status !== 'void') || app.agreements[0];
   const returned = [...app.history].reverse().find((h) => h.action === 'return');
 
@@ -119,11 +121,17 @@ export default function ApplicationPage() {
         </div>
       </div>
       <div className="stack">
-        {params.get('submitted') && app.cycle > 0 && (
-          <Alert severity="success">
-            <AlertTitle>{t('Submitted')}</AlertTitle>
-            {t('Your agreement {number} is signed. It takes effect when the application gets final approval on these terms.', { number: current?.number })}
-          </Alert>
+        {params.get('submitted') && app.cycle > 0 && app.history.some((h) => h.action === 'submit' || h.action === 'resubmit') && (
+          <SuccessScreen
+            title={t('Application submitted successfully')}
+            message={t('Your agreement {number} is signed. It takes effect when the application gets final approval on these terms.', { number: current?.number })}
+            details={[
+              { label: t('Application reference'), value: app.ref },
+              { label: t('Loan product'), value: app.product.name },
+              { label: t('Requested amount'), value: formatTzs(app.amount) },
+              { label: t('Current status'), value: t(app.statusLabel) },
+            ]}
+          />
         )}
         {app.status === 'pending_reaccept' && (
           <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to={`/accept/${app.id}`}>{t('Review revised terms')}</Button>}>
