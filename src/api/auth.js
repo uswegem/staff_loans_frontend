@@ -1,7 +1,7 @@
 // Ported from Ess-Frontend/src/services/authService.js, adapted for SLAS:
 // staff-number sign-in, MFA steps, cookie refresh and CSRF on logout.
 
-import { api, csrf, refreshSession, setAccessToken } from './client';
+import { api, csrf, refreshSession, setAccessToken, notifyOtherTabsSessionEnded } from './client';
 
 const data = (p) => p.then((r) => r.data.data);
 
@@ -19,6 +19,7 @@ export const authApi = {
       await api.post('/auth/logout', null, { headers: csrf.headers() });
     } finally {
       setAccessToken(null);
+      notifyOtherTabsSessionEnded();
     }
   },
 };
