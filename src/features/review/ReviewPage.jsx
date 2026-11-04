@@ -8,6 +8,7 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { Alert, AlertTitle, Card, CardContent, Chip, Link } from '@mui/material';
 import { reviewApi } from '../../api/review';
 import { downloadFile } from '../../api/staff';
+import SupportingDocuments from '../../components/SupportingDocuments';
 import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
@@ -177,7 +178,7 @@ function FullReview({ app, onDone, onError }) {
             </Panel>
           )}
           <Panel title={t('Documents')}>
-            {app.documents.length ? app.documents.map((d) => <div key={d.id}><Link component="button" type="button" onClick={() => dl(`/files/${d.id}`, d.originalName)}>{d.originalName}</Link></div>) : <p className="muted small" style={{ margin: 0 }}>{t('No documents attached. Documents are optional.')}</p>}
+            <SupportingDocuments documents={app.documents} documentChecklist={app.documentChecklist} />
             {app.crbReport && <p className="small" style={{ margin: '12px 0 0' }}>{t('Credit bureau report:')}{' '}<Link component="button" type="button" onClick={() => dl(`/files/${app.crbReport.id}`, app.crbReport.originalName)}>{app.crbReport.originalName}</Link></p>}
           </Panel>
           <Panel title={t('History')}>
