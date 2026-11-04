@@ -8,6 +8,8 @@ import { notificationsApi } from '../../api/products';
 import { apiError } from '../../api/client';
 import { formatDateTime } from '../../lib/format';
 import { safePath } from '../../lib/safePath';
+import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
+import ActionFeedback from '../../components/ux/ActionFeedback';
 import styles from './Notifications.module.css';
 import { useT } from '../../i18n';
 
@@ -16,6 +18,7 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     notificationsApi.list({ limit: 100 }).then(setData).catch((e) => setError(apiError(e).message));
@@ -31,6 +34,7 @@ export default function NotificationsPage() {
     try {
       await notificationsApi.markAllRead();
       setData((d) => ({ ...d, unread: 0, items: d.items.map((x) => ({ ...x, read: true })) }));
+      setFeedback(t('All notifications marked as read'));
     } catch (e) {
       setError(apiError(e).message);
     }
@@ -46,7 +50,8 @@ export default function NotificationsPage() {
         <Button onClick={readAll} disabled={!data?.unread}>{t('Mark all read')}</Button>
       </div>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {!data && !error && <p className="muted" role="status">{t('Loading…')}</p>}
+      {!data && !error && <LoadingSkeleton variant="card" label={t('Loading…')} />}
+      <ActionFeedback open={Boolean(feedback)} message={feedback} onClose={() => setFeedback(null)} />
       {data && (
         <Card>
           {data.items.length === 0 ? (
