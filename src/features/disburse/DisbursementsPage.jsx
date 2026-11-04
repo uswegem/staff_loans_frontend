@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField } from '@mui/material';
 import { disbursementsApi } from '../../api/disbursements';
+import SupportingDocuments from '../../components/SupportingDocuments';
 import SuccessScreen from '../../components/ux/SuccessScreen';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { apiError } from '../../api/client';
@@ -92,6 +93,8 @@ function ConfirmDialog({ id, onClose, onDone }) {
           {d && (
             <>
               <Summary d={d} />
+              <h4>{t('Supporting documents')}</h4>
+              <SupportingDocuments documents={d.documents} documentChecklist={d.documentChecklist} />
               {d.blockedReason && <Alert severity="warning">{d.blockedReason}</Alert>}
               {d.topUp && (
                 <div>
@@ -132,6 +135,8 @@ function ViewDialog({ id, onClose }) {
         {d && (
           <>
             <Summary d={d} />
+            <h4>{t('Supporting documents')}</h4>
+            <SupportingDocuments documents={d.documents} documentChecklist={d.documentChecklist} />
             <hr className="rule" style={{ width: '100%' }} />
             <dl className={s.kv}>
               <dt>{t('Disbursed')}</dt><dd>{formatDate(d.disbursement.date)}</dd>
