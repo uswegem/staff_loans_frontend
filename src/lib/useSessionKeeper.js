@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { authApi } from '../api/auth';
-import { lastApiActivity } from '../api/client';
+import { currentSessionEpoch, lastApiActivity } from '../api/client';
 import { profileUpdated, sessionEnded } from '../store/authSlice';
 
 const CHECK_EVERY_MS = 30 * 1000;
@@ -26,11 +26,13 @@ export default function useSessionKeeper() {
     };
     INPUT_EVENTS.forEach((e) => window.addEventListener(e, mark, { passive: true }));
 
-    const refreshProfile = () =>
-      authApi
-        .me()
-        .then((p) => dispatch(profileUpdated(p)))
-        .catch(() => {});
+    let active = true;
+    const refreshProfile = () => {
+      const epoch = currentSessionEpoch();
+      return authApi.me().then((p) => {
+        if (active && epoch === currentSessionEpoch()) dispatch(profileUpdated(p));
+      }).catch(() => {});
+    };
 
     const timer = setInterval(async () => {
       const now = Date.now();
@@ -45,6 +47,7 @@ export default function useSessionKeeper() {
 
     window.addEventListener('focus', refreshProfile);
     return () => {
+      active = false;
       clearInterval(timer);
       INPUT_EVENTS.forEach((e) => window.removeEventListener(e, mark));
       window.removeEventListener('focus', refreshProfile);
