@@ -70,6 +70,9 @@ function LimitedReview({ app, onDone }) {
               <dt>{t('Mobile number')}</dt><dd>{app.applicant.mobile || '—'}</dd>
             </dl>
           </Panel>
+          <Panel title={t('Supporting documents')}>
+            <SupportingDocuments documents={app.documents || []} documentChecklist={app.documentChecklist || []} />
+          </Panel>
           {app.myDecisions.length > 0 && (
             <Panel title={t('Your decisions')}>
               {app.myDecisions.map((d) => (
