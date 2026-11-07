@@ -9,6 +9,8 @@ on:
       - 'src/components/RequireAuth.jsx'
       - 'src/features/apply/**'
       - 'e2e/06-session-isolation.spec.js'
+      - 'e2e/helpers.js'
+      - 'src/features/auth/**'
       - '.github/workflows/session-security-e2e.yml'
 
 jobs:
@@ -24,7 +26,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: uswegem/staff_loans_backend
-          ref: main
+          # Use the paired backend feature branch during this PR; default to main after merge.
+          ref: ${{ github.event.pull_request.head.ref == 'feature/username-login-basic-staff-import' && github.event.pull_request.head.ref || 'main' }}
           path: staff_loans_backend
       - name: Set up Node 22
         uses: actions/setup-node@v4

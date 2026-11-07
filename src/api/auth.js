@@ -6,7 +6,7 @@ import { api, csrf, refreshSession, setAccessToken, notifyOtherTabsSessionEnded 
 const data = (p) => p.then((r) => r.data.data);
 
 export const authApi = {
-  login: (staffNo, password) => data(api.post('/auth/login', { staffNo, password })),
+  login: (userName, password) => data(api.post('/auth/login', { userName, password })),
   mfaVerify: (mfaToken, code) => data(api.post('/auth/mfa/verify', { mfaToken, code })),
   mfaEnrolStart: (mfaToken) => data(api.post('/auth/mfa/enrol/start', { mfaToken })),
   mfaEnrolConfirm: (mfaToken, code) => data(api.post('/auth/mfa/enrol/confirm', { mfaToken, code })),

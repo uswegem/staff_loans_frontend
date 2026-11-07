@@ -16,7 +16,6 @@ import PreferenceSwitches from '../../components/PreferenceSwitches';
 import { useT } from '../../i18n';
 import s from './SignIn.module.css';
 import { safePath } from '../../lib/safePath';
-import { STAFF_NO, STAFF_NO_EXAMPLE, STAFF_NO_MESSAGE } from '../../lib/staffNo';
 
 
 /**
@@ -39,17 +38,17 @@ function BrandPanel() {
 
 function CredentialsStep({ onResult }) {
   const t = useT();
-  const [staffNo, setStaffNo] = useState('');
+  const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const staffNoError = (v) => {
-    const sn = v.trim().toUpperCase();
-    if (!sn) return t('Enter your staff number.');
-    return STAFF_NO.test(sn) ? undefined : t(STAFF_NO_MESSAGE);
+  const userNameError = (v) => {
+    const sn = v.trim().toLowerCase();
+    if (!sn) return t('Enter your username.');
+    return /^[a-z][a-z0-9._-]{2,63}$/.test(sn) ? undefined : t('Use 3–64 letters, numbers, dots, underscores or hyphens, starting with a letter.');
   };
   const passwordError = (v) => (v ? undefined : t('Enter your password.'));
   // After a sign-in attempt each field is checked again on every change: its message goes once
@@ -58,19 +57,19 @@ function CredentialsStep({ onResult }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const sn = staffNo.trim().toUpperCase();
-    const errs = { staffNo: staffNoError(staffNo), password: passwordError(password) };
+    const sn = userName.trim().toLowerCase();
+    const errs = { userName: userNameError(userName), password: passwordError(password) };
     setErrors(errs);
     setFormError(null);
-    if (errs.staffNo || errs.password) return;
+    if (errs.userName || errs.password) return;
     setBusy(true);
     try {
       onResult(await authApi.login(sn, password), sn);
     } catch (err) {
       const e2 = apiError(err);
       if (e2.code === 'ACCOUNT_LOCKED') onResult({ locked: true });
-      else if (e2.details?.staffNo) setErrors({ staffNo: e2.details.staffNo[0] });
-      else setFormError({ title: e2.code === 'INVALID_CREDENTIALS' ? t('The staff number or password is not right') : e2.message, remaining: e2.details?.remainingAttempts, body: e2.code === 'INVALID_CREDENTIALS' ? null : undefined });
+      else if (e2.details?.userName) setErrors({ userName: e2.details.userName[0] });
+      else setFormError({ title: e2.code === 'INVALID_CREDENTIALS' ? t('The username or password is not right') : e2.message, remaining: e2.details?.remainingAttempts, body: e2.code === 'INVALID_CREDENTIALS' ? null : undefined });
       setPassword('');
     } finally {
       setBusy(false);
@@ -87,7 +86,7 @@ function CredentialsStep({ onResult }) {
         {t('Secure staff sign-in')}
       </span>
       <h2>{t('Karibu. Sign in to continue.')}</h2>
-      <p className={s.lead}>{t('Use your LFB staff number and network password.')}</p>
+      <p className={s.lead}>{t('Use your username and password.')}</p>
       {formError && (
         <Alert severity="error" sx={{ mt: 2 }} role="alert">
           <AlertTitle>{formError.title}</AlertTitle>
@@ -97,16 +96,16 @@ function CredentialsStep({ onResult }) {
       <form className={s.fields} onSubmit={submit} noValidate autoComplete="off">
         <TextField
           id="sn"
-          label={t('Staff number')}
-          placeholder={STAFF_NO_EXAMPLE}
-          value={staffNo}
+          label={t('Username')}
+          placeholder="Enter username"
+          value={userName}
           onChange={(e) => {
-            setStaffNo(e.target.value);
-            recheck('staffNo', e.target.value, staffNoError);
+            setUserName(e.target.value);
+            recheck('userName', e.target.value, userNameError);
           }}
-          error={!!errors.staffNo}
-          helperText={errors.staffNo || t('Your employee code, as on your payslip.')}
-          inputProps={{ autoCapitalize: 'characters', spellCheck: false }}
+          error={!!errors.userName}
+          helperText={errors.userName || t('Your assigned login username.')}
+          inputProps={{ autoCapitalize: 'none', spellCheck: false }}
         />
         <TextField
           id="pw"

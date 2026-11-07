@@ -12,6 +12,7 @@ import { useT } from '../../i18n';
 
 export const EMPTY_STAFF = {
   staffNo: '',
+  userName: '',
   firstName: '',
   lastName: '',
   gender: '',
@@ -56,6 +57,7 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
         <h3>{t('Person')}</h3>
         <div className={s.grid}>
           {isNew && f('staffNo', 'Staff number', { required: true, hint: 'The employee code on the payslip, for example AT637.', inputProps: { autoCapitalize: 'characters', maxLength: 12 } })}
+          {f('userName', 'Username', { required: isNew, hint: 'Unique login username, not the staff number.' })}
           {f('firstName', 'First name', { required: true })}
           {f('lastName', 'Surname', { required: true })}
           {f('gender', 'Gender', { select: true, hint: 'Leave blank if not known yet.', children: [['', 'Not recorded'], ['Male', 'Male'], ['Female', 'Female']].map(([v, l]) => <MenuItem key={l} value={v}>{t(l)}</MenuItem>) })}
