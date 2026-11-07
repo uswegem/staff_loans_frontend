@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
@@ -16,6 +16,7 @@ import SuccessScreen from '../../components/ux/SuccessScreen';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
+import WithdrawDialog from '../../components/WithdrawDialog';
 
 const ACTIONS = {
   create: ['Started', ''],
@@ -70,24 +71,6 @@ function Schedule({ app }) {
         {app.schedule.length > 6 && <Button variant="text" size="small" sx={{ mt: 1 }} onClick={() => setAll((v) => !v)}>{all ? t('Show the first 6') : t('Show all {n} instalments', { n: app.schedule.length })}</Button>}
       </CardContent>
     </Card>
-  );
-}
-
-function WithdrawDialog({ onClose, onConfirm }) {
-  const t = useT();
-  const [reason, setReason] = useState('');
-  return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Withdraw this application?')}</DialogTitle>
-      <DialogContent sx={{ display: 'grid', gap: 2 }}>
-        <p style={{ margin: 0 }}>{t('Your signed agreement becomes void. You can apply again later.')}</p>
-        <TextField label={t('Reason (optional)')} value={reason} onChange={(e) => setReason(e.target.value)} />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t('Keep it')}</Button>
-        <Button variant="contained" onClick={() => onConfirm(reason)}>{t('Withdraw')}</Button>
-      </DialogActions>
-    </Dialog>
   );
 }
 
