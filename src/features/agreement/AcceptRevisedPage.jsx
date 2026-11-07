@@ -11,6 +11,7 @@ import { formatDate, formatTzs } from '../../lib/format';
 import AgreementDoc from '../apply/AgreementDoc';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
+import PasswordField from '../../components/PasswordField';
 
 export default function AcceptRevisedPage() {
   const t = useT();
@@ -116,7 +117,7 @@ export default function AcceptRevisedPage() {
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                 <span><b lang="sw">{t('Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.')}</b><br /><span className="xs muted">{t('I have read, understood and accept all the terms of this agreement.')}</span></span>
               </label>
-              <TextField label={t('Enter your password to sign')} type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
             <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !agree || !password || busy}>{t('Accept and sign')}</Button>

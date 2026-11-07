@@ -109,3 +109,17 @@ describe('Sign in (FR-53)', () => {
     expect(screen.getByText('Enter all 6 digits.')).toBeInTheDocument();
   });
 });
+
+describe('SignIn password visibility', () => {
+  it('toggles the password with the eye button and keeps the value', async () => {
+    renderSignIn();
+    const pw = screen.getByLabelText('Password');
+    await userEvent.type(pw, 'Secret#123');
+    expect(pw).toHaveAttribute('type', 'password');
+    await userEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(pw).toHaveAttribute('type', 'text');
+    expect(pw).toHaveValue('Secret#123');
+    await userEvent.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(pw).toHaveAttribute('type', 'password');
+  });
+});

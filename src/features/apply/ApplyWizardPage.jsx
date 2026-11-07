@@ -21,6 +21,7 @@ import SupportingDocuments from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
+import PasswordField from '../../components/PasswordField';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
@@ -514,7 +515,7 @@ function SignStep({ app, onBack, onSigned }) {
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                 <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted" lang="en">I have read, understood and accept all the terms of this agreement.</span></span>
               </label>
-              <TextField label={t('Enter your password to sign')} type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} sx={{ mt: 1 }} />
+              <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} sx={{ mt: 1 }} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
             <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !allTicked || !password || busy}>
