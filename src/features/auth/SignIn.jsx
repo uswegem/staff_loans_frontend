@@ -5,7 +5,8 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, AlertTitle, Button, TextField, InputAdornment } from '@mui/material';
+import { Alert, AlertTitle, Button, TextField } from '@mui/material';
+import PasswordField from '../../components/PasswordField';
 import { authApi } from '../../api/auth';
 import { apiError, setAccessToken } from '../../api/client';
 import { sessionStarted } from '../../store/authSlice';
@@ -40,7 +41,6 @@ function CredentialsStep({ onResult }) {
   const t = useT();
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -107,10 +107,9 @@ function CredentialsStep({ onResult }) {
           helperText={errors.userName || t('Your assigned login username.')}
           inputProps={{ autoCapitalize: 'none', spellCheck: false }}
         />
-        <TextField
+        <PasswordField
           id="pw"
           label={t('Password')}
-          type={show ? 'text' : 'password'}
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -118,15 +117,6 @@ function CredentialsStep({ onResult }) {
           }}
           error={!!errors.password}
           helperText={errors.password}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <Button variant="text" size="small" onClick={() => setShow((v) => !v)} aria-label={show ? t('Hide password') : t('Show password')}>
-                  {show ? t('Hide') : t('Show')}
-                </Button>
-              </InputAdornment>
-            ),
-          }}
         />
         <Button type="submit" variant="contained" color="primary" fullWidth sx={{ minHeight: 48 }} disabled={busy}>
           {busy ? t('Signing in…') : t('Sign in')}

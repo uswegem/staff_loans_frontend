@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – UAT readiness (7 Nov 2026)
+
+- Every password field (sign-in, change password, signing an application, accepting revised terms) has an eye button to show or hide what was typed. Hidden by default, each field on its own, the value is kept, keyboard-accessible with a "Show password" / "Hide password" label.
+- New browser icon from the Letshego mark: favicon.ico (16, 32, 48), PNG icons, Apple touch icon, a web app manifest with 192 and 512 icons, and the theme colour. The wide wordmark is no longer used as the tab icon.
+
 ## 0.14.0 – Room from the payslip (4 Nov 2026)
 
 - The calculator works out Room: the combined limit, less the staff loan deductions on the payslip (for a top-up, those other than the line topped up), less the Staff Loans loans not yet on the payslip. It shows each payslip line with the product it matched, and the Staff Loans loans counted. Calculations saved before still show "Your other loans in Staff Loans" as they were (D-101).
