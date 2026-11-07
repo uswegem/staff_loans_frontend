@@ -26,7 +26,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: uswegem/staff_loans_backend
-          ref: feature/username-login-basic-staff-import
+          # Use the paired backend feature branch during this PR; default to main after merge.
+          ref: ${{ github.event.pull_request.head.ref == 'feature/username-login-basic-staff-import' && github.event.pull_request.head.ref || 'main' }}
           path: staff_loans_backend
       - name: Set up Node 22
         uses: actions/setup-node@v4
