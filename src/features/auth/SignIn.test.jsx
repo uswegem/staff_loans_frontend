@@ -59,7 +59,7 @@ describe('Sign in (FR-53)', () => {
     expect(screen.getByText(message)).toBeInTheDocument();
     const sn = screen.getByLabelText('Username');
     await userEvent.clear(sn);
-    await userEvent.type(sn, 'invalid');
+    await userEvent.type(sn, '1bad');
     expect(screen.getByText(message)).toBeInTheDocument(); // still wrong: still shown
     await userEvent.clear(sn);
     await userEvent.type(sn, 'valid.user');
