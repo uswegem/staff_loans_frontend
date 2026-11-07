@@ -82,6 +82,8 @@ export async function as(browser, staffNo) {
 
 export async function signIn(page, staffNo, password = PASSWORD) {
   await page.goto('/login');
+  await page.getByLabel('Username').waitFor({ state: 'visible' });
+  await page.waitForLoadState('networkidle');
   await page.getByLabel('Username').fill(staffNo.toLowerCase());
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
