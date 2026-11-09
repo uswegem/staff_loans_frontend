@@ -226,7 +226,7 @@ const SW = {
   'Branch or Head Office.': 'Tawi au Makao Makuu.',
   'By': 'Na',
   'by {stage}': 'na {stage}',
-  'Call the IT Service Desk on ext. 2100. They will issue a temporary password once they confirm who you are.': 'Piga simu Dawati la Huduma za TEHAMA, namba ya ndani 2100. Watakupa nenosiri la muda baada ya kuthibitisha utambulisho wako.',
+  'Contact your authorized IT support team for account recovery assistance.': 'Wasiliana na timu ya TEHAMA iliyoidhinishwa kwa msaada wa kurejesha akaunti.',
   "Can't scan? Enter this key instead": 'Huwezi kuskani? Ingiza ufunguo huu badala yake',
   'Cancel': 'Ghairi',
   'Cancel application': 'Ghairi ombi',
