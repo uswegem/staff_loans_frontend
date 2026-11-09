@@ -123,7 +123,7 @@ function CredentialsStep({ onResult }) {
         </Button>
       </form>
       <div className={s.help}>
-        <span>{t('Forgot your password?')}</span>{' '}{t('Call the IT Service Desk on ext. 2100. They will issue a temporary password once they confirm who you are.')}
+        <span>{t('Forgot your password?')}</span>{' '}{t('Contact your authorized IT support team for account recovery assistance.')}
       </div>
     </>
   );
