@@ -40,6 +40,8 @@ describe('Sign in (FR-53)', () => {
     expect(screen.getByRole('heading', { name: 'Karibu. Sign in to continue.' })).toBeInTheDocument();
     expect(screen.getByText(/For authorised Letshego Faidika Bank staff only/)).toBeInTheDocument();
     expect(screen.getByText(/Forgot your password\?/)).toBeInTheDocument();
+    expect(screen.getByText(/Contact your authorized IT support team for account recovery assistance/)).toBeInTheDocument();
+    expect(screen.queryByText(/ext\. 2100/)).not.toBeInTheDocument();
   });
 
   it('validates the username format before calling the API', async () => {
