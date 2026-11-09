@@ -1337,6 +1337,14 @@ const SW = {
   "Agreement options could not be loaded.": "Orodha ya mikataba haikuweza kupakiwa.",
   "Choose the legally approved agreement that applicants for this product must sign.": "Chagua mkataba uliothibitishwa na Kitengo cha Sheria ambao waombaji wa bidhaa hii wanapaswa kusaini.",
   "No extra documents.": "Hakuna nyaraka za ziada.",
+  "Withdraw {product} application {ref}?": "Uondoe ombi la {product} {ref}?",
+  "The draft closes and is not sent for review. You can apply again straight away.": "Rasimu inafungwa na haitumwi kwa ukaguzi. Unaweza kuomba tena mara moja.",
+  "Withdrawing…": "Inaondoa…",
+  "{ref} is withdrawn. You can apply for {product} again.": "{ref} limeondolewa. Unaweza kuomba {product} tena.",
+  "Continue it": "Liendeleze",
+  "Open {product} application {ref}": "Ombi la {product} linaloendelea {ref}",
+  "Finish it, or withdraw it to start a new one.": "Likamilishe, au liondoe ili uanze jipya.",
+  "It can no longer be withdrawn.": "Haliwezi kuondolewa tena.",
 };
 
 export default SW;
