@@ -10,7 +10,7 @@ const initialState = {
   roles: [],
   permissions: [],
   mfaRequired: false,
-  inactivityTimeoutMin: 15,
+  inactivityTimeoutMin: 10,
   endedReason: null,
   sessionGeneration: 0,
 };
@@ -37,7 +37,8 @@ const authSlice = createSlice({
       state.mfaRequired = !!payload.mfaRequired;
     },
     sessionEnded(state, { payload }) {
-      return { ...initialState, status: 'signedOut', sessionGeneration: state.sessionGeneration + 1, endedReason: payload || null };
+      // The limit that applied is kept so the sign-in page can name it.
+      return { ...initialState, status: 'signedOut', sessionGeneration: state.sessionGeneration + 1, endedReason: payload || null, inactivityTimeoutMin: state.inactivityTimeoutMin };
     },
   },
 });

@@ -53,7 +53,7 @@ function NotFound() {
 export default function App() {
   const dispatch = useDispatch();
 
-  useEffect(() => startSessionSync(() => dispatch(sessionEnded('expired'))), [dispatch]);
+  useEffect(() => startSessionSync((reason) => dispatch(sessionEnded(reason))), [dispatch]);
 
   // On load, restore the session silently from the refresh cookie (the access token is never stored).
   useEffect(() => {

@@ -6,6 +6,7 @@ import AccountMenu from './AccountMenu';
 import PreferenceSwitches from './PreferenceSwitches';
 import NotificationBell from './NotificationBell';
 import useSessionKeeper from '../lib/useSessionKeeper';
+import SessionTimeoutDialog from './SessionTimeoutDialog';
 import { visibleNav } from './nav';
 import logo from '../assets/lfb-logo.png';
 import s from './AppShell.module.css';
@@ -16,7 +17,7 @@ export default function AppShell() {
   const permissions = useSelector((st) => st.auth.permissions);
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  useSessionKeeper();
+  const idle = useSessionKeeper();
 
   useEffect(() => setOpen(false), [location.pathname]);
 
@@ -54,6 +55,8 @@ export default function AppShell() {
           </div>
         </main>
       </div>
+      {/* Over the page, not instead of it: unsaved form input stays until the session really ends. */}
+      <SessionTimeoutDialog remaining={idle.remaining} onStay={idle.staySignedIn} onLogOut={idle.logOutNow} />
     </>
   );
 }

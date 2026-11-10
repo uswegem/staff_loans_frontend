@@ -1345,6 +1345,13 @@ const SW = {
   "Open {product} application {ref}": "Ombi la {product} linaloendelea {ref}",
   "Finish it, or withdraw it to start a new one.": "Likamilishe, au liondoe ili uanze jipya.",
   "It can no longer be withdrawn.": "Haliwezi kuondolewa tena.",
+  "Your session expired after {n} minutes of inactivity. Please sign in again.": "Muda wako wa kuingia umeisha baada ya dakika {n} bila kutumia mfumo. Tafadhali ingia tena.",
+  "Your session is about to expire": "Muda wako wa kuingia unakaribia kuisha",
+  "For your security, you will be signed out automatically because of inactivity.": "Kwa usalama wako, utatolewa kwenye mfumo kiotomatiki kwa sababu ya kutotumia mfumo.",
+  "Time remaining:": "Muda uliobaki:",
+  "Stay signed in": "Endelea kuwa ndani",
+  "Log out now": "Toka sasa",
+  "Checking…": "Inakagua…",
 };
 
 export default SW;
