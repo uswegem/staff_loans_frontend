@@ -16,6 +16,11 @@ const limited = {
   due: { overdue: false, hoursLeft: 6.8, hoursOverdue: 0, targetHours: 8 },
   submittedAt: '2026-10-29T08:00:00Z',
   applicant: { firstName: 'Daniel', lastName: 'Mrema', mobile: '+255 754 067 390', nida: '19801211-10067-00007-27' },
+  product: { name: 'Personal Loan' },
+  amount: 5000000,
+  tenor: 24,
+  purpose: 'Roof repairs at Mbweni',
+  affordability: { instalment: 236200, room: 812400, remaining: 576200, fits: true, maxAmount: 17200000, maxTenor: 60 },
   crb: null,
   myDecisions: [],
   panel: { stage: 'credit', stageLabel: 'Credit Analyst', isFinal: false, nextStageLabel: 'Head of HR', needsCrb: true, canRecommend: false, needsHrChecks: false, needsProbationCheck: false, crbOutcomes: ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found'] },
@@ -58,7 +63,7 @@ const full = {
 };
 
 describe('review screen', () => {
-  it('the Credit Analyst sees identity but no financial loan details (D-86)', async () => {
+  it('the Credit Analyst sees identity, the request and affordability, but no pay (D-102)', async () => {
     stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     expect(await screen.findByText('Details for the credit bureau check')).toBeInTheDocument();
@@ -70,12 +75,38 @@ describe('review screen', () => {
     expect(screen.queryByText(/route/i)).toBeNull();
     expect(screen.getByText('+255 754 067 390')).toBeInTheDocument();
     expect(screen.getByText('19801211-10067-00007-27')).toBeInTheDocument();
-    expect(screen.queryByText('Product, amount, tenor, instalment and purpose')).toBeNull();
     expect(screen.queryByLabelText(/Recommended amount/)).toBeNull();
-    expect(screen.queryByText(/Affordability/)).toBeNull();
+    // D-102: product, requested terms, instalment and Room.
+    expect(screen.getByText('Loan request')).toBeInTheDocument();
+    expect(screen.getByText('Personal Loan')).toBeInTheDocument();
+    expect(screen.getByText('TZS 5,000,000')).toBeInTheDocument();
+    expect(screen.getByText('24 months')).toBeInTheDocument();
+    expect(screen.getByText('Roof repairs at Mbweni')).toBeInTheDocument();
+    expect(screen.getByText('Affordability at submission')).toBeInTheDocument();
+    expect(screen.getByText('TZS 236,200')).toBeInTheDocument();
+    expect(screen.getByText('TZS 812,400')).toBeInTheDocument();
+    expect(screen.getByText('Within limit')).toBeInTheDocument();
+    // Still no payslip or pay.
+    expect(screen.queryByText('Payslip')).toBeNull();
+    expect(screen.queryByText(/Basic Pay/)).toBeNull();
+    expect(screen.queryByText(/Net Pay/)).toBeNull();
+    expect(screen.queryByText('Step-by-step calculation')).toBeNull();
   });
 
-  it('the Credit Analyst can inspect supporting documents without seeing financial details', async () => {
+  it('an Auditor sees the application with an affordability summary, without payslip or salary (D-102)', async () => {
+    const audited = { ...full, panel: null, payHidden: true, payslip: null, calcAtSubmission: null, deductions: null, affordability: { instalment: 136900, room: 531850, remaining: 394950, fits: true, maxAmount: 34588000, maxTenor: 60 } };
+    stubHttp({ 'GET /review/r2': () => [200, { data: audited }] });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['loan.viewAll'] });
+    expect(await screen.findByText('Affordability at submission')).toBeInTheDocument();
+    expect(screen.getByText('TZS 531,850')).toBeInTheDocument();
+    expect(screen.getByText('Payslip and salary details are not shown to Auditors.')).toBeInTheDocument();
+    expect(screen.queryByText('Payslip')).toBeNull();
+    expect(screen.queryByText('Basic Pay read')).toBeNull();
+    expect(screen.queryByText('Staff loans declared')).toBeNull();
+    expect(screen.queryByText('Step-by-step calculation')).toBeNull();
+  });
+
+  it('the Credit Analyst can inspect supporting documents without seeing pay details', async () => {
     const withDocuments = {
       ...limited,
       documents: [{
@@ -93,8 +124,8 @@ describe('review screen', () => {
     expect(await screen.findByText('vehicle-front.jpg')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Preview' })).toBeInTheDocument();
     expect(screen.getByText('Vehicle front photograph', { selector: 'td' })).toBeInTheDocument();
-    expect(screen.queryByText('Loan amount')).toBeNull();
-    expect(screen.queryByText('Affordability')).toBeNull();
+    expect(screen.queryByText('Payslip')).toBeNull();
+    expect(screen.queryByText(/Basic Pay/)).toBeNull();
   });
 
   it('the Credit Analyst must record the bureau outcome to approve, and comment to return', async () => {
@@ -209,7 +240,7 @@ describe('review screen', () => {
 });
 
 describe('review queue', () => {
-  it('limited rows hide the terms', async () => {
+  it("the Credit Analyst's rows show the product and requested terms (D-102)", async () => {
     stubHttp({
       'GET /queue': () => [
         200,
@@ -219,7 +250,7 @@ describe('review queue', () => {
             counts: { waiting: 2, overdue: 1 },
             covering: [],
             items: [
-              { id: 'r1', ref: 'SL-2026-00028', limited: true, stageLabel: 'Credit Analyst', route: { key: 'mgmt', label: 'Management staff' }, applicant: { fullName: 'Daniel Mrema' }, due: { overdue: false, hoursLeft: 6.8 } },
+              { id: 'r1', ref: 'SL-2026-00028', limited: true, stageLabel: 'Credit Analyst', applicant: { firstName: 'Daniel', lastName: 'Mrema' }, product: 'Personal Loan', amount: 5000000, tenor: 24, due: { overdue: false, hoursLeft: 6.8 } },
               { id: 'r2', ref: 'SL-2026-00030', limited: false, stageLabel: 'Credit Analyst', route: { key: 'nonmgmt', label: 'Non-management staff' }, applicant: { fullName: 'Salma Hamisi', title: 'Senior Teller', category: 'Non-management' }, product: 'Salary Advance', amount: 600000, tenor: 3, due: { overdue: true, hoursOverdue: 1.5 } },
             ],
           },
@@ -229,7 +260,9 @@ describe('review queue', () => {
     renderAt('/queue', '/queue', <QueuePage />, { permissions: ['review.credit'] });
     const limitedRow = (await screen.findByText('SL-2026-00028')).closest('tr');
     expect(within(limitedRow).getByText('Limited details')).toBeInTheDocument();
-    expect(within(limitedRow).queryByText(/TZS|\d{1,3},\d{3}/)).toBeNull();
+    expect(within(limitedRow).getByText('Personal Loan')).toBeInTheDocument();
+    expect(within(limitedRow).getByText('5,000,000')).toBeInTheDocument();
+    expect(within(limitedRow).getByText('24 m')).toBeInTheDocument();
     const row = screen.getByText('SL-2026-00030').closest('tr');
     expect(within(row).getByText('600,000')).toBeInTheDocument();
     expect(within(row).getByText('Overdue by 1 h 30 min')).toBeInTheDocument();

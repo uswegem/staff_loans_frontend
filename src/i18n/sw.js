@@ -1352,6 +1352,10 @@ const SW = {
   "Stay signed in": "Endelea kuwa ndani",
   "Log out now": "Toka sasa",
   "Checking…": "Inakagua…",
+  "Room: the instalment the applicant can afford": "Nafasi: kiasi cha rejesho ambacho mwombaji anaweza kumudu",
+  "Largest loan": "Mkopo mkubwa zaidi",
+  "Worked out from the payslip; pay details are not shared with you.": "Imekokotolewa kutoka kwenye hati ya mshahara; taarifa za mshahara hazishirikishwi kwako.",
+  "Payslip and salary details are not shown to Auditors.": "Hati ya mshahara na taarifa za mshahara hazionyeshwi kwa Wakaguzi.",
 };
 
 export default SW;

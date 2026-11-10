@@ -77,19 +77,12 @@ export default function QueuePage() {
                     <TableCell sx={{ fontWeight: 600 }}>{r.ref}</TableCell>
                     <TableCell>
                       {r.applicant.fullName || `${r.applicant.firstName} ${r.applicant.lastName}`}
-                      <div className="xs muted">{r.limited ? t('Identity only') : `${r.applicant.title}, ${t(r.applicant.category)}`}{r.onBehalfOf ? `; ${t('for {name}', { name: r.onBehalfOf })}` : ''}</div>
+                      <div className="xs muted">{r.limited ? t('Limited details') : `${r.applicant.title}, ${t(r.applicant.category)}`}{r.onBehalfOf ? `; ${t('for {name}', { name: r.onBehalfOf })}` : ''}</div>
                     </TableCell>
-                    {r.limited ? (
-                      <TableCell colSpan={3}>
-                        <span className="tag">{t('Limited details')}</span> <span className="xs muted">{t('Name, NIDA and mobile only')}</span>
-                      </TableCell>
-                    ) : (
-                      <>
-                        <TableCell>{r.product}</TableCell>
-                        <TableCell align="right" className="num">{formatNumber(r.amount)}</TableCell>
-                        <TableCell align="right">{r.tenor} m</TableCell>
-                      </>
-                    )}
+                    {/* D-102: the Credit Analyst's rows show the product and requested terms too. */}
+                    <TableCell>{r.product}</TableCell>
+                    <TableCell align="right" className="num">{formatNumber(r.amount)}</TableCell>
+                    <TableCell align="right">{r.tenor} m</TableCell>
                     <TableCell>{r.stageLabel || '—'}</TableCell>
                     <TableCell>{tab === 'handled' ? <AppStatusChip status={r.status} /> : <DueClock due={r.due} />}</TableCell>
                   </TableRow>
