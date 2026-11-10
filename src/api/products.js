@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, BACKGROUND } from './client';
 
 const data = (p) => p.then((r) => r.data.data);
 
@@ -32,7 +32,8 @@ export function versionsApi(kind) {
 
 export const notificationsApi = {
   list: (params) => data(api.get('/notifications', { params })),
-  unreadCount: () => data(api.get('/notifications/unread-count')),
+  // Polled every minute: background, so it never keeps an idle session open.
+  unreadCount: () => data(api.get('/notifications/unread-count', BACKGROUND)),
   markRead: (id) => data(api.post(`/notifications/${id}/read`)),
   markAllRead: () => api.post('/notifications/read-all'),
 };

@@ -262,7 +262,7 @@ function LockedStep({ onBack }) {
 }
 
 const ENDED = {
-  idle: 'You were signed out after a period of inactivity. Sign in again to continue.',
+  idle: 'Your session expired after {n} minutes of inactivity. Please sign in again.',
   expired: 'Your session has ended. Sign in again to continue.',
 };
 
@@ -271,9 +271,9 @@ export default function SignIn() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, endedReason } = useSelector((st) => st.auth);
+  const { status, endedReason, inactivityTimeoutMin } = useSelector((st) => st.auth);
   const [step, setStep] = useState({ name: 'creds' });
-  const [notice, setNotice] = useState(endedReason ? ENDED[endedReason] : null);
+  const [notice, setNotice] = useState(endedReason ? { text: ENDED[endedReason], vars: { n: inactivityTimeoutMin } } : null);
 
   if (status === 'signedIn') return <Navigate to={safePath(location.state?.from)} replace />;
 
@@ -304,7 +304,7 @@ export default function SignIn() {
         <img className={s.logo} src={logo} alt="Letshego Faidika Bank" />
         {notice && step.name === 'creds' && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            {t(notice)}
+            {typeof notice === 'string' ? t(notice) : t(notice.text, notice.vars)}
           </Alert>
         )}
         {step.name === 'creds' && <CredentialsStep onResult={onCredentials} />}

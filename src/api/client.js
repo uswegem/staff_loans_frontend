@@ -30,7 +30,7 @@ export function startSessionSync(onEnd) {
   channel.onmessage = (event) => {
     if (event.data?.type !== 'SESSION_ENDED') return;
     setAccessToken(null);
-    externalSessionEnd();
+    externalSessionEnd(event.data.reason === 'idle' ? 'idle' : 'expired');
   };
   return () => {
     channel?.close();
@@ -38,9 +38,16 @@ export function startSessionSync(onEnd) {
     externalSessionEnd = () => {};
   };
 }
-export function notifyOtherTabsSessionEnded() {
-  channel?.postMessage({ type: 'SESSION_ENDED' });
+/** reason: 'idle' when the inactivity limit ended it, so every tab shows the same notice. */
+export function notifyOtherTabsSessionEnded(reason) {
+  channel?.postMessage({ type: 'SESSION_ENDED', reason: reason === 'idle' ? 'idle' : undefined });
 }
+
+/**
+ * Request config for calls the app makes on its own (polling, refreshing on focus). The
+ * server does not count them as activity, so they never keep an idle session open (NFR-04).
+ */
+export const BACKGROUND = Object.freeze({ headers: { 'X-SLAS-Background': '1' } });
 
 export const currentSessionEpoch = () => sessionEpoch;
 export function invalidateSessionRequests() {
@@ -116,7 +123,7 @@ api.interceptors.request.use((config) => {
   config.signal = controller.signal;
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
   config.headers['Accept-Language'] = language;
-  lastActivity = Date.now();
+  if (config.headers['X-SLAS-Background'] !== '1') lastActivity = Date.now();
   return config;
 });
 
@@ -143,7 +150,7 @@ api.interceptors.response.use(
         if (config._sessionEpoch !== sessionEpoch) return Promise.reject(stale());
         setAccessToken(null);
         onSessionEnded(refreshError.response?.data);
-        notifyOtherTabsSessionEnded();
+        notifyOtherTabsSessionEnded(refreshError.response?.data?.code === 'SESSION_IDLE' ? 'idle' : undefined);
         return Promise.reject(error);
       }
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -152,7 +159,7 @@ api.interceptors.response.use(
     if (response?.status === 401 && ['SESSION_ENDED', 'SESSION_IDLE', 'ACCOUNT_INACTIVE'].includes(code)) {
       setAccessToken(null);
       onSessionEnded(response.data);
-      notifyOtherTabsSessionEnded();
+      notifyOtherTabsSessionEnded(code === 'SESSION_IDLE' ? 'idle' : undefined);
     }
     return Promise.reject(error);
   }
