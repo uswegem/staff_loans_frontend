@@ -1,7 +1,8 @@
 // Review screen (prototype #/review/:id; FR-14). The full view shows the request,
 // signed agreement, affordability steps, rule checks, applicant, documents and
-// history. The Credit Analyst's view (FR-55, D-86) shows only first name, surname, NIDA
-// number and mobile.
+// history. The Credit Analyst's view (FR-55, D-86, D-102) shows the first name, surname,
+// NIDA number and mobile, the product and requested terms, and affordability without pay.
+// An Auditor's full view leaves out the payslip and salary details (D-102).
 
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
@@ -48,6 +49,23 @@ function Side({ app, onDone }) {
   );
 }
 
+/** Instalment, Room and what remains, without the pay behind them (D-102). */
+function AffordabilitySummary({ a }) {
+  const t = useT();
+  return (
+    <dl className={s.kv}>
+      <dt>{t('Monthly instalment')}</dt><dd>{formatTzs(a.instalment)}</dd>
+      <dt>{t('Room: the instalment the applicant can afford')}</dt><dd>{formatTzs(a.room)}</dd>
+      <dt>{t('Remaining after this loan')}</dt><dd style={a.remaining < 0 ? { color: 'var(--bad)' } : undefined}>{formatTzs(a.remaining)}</dd>
+      <dt>{t('Largest loan')}</dt><dd>{t('{amount} over {n} months', { amount: formatTzs(a.maxAmount), n: a.maxTenor })}</dd>
+    </dl>
+  );
+}
+
+function fitsChip(t, a) {
+  return a.fits ? <Chip size="small" color="success" label={t('Within limit')} /> : <Chip size="small" color="error" label={t('Over limit')} />;
+}
+
 function LimitedReview({ app, onDone }) {
   const t = useT();
   return (
@@ -70,6 +88,20 @@ function LimitedReview({ app, onDone }) {
               <dt>{t('Mobile number')}</dt><dd>{app.applicant.mobile || '—'}</dd>
             </dl>
           </Panel>
+          <Panel title={t('Loan request')}>
+            <dl className={s.kv}>
+              <dt>{t('Product')}</dt><dd>{app.product?.name || '—'}</dd>
+              <dt>{t('Amount')}</dt><dd>{formatTzs(app.amount)}</dd>
+              <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: app.tenor })}</dd>
+              <dt>{t('Purpose')}</dt><dd>{app.purpose}</dd>
+            </dl>
+          </Panel>
+          {app.affordability && (
+            <Panel title={t('Affordability at submission')} action={fitsChip(t, app.affordability)}>
+              <AffordabilitySummary a={app.affordability} />
+              <p className="xs muted" style={{ margin: '8px 0 0' }}>{t('Worked out from the payslip; pay details are not shared with you.')}</p>
+            </Panel>
+          )}
           <Panel title={t('Supporting documents')}>
             <SupportingDocuments documents={app.documents || []} documentChecklist={app.documentChecklist || []} />
           </Panel>
@@ -145,6 +177,14 @@ function FullReview({ app, onDone, onError }) {
               {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
             </Panel>
           )}
+          {!q && app.affordability && (
+            <Panel title={t('Affordability at submission')} action={fitsChip(t, app.affordability)}>
+              <AffordabilitySummary a={app.affordability} />
+              {app.payHidden && <p className="xs muted" style={{ margin: '8px 0 0' }}>{t('Payslip and salary details are not shown to Auditors.')}</p>}
+              {app.checks.length > 0 && <Alert severity="error" sx={{ mt: 2 }}><AlertTitle>{t('Rule checks to note')}</AlertTitle><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{app.checks.map((c) => <li key={c}>{c}</li>)}</ul></Alert>}
+              {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
+            </Panel>
+          )}
           <Panel title={t('Applicant')}>
             <dl className={s.kv}>
               <dt>{t('Staff number')}</dt><dd>{a.staffNo}</dd>
@@ -157,7 +197,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>{t('Retirement')}</dt><dd>{a.retirementDate ? formatDate(a.retirementDate) : t('No verified date of birth')}</dd>
               <dt>{t('Mobile')}</dt><dd>{a.mobile}</dd>
               <dt>{t('Next of kin')}</dt><dd>{a.nextOfKin ? `${[a.nextOfKin.firstName, a.nextOfKin.lastName].filter(Boolean).join(' ') || a.nextOfKin.name || ''} (${a.nextOfKin.relationship}), ${a.nextOfKin.phone}` : '—'}</dd>
-              <dt>{t('Staff loans declared')}</dt><dd>{a.existingLfbLoans.map((l) => `${l.description || t('Staff loan')}${l.instalment ? `: ${t('{amount} a month', { amount: formatTzs(l.instalment) })}` : ''}`).join('; ') || t('None')}</dd>
+              {!app.payHidden && <dt>{t('Staff loans declared')}</dt>}{!app.payHidden && <dd>{a.existingLfbLoans.map((l) => `${l.description || t('Staff loan')}${l.instalment ? `: ${t('{amount} a month', { amount: formatTzs(l.instalment) })}` : ''}`).join('; ') || t('None')}</dd>}
               <dt>{t('Staff loans in this system')}</dt><dd>{a.runningLoans.map((r) => `${r.ref}, ${formatTzs(r.amount)}`).join('; ') || t('None')}</dd>
             </dl>
           </Panel>
