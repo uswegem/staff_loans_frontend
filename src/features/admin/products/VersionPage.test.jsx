@@ -92,6 +92,17 @@ describe('product version page (FR-59)', () => {
     expect(screen.getByRole('button', { name: 'Take back to draft' })).toBeInTheDocument();
   });
 
+  it('shows required document errors beside the affected document fields', async () => {
+    const requiredDocuments = [{ code: 'Salary Slip', name: 'Salary slip', description: '', mandatory: true, minFiles: 1, maxFiles: 1, allowedTypes: ['pdf'], maxFileMb: 10, displayOrder: 0, active: true }];
+    stubHttp({
+      'GET /admin/product-versions/v2': () => [200, { data: version({ state: 'draft', canEdit: true, canCheck: false, isEditor: true, values: { ...baseValues, requiredDocuments } }) }],
+      'PATCH /admin/product-versions/v2': () => [400, { code: 'VALIDATION_ERROR', message: 'Check the highlighted values.', details: { 'requiredDocuments.0.code': ['Document code must use lowercase letters and underscores.'] } }],
+    });
+    page(['products.make']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Save draft' }));
+    expect(await screen.findByText('Document code must use lowercase letters and underscores.')).toBeInTheDocument();
+  });
+
   it('shows server validation messages next to the field', async () => {
     stubHttp({
       'GET /admin/product-versions/v2': () => [200, { data: version({ state: 'draft', canEdit: true, canCheck: false, isEditor: true }) }],

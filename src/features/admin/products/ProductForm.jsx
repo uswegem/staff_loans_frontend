@@ -56,6 +56,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
   }, []);
   const set = (k) => (v) => onChange({ ...values, [k]: v });
   const err = (k) => (errors[k] ? errors[k].join(' ') : undefined);
+  const docErr = (i, field) => err(`requiredDocuments.${i}.${field}`);
   const num = (k, label, props = {}) => (
     <TextField
       label={t(label)}
@@ -125,16 +126,17 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         <h3>{t('Required Documents')}</h3>
         <p className="small muted">{t('Configure document categories independently for this product.')}</p>
         {values.requiredDocuments === undefined && <Alert severity="warning">{t('Document requirements have not been configured for this version.')} {!readOnly && <Button size="small" onClick={() => set('requiredDocuments')([])}>{t('Confirm no additional documents required')}</Button>}</Alert>}
+        {errors.requiredDocuments && <Alert severity="error">{err('requiredDocuments')}</Alert>}
         {(values.requiredDocuments || []).map((d, i) => (
           <div key={d.code + i} style={{ display: 'grid', gap: 8, padding: 12, border: '1px solid var(--line-2)', marginBottom: 12 }}>
-            <TextField label={t('Document code')} size="small" value={d.code} disabled={readOnly} onChange={(e) => setDocument(i, { code: e.target.value })} />
-            <TextField label={t('Document name')} size="small" value={d.name} disabled={readOnly} onChange={(e) => setDocument(i, { name: e.target.value })} />
+            <TextField label={t('Document code')} size="small" value={d.code} disabled={readOnly} onChange={(e) => setDocument(i, { code: e.target.value })} error={!!docErr(i, 'code')} helperText={docErr(i, 'code') || t('Start with a lowercase letter; use lowercase letters, numbers and underscores only.')} />
+            <TextField label={t('Document name')} size="small" value={d.name} disabled={readOnly} onChange={(e) => setDocument(i, { name: e.target.value })} error={!!docErr(i, 'name')} helperText={docErr(i, 'name')} />
             <TextField label={t('Instructions')} size="small" value={d.description || ''} disabled={readOnly} onChange={(e) => setDocument(i, { description: e.target.value })} />
             <FormControlLabel label={t('Mandatory')} control={<Checkbox checked={!!d.mandatory} disabled={readOnly} onChange={(e) => setDocument(i, { mandatory: e.target.checked, minFiles: e.target.checked ? Math.max(1, d.minFiles) : 0 })} />} />
-            <TextField label={t('Minimum files')} type="number" size="small" value={d.minFiles} disabled={readOnly} onChange={(e) => setDocument(i, { minFiles: Number(e.target.value) })} />
-            <TextField label={t('Maximum files')} type="number" size="small" value={d.maxFiles} disabled={readOnly} onChange={(e) => setDocument(i, { maxFiles: Number(e.target.value) })} />
-            <TextField label={t('Allowed file types (comma separated)')} size="small" value={(d.allowedTypes || []).join(', ')} disabled={readOnly} onChange={(e) => setDocument(i, { allowedTypes: e.target.value.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean) })} />
-            <TextField label={t('Maximum file size (MB)')} type="number" size="small" value={d.maxFileMb} disabled={readOnly} onChange={(e) => setDocument(i, { maxFileMb: Number(e.target.value) })} />
+            <TextField label={t('Minimum files')} type="number" size="small" value={d.minFiles} disabled={readOnly} onChange={(e) => setDocument(i, { minFiles: Number(e.target.value) })} error={!!docErr(i, 'minFiles')} helperText={docErr(i, 'minFiles')} />
+            <TextField label={t('Maximum files')} type="number" size="small" value={d.maxFiles} disabled={readOnly} onChange={(e) => setDocument(i, { maxFiles: Number(e.target.value) })} error={!!docErr(i, 'maxFiles')} helperText={docErr(i, 'maxFiles')} />
+            <TextField label={t('Allowed file types (comma separated)')} size="small" value={(d.allowedTypes || []).join(', ')} disabled={readOnly} onChange={(e) => setDocument(i, { allowedTypes: e.target.value.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean) })} error={!!docErr(i, 'allowedTypes')} helperText={docErr(i, 'allowedTypes')} />
+            <TextField label={t('Maximum file size (MB)')} type="number" size="small" value={d.maxFileMb} disabled={readOnly} onChange={(e) => setDocument(i, { maxFileMb: Number(e.target.value) })} error={!!docErr(i, 'maxFileMb')} helperText={docErr(i, 'maxFileMb')} />
             <FormControlLabel label={t('Active')} control={<Checkbox checked={d.active !== false} disabled={readOnly} onChange={(e) => setDocument(i, { active: e.target.checked })} />} />
             {!readOnly && <div className="row"><Button disabled={i === 0} onClick={() => moveDocument(i, i - 1)}>{t('Move up')}</Button><Button disabled={i === (values.requiredDocuments || []).length - 1} onClick={() => moveDocument(i, i + 1)}>{t('Move down')}</Button><Button onClick={() => set('requiredDocuments')((values.requiredDocuments || []).filter((_, j) => i !== j))}>{t('Remove document')}</Button></div>}
           </div>
