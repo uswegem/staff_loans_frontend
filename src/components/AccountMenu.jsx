@@ -23,10 +23,12 @@ export const initials = (name = '') =>
 export default function AccountMenu() {
   const t = useT();
   const [anchor, setAnchor] = useState(null);
-  const { user, roles } = useSelector((st) => st.auth);
+  const user = useSelector((st) => st.auth.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const primary = t(roles.find((r) => r.code !== 'staff')?.name || 'Staff');
+  // The job title from the HR record, never a system role: roles are listed under My roles
+  // and permissions, and one person may hold several.
+  const subtitle = user.title || user.staffNo;
 
   const go = (path) => {
     setAnchor(null);
@@ -48,7 +50,7 @@ export default function AccountMenu() {
         <span className={s.avatar} aria-hidden="true">{initials(user.fullName)}</span>
         <span className={s.meta}>
           <b>{user.fullName}</b>
-          <span>{primary}</span>
+          <span>{subtitle}</span>
         </span>
       </button>
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
