@@ -305,7 +305,8 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const requirements = (app.product?.requiredDocuments || []).filter((d) => d.active !== false).sort((a, b) => a.displayOrder - b.displayOrder);
-  const missing = requirements.filter((d) => d.mandatory && app.documents.filter((f) => f.documentCode === d.code && f.scanStatus === 'clean').length < d.minFiles);
+  const validFiles = (d) => app.documents.filter((f) => f.documentCode === d.code && f.scanStatus === 'clean' && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => type === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime] || (type === 'jpeg' && f.mime === 'image/jpeg')));
+  const missing = requirements.filter((d) => d.mandatory && validFiles(d).length < d.minFiles);
   const add = async (files, category) => {
     if (!files?.length) return;
     setBusy(true);
@@ -332,7 +333,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {requirements.map((d) => {
           const uploaded = app.documents.filter((f) => f.documentCode === d.code);
-          const valid = uploaded.filter((f) => f.scanStatus === 'clean' && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => type === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime] || (type === 'jpeg' && f.mime === 'image/jpeg')));
+          const valid = validFiles(d);
           return (
             <div key={d.code} style={{ marginBottom: 20, padding: 16, border: '1px solid var(--line-2)', borderRadius: 8 }}>
               <h4>{d.name} {d.mandatory ? '*' : ''}</h4>
