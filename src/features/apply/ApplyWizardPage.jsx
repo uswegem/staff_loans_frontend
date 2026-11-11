@@ -681,7 +681,7 @@ export default function ApplyWizardPage() {
         {!correcting && <Button variant="text" disabled={cancelling} onClick={cancelDraft}>{cancelling ? t('Cancelling…') : t('Cancel application')}</Button>}
       </div>
       <Steps step={step} />
-      {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
