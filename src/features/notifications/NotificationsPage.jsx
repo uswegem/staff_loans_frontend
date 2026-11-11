@@ -25,9 +25,17 @@ export default function NotificationsPage() {
   }, []);
 
   const open = async (n) => {
-    if (!n.read) await notificationsApi.markRead(n.id).catch(() => {});
+    setError(null);
+    if (!n.read) {
+      try {
+        await notificationsApi.markRead(n.id);
+      } catch (err) {
+        setError(apiError(err).message);
+        return;
+      }
+    }
+    setData((d) => ({ ...d, unread: Math.max(0, d.unread - (n.read ? 0 : 1)), items: d.items.map((x) => (x.id === n.id ? { ...x, read: true } : x)) }));
     if (n.href) navigate(safePath(n.href));
-    else setData((d) => ({ ...d, unread: Math.max(0, d.unread - (n.read ? 0 : 1)), items: d.items.map((x) => (x.id === n.id ? { ...x, read: true } : x)) }));
   };
 
   const readAll = async () => {
