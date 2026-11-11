@@ -22,11 +22,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: staff_loans_frontend
-      - name: Checkout merged backend main
+      - name: Checkout backend with isolated E2E fixture
         uses: actions/checkout@v4
         with:
           repository: uswegem/staff_loans_backend
-          ref: main
+          ref: test/slas-e2e-scanner-fixture
           path: staff_loans_backend
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
