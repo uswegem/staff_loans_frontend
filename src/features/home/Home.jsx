@@ -21,7 +21,7 @@ function Eligibility({ data }) {
     <Card>
       <CardContent sx={{ p: 3 }}>
         <h3 style={{ marginBottom: 4 }}>{t('Loans you can apply for')}</h3>
-        <p className="small muted">{t('You can apply for the same product again six months after your last successful application, and for a different product at any time.')}</p>
+        <p className="small muted">{t('Eligibility and reapplication waiting periods depend on each loan product. See the status and details below.')}</p>
         <div className="tablewrap">
           <Table size="small" aria-label={t('Loans you can apply for')}>
             <TableHead>
