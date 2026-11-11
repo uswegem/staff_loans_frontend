@@ -142,6 +142,8 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   await daniel.setViewportSize({ width: 390, height: 844 });
   await shot(daniel, 'apply-details-filled-phone');
 
+  // Cancellation asks for confirmation; Playwright dismisses dialogs unless accepted.
+  daniel.once('dialog', (dialog) => dialog.accept());
   await daniel.getByRole('button', { name: 'Cancel application' }).click();
   await expect(daniel).toHaveURL(/\/$/);
   await daniel.context().close();
@@ -213,7 +215,9 @@ test('Room from the payslip on apply and review, in both languages and themes (D
     await expect(daniel.getByText(m.lang === 'sw' ? /Unaongeza makato ya hati ya mshahara Staff Loan - Personal/ : /Topping up the payslip deduction Staff Loan - Personal/)).toBeVisible();
     await expect(daniel.getByText('−70,000')).toBeVisible();
     await shot(daniel, `room-topup-${m.lang}-${m.theme}`);
+    daniel.once('dialog', (dialog) => dialog.accept());
     await daniel.getByRole('button', { name: m.lang === 'sw' ? /Ghairi ombi/ : 'Cancel application' }).click();
+    await expect(daniel).toHaveURL(/\/$/);
     await daniel.context().close();
 
     // A reviewer sees the same steps on an application already submitted.
