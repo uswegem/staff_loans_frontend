@@ -23,6 +23,7 @@ export default function DelegationPage() {
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [lookupError, setLookupError] = useState(null);
 
   const load = () => delegationApi.list().then(setData).catch((e) => setError(apiError(e).message));
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function DelegationPage() {
   // Names for the text as typed; an answer for earlier text is dropped.
   useEffect(() => {
     let current = true;
-    const timer = setTimeout(() => delegationApi.candidates(q).then((o) => current && setOptions(o)).catch(() => {}), 250);
+    const timer = setTimeout(() => delegationApi.candidates(q).then((o) => { if (current) { setOptions(o); setLookupError(null); } }).catch((err) => { if (current) { setOptions([]); setLookupError(apiError(err).message); } }), 250);
     return () => {
       current = false;
       clearTimeout(timer);
@@ -77,6 +78,7 @@ export default function DelegationPage() {
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('Set a delegate')}</h3></div>
           <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
             {problem && <Alert severity="error">{problem}</Alert>}
+            {lookupError && <Alert severity="error">{lookupError}</Alert>}
             <Autocomplete
               options={options}
               value={delegate}
@@ -105,7 +107,7 @@ export default function DelegationPage() {
                   <Chip size="small" color={STATUS[d.status][1]} label={t(STATUS[d.status][0])} />
                 </div>
                 <p className="small" style={{ margin: '4px 0' }}>{t('{from} to {until}', { from: formatDate(d.from), until: formatDate(d.until) })}{d.reason ? `, ${d.reason}` : ''}</p>
-                {d.status !== 'ended' && <Button size="small" sx={{ color: 'var(--bad)' }} onClick={async () => { await delegationApi.end(d.id); load(); }}>{t('End delegation')}</Button>}
+                {d.status !== 'ended' && <Button size="small" sx={{ color: 'var(--bad)' }} onClick={async () => { try { setError(null); await delegationApi.end(d.id); await load(); setToast(t('Delegation ended.')); } catch (err) { setError(apiError(err).message); } }}>{t('End delegation')}</Button>}
               </div>
             ))}
             {data?.received.map((d) => (
