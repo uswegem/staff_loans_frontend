@@ -57,6 +57,7 @@ function ConfirmDialog({ id, onClose, onDone }) {
   const blocker = () => {
     if (d?.topUp && !topUp) return t('Confirm the old loan balance has been settled.');
     if (!ref.trim()) return t('Enter the core banking transaction reference.');
+    if (!ref.trim()) return t('Enter the core banking transaction reference.');
     if (!comment.trim()) return t('Add a comment confirming the disbursement.');
     if (!date) return t('Enter the disbursement date.');
     return null;
