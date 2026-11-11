@@ -53,7 +53,7 @@ describe('disbursements', () => {
     expect(await within(dialog).findByText('Letshego Faidika Bank, 0150123456')).toBeInTheDocument();
     expect(within(dialog).getByText('Salary deduction (HR and Finance)')).toBeInTheDocument();
     expect(within(dialog).queryByRole('checkbox')).toBeNull();
-    await userEvent.type(within(dialog).getByLabelText('Transaction reference'), 'FT26294AB12');
+    await userEvent.type(within(dialog).getByRole('textbox', { name: /Transaction reference/i }), 'FT26294AB12');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm disbursement' }));
     expect(await screen.findByText('SL-2026-00019 disbursed. Journey complete.')).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /disbursements/a1/confirm').config.data);
