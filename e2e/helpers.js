@@ -136,7 +136,7 @@ export async function signAndSubmit(page, { resubmit = false } = {}) {
   await page.getByRole('button', { name: 'Continue to agreement' }).click();
   await readAndSign(page, resubmit ? 'Sign and resubmit' : 'Sign agreement and submit');
   await expect(page).toHaveURL(/\/applications\/[0-9a-f]{24}/);
-  const ref = (await page.getByRole('heading', { level: 1 }).textContent()).trim();
+  const ref = (await page.getByRole('heading', { level: 1, name: /^SL-\\d{4}-\\d{5}$/ }).textContent()).trim();
   expect(ref).toMatch(/^SL-\d{4}-\d{5}$/);
   return { ref, url: page.url() };
 }
