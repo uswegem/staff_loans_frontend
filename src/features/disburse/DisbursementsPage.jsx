@@ -56,6 +56,8 @@ function ConfirmDialog({ id, onClose, onDone }) {
   /** What still stops the confirmation, from the current entries (null when it can be sent). */
   const blocker = () => {
     if (d?.topUp && !topUp) return t('Confirm the old loan balance has been settled.');
+    if (!ref.trim()) return t('Enter the core banking transaction reference.');
+    if (!ref.trim()) return t('Enter the core banking transaction reference.');
     if (!comment.trim()) return t('Add a comment confirming the disbursement.');
     if (!date) return t('Enter the disbursement date.');
     return null;
@@ -104,7 +106,7 @@ function ConfirmDialog({ id, onClose, onDone }) {
               )}
               <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                 <TextField label={t('Disbursement date')} type="date" required value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: d.earliestDate, max: d.today }} />
-                <TextField label={t('Transaction reference')} value={ref} onChange={(e) => setRef(e.target.value)} placeholder={t('Optional, e.g. FT26294AB12')} inputProps={{ maxLength: 40 }} />
+                <TextField label={t('Transaction reference')} required value={ref} onChange={(e) => setRef(e.target.value)} placeholder={t('e.g. FT26294AB12')} inputProps={{ maxLength: 40 }} />
               </div>
               <TextField label={t('Comment')} required multiline minRows={2} value={comment} onChange={(e) => setComment(e.target.value)} helperText={t('Required. Confirms the loan has been disbursed.')} />
             </>
