@@ -45,6 +45,7 @@ function Matrix({ roles, catalogue, onSaved }) {
     const changed = roles.filter((r) => pending[r.id] && [...pending[r.id]].sort().join() !== [...r.permissions].sort().join());
     setBusy(true);
     const errs = [];
+    const failed = {};
     let saved = 0;
     for (const r of changed) {
       try {
@@ -53,11 +54,13 @@ function Matrix({ roles, catalogue, onSaved }) {
         saved += 1;
       } catch (err) {
         errs.push(`${r.name}: ${apiError(err).message}`);
+        failed[r.id] = pending[r.id];
       }
     }
     setBusy(false);
     setErrors(errs);
-    if (!errs.length) setPending(null);
+    // Successful changes are already committed; only failed edits should remain pending.
+    setPending(errs.length ? failed : null);
     onSaved(saved ? t(saved > 1 ? 'Permissions saved for {n} roles' : 'Permissions saved for {n} role', { n: saved }) : errs.length ? null : t('No changes'));
   };
 
@@ -66,7 +69,7 @@ function Matrix({ roles, catalogue, onSaved }) {
     <>
       {shown.length > 0 && (
         <Alert severity="error" sx={{ mb: 2 }} role="alert">
-          <AlertTitle>{t('These changes break segregation-of-duties rules')}</AlertTitle>
+          <AlertTitle>{errors.length ? t('Some permission changes could not be saved. Retry the remaining changes.') : t('These changes break segregation-of-duties rules')}</AlertTitle>
           <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{shown.map((e) => <li key={e}>{e}</li>)}</ul>
         </Alert>
       )}
