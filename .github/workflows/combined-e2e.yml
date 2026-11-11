@@ -1,0 +1,66 @@
+name: Combined SLAS frontend and backend E2E
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/combined-e2e.yml'
+      - 'e2e/**'
+      - 'playwright.config.js'
+      - 'src/**'
+      - 'package*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  combined-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: staff_loans_frontend
+      - name: Checkout backend with isolated E2E fixture
+        uses: actions/checkout@v4
+        with:
+          repository: uswegem/staff_loans_backend
+          ref: test/slas-e2e-scanner-fixture
+          path: staff_loans_backend
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        working-directory: staff_loans_frontend
+        run: npm ci
+      - name: Install backend dependencies
+        working-directory: staff_loans_backend
+        run: npm ci
+      - name: Install Chromium and system dependencies
+        working-directory: staff_loans_frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run full cross-repository browser suite
+        working-directory: staff_loans_frontend
+        env:
+          E2E_BACKEND_DIR: ../staff_loans_backend
+          CI: 'true'
+        run: |
+          set -e
+          # Restart the disposable API and in-memory MongoDB for each spec.
+          # This prevents one applicant's loan from blocking later scenarios.
+          for spec in e2e/0{1,2,3,4,5,6}-*.spec.js; do
+            echo "Running isolated browser suite: $spec"
+            npm run e2e -- "$spec"
+          done
+      - name: Upload browser test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-slas-e2e-evidence
+          path: |
+            staff_loans_frontend/playwright-report/
+            staff_loans_frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14

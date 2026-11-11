@@ -11,11 +11,14 @@ async function limitedCredit(browser, ref, { amount, purpose }) {
   await juma.goto('/queue');
   const row = juma.getByRole('row').filter({ hasText: ref });
   await expect(row.getByText('Limited details')).toBeVisible();
-  await expect(row).not.toContainText(amount.toLocaleString('en-US'));
+  // D-102 permits requested terms but not salary or payslip information.
+  await expect(row).toContainText(amount.toLocaleString('en-US'));
   await openFromQueue(juma, ref);
   await expect(juma.getByText('Details for the credit bureau check')).toBeVisible();
-  await expect(juma.getByText(purpose)).toHaveCount(0);
-  await expect(juma.getByText(amount.toLocaleString('en-US'))).toHaveCount(0);
+  await expect(juma.getByText(purpose)).toBeVisible();
+  await expect(juma.getByText(`TZS ${amount.toLocaleString('en-US')}`)).toBeVisible();
+  await expect(juma.getByText('Payslip', { exact: true })).toHaveCount(0);
+  await expect(juma.getByText('Basic Pay', { exact: true })).toHaveCount(0);
   await expect(juma.getByLabel(/Recommended/)).toHaveCount(0);
   await decide(juma, { action: 'approve', crb: true, comment: 'Bureau clear on name, mobile and NIDA.' });
   await juma.context().close();
