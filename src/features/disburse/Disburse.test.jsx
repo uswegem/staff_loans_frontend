@@ -60,6 +60,20 @@ describe('disbursements', () => {
     expect(body).toEqual({ date: '2026-10-30', transactionRef: 'FT26294AB12', comment: 'Loan disbursed to staff account.' });
   });
 
+  it('blocks confirmation when the core banking reference is missing (SLAS-006)', async () => {
+    const calls = stubHttp({
+      'GET /disbursements': list([row]),
+      'GET /disbursements/a1': () => [200, { data: detail }],
+    });
+    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
+    const r = (await screen.findByText('SL-2026-00019')).closest('tr');
+    await userEvent.click(within(r).getByRole('button', { name: 'Confirm disbursement' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm disbursement' }));
+    expect(await within(dialog).findByText('Enter the core banking transaction reference.')).toBeInTheDocument();
+    expect(calls.some((c) => c.key === 'POST /disbursements/a1/confirm')).toBe(false);
+  });
+
   it('shows why OPS cannot confirm their own or an approved loan', async () => {
     stubHttp({ 'GET /disbursements': list([{ ...row, outsideSla: false, blockedReason: 'You approved this loan, so another OPS officer confirms it.' }], { ready: 1, done: 0, outsideSla: 0 }) });
     renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
