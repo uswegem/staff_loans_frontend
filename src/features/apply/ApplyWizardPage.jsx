@@ -541,6 +541,7 @@ export default function ApplyWizardPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [attempt, setAttempt] = useState(0);
   // The body the API last checked: its checks describe exactly these values.
   const saved = useRef(null);
@@ -640,6 +641,20 @@ export default function ApplyWizardPage() {
     }
   };
 
+  const cancelDraft = async () => {
+    if (cancelling || !window.confirm(t('Cancel this draft application? This cannot be undone.'))) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      await applicationsApi.withdraw(app.id, 'Draft cancelled');
+      navigate('/');
+    } catch (err) {
+      setError(apiError(err).message);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (error && !app) return <div className="page"><Alert severity="error">{error}</Alert></div>;
   if (!app || !form) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={3} /></div>;
   if (!app.editable) {
@@ -663,10 +678,10 @@ export default function ApplyWizardPage() {
           <h1>{title}</h1>
           <p>{correcting ? t('Make the changes asked for, then resubmit. It goes back to the first review stage.') : `${app.ref}. ${t('Your details fill in from your profile. You only add the loan request.')}`}</p>
         </div>
-        {!correcting && <Button variant="text" onClick={async () => { await applicationsApi.withdraw(app.id, 'Draft cancelled').catch(() => {}); navigate('/'); }}>{t('Cancel application')}</Button>}
+        {!correcting && <Button variant="text" disabled={cancelling} onClick={cancelDraft}>{cancelling ? t('Cancelling…') : t('Cancel application')}</Button>}
       </div>
       <Steps step={step} />
-      {error && step < 4 && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}

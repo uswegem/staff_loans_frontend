@@ -372,3 +372,23 @@ describe('apply wizard', () => {
     expect(within(screen.getByLabelText('Loan agreement text')).getByText('Tshs 4,500,000')).toBeInTheDocument();
   });
 });
+
+describe('draft cancellation failure handling (SLAS-003)', () => {
+  it('stays on the draft and shows an error when withdrawal fails', async () => {
+    const originalConfirm = window.confirm;
+    window.confirm = () => true;
+    try {
+      const calls = stubHttp({
+        'GET /applications/a1': () => [200, { data: app }],
+        'POST /applications/a1/withdraw': () => [500, { message: 'Withdrawal unavailable' }],
+      });
+      renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+      await userEvent.click(await screen.findByRole('button', { name: 'Cancel application' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/Withdrawal unavailable|Request failed/i);
+      expect(screen.getByRole('button', { name: 'Cancel application' })).toBeInTheDocument();
+      expect(calls.some((c) => c.key === 'POST /applications/a1/withdraw')).toBe(true);
+    } finally {
+      window.confirm = originalConfirm;
+    }
+  });
+});
