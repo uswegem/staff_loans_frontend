@@ -18,7 +18,8 @@ export default defineConfig({
   workers: 1, // one shared, seeded system: the specs run in order
   timeout: 240_000,
   expect: { timeout: 15_000 },
-  // Scenarios share one mutable seeded DB. Retrying without resetting it creates\n  // false failures (open loans block duplicate applications).\n  retries: 0,
+  // A failed test cannot be retried safely without resetting seeded data.
+  retries: 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
