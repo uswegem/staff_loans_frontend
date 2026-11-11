@@ -305,7 +305,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const requirements = (app.product?.requiredDocuments || []).filter((d) => d.active !== false).sort((a, b) => a.displayOrder - b.displayOrder);
-  const missing = requirements.filter((d) => d.mandatory && app.documents.filter((f) => f.documentCode === d.code).length < d.minFiles);
+  const missing = requirements.filter((d) => d.mandatory && app.documents.filter((f) => f.documentCode === d.code && f.scanStatus === 'clean').length < d.minFiles);
   const add = async (files, category) => {
     if (!files?.length) return;
     setBusy(true);
@@ -332,14 +332,15 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {requirements.map((d) => {
           const uploaded = app.documents.filter((f) => f.documentCode === d.code);
+          const valid = uploaded.filter((f) => f.scanStatus === 'clean' && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => type === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime] || (type === 'jpeg' && f.mime === 'image/jpeg')));
           return (
             <div key={d.code} style={{ marginBottom: 20, padding: 16, border: '1px solid var(--line-2)', borderRadius: 8 }}>
               <h4>{d.name} {d.mandatory ? '*' : ''}</h4>
               {d.description && <p className="small muted">{d.description}</p>}
-              <p className="xs">{uploaded.length} / {d.minFiles} {t('minimum files')} · {d.maxFiles} {t('maximum files')}</p>
+              <p className="xs">{valid.length} / {d.minFiles} {t('valid minimum files')} · {d.maxFiles} {t('maximum files')}</p>
               <FileDrop accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} label={d.name} busy={busy || uploaded.length >= d.maxFiles} onFile={(file) => add([file], d)} />
-              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName}</div>)}
-              {d.mandatory && uploaded.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
+              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName} — {f.scanStatus === 'clean' ? t('Checked') : t('Not verified')}</div>)}
+              {d.mandatory && valid.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
             </div>
           );
         })}
