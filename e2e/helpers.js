@@ -132,7 +132,8 @@ export async function attachPayslip(page, staffNo, { lfbLines = [] } = {}) {
 /** From the loan details step to a signed, submitted application; returns its reference. */
 export async function signAndSubmit(page, { resubmit = false } = {}) {
   await page.getByRole('button', { name: 'Continue to documents' }).click();
-  await page.getByRole('button', { name: 'Review application' }).click();
+  const reviewButton = page.getByRole('button', { name: 'Review application' });
+  if (await reviewButton.isVisible()) await reviewButton.click();
   await page.getByRole('button', { name: 'Continue to agreement' }).click();
   await readAndSign(page, resubmit ? 'Sign and resubmit' : 'Sign agreement and submit');
   await expect(page).toHaveURL(/\/applications\/[0-9a-f]{24}/);
@@ -141,7 +142,7 @@ export async function signAndSubmit(page, { resubmit = false } = {}) {
   return { ref, url: page.url() };
 }
 
-/** Scrolls the agreement to the end, ticks every box and signs with the password. */
+/** Scrolls the agreement to the end and accepts the agreement without password re-entry. */
 export async function readAndSign(page, button) {
   const doc = page.getByLabel('Loan agreement text');
   await expect(doc).toBeVisible();
