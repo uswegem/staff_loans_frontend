@@ -149,7 +149,6 @@ export async function readAndSign(page, button) {
   await doc.evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await expect(page.getByText('You have reached the end of the agreement.')).toBeVisible();
   for (const box of await page.locator('form input[type="checkbox"]').all()) await box.check();
-  await page.getByLabel('Enter your password to sign').fill(PASSWORD);
   await page.getByRole('button', { name: button }).click();
 }
 
