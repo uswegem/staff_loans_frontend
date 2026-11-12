@@ -41,6 +41,7 @@ jobs:
       - name: Install Chromium and system dependencies
         working-directory: staff_loans_frontend
         run: npx playwright install --with-deps chromium
+      # Both checkouts use the same SLAS v2.1 feature branch; backend tests run separately.
       - name: Run full cross-repository browser suite
         working-directory: staff_loans_frontend
         env:
