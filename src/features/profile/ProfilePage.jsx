@@ -392,7 +392,7 @@ export default function ProfilePage() {
               ))}
             </Tabs>
             {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
-            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} />}
+            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} onSave={onSave} />}
             {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'pay' && <PayTab key={`pay${version}`} profile={shown} onSave={save} />}
