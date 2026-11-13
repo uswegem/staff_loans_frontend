@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
 import { dobApi, profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
@@ -315,7 +316,8 @@ export default function ProfilePage() {
   const t = useT();
   const { roles, permissions, mfaRequired } = useSelector((st) => st.auth);
   const [profile, setProfile] = useState(null);
-  const [tab, setTab] = useState('personal');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get('tab') === 'employment' ? 'employment' : 'personal');
   const [toast, setToast] = useState(null);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
