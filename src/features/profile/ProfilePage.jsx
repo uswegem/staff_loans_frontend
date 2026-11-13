@@ -153,12 +153,11 @@ function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
   const [editingDate, setEditingDate] = useState(false);
   const [dateJoined, setDateJoined] = useState(e.dateJoined || '');
   const [dateError, setDateError] = useState('');
-  const saveDate = () => {
+  const saveDate = async () => {
     const valid = /^\d{4}-\d{2}-\d{2}$/.test(dateJoined) && !Number.isNaN(Date.parse(dateJoined)) && new Date(dateJoined).toISOString().slice(0, 10) === dateJoined && dateJoined <= new Date().toISOString().slice(0, 10);
     if (!valid) { setDateError('Enter a valid joining date that is not in the future.'); return; }
     setDateError('');
-    onSave(() => profileApi.saveDateJoined(dateJoined));
-    setEditingDate(false);
+    if (await onSave(() => profileApi.saveDateJoined(dateJoined))) setEditingDate(false);
   };
   return (
     <>
@@ -355,11 +354,13 @@ export default function ProfilePage() {
       const ready = next.completeness.complete && !next.applyBlockers?.length;
       setToast(ready ? t('Profile complete. You can now apply for a loan.') : next.completeness.complete ? t('Profile complete.') : t('Saved.'));
       if (nextMissing) setTab(nextMissing);
+      return true;
     } catch (err) {
       const x = apiError(err);
       setFieldErrors(x.details || {});
       setError(x.message);
       setErrorCode(x.code);
+      return false;
     }
   };
 
