@@ -146,15 +146,33 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
   );
 }
 
-function EmploymentTab({ profile, roles, permissions, mfaRequired }) {
+function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
   const t = useT();
   const e = profile.employment;
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateJoined, setDateJoined] = useState(e.dateJoined || '');
+  const [dateError, setDateError] = useState('');
+  const saveDate = () => {
+    const valid = /^\d{4}-\d{2}-\d{2}$/.test(dateJoined) && !Number.isNaN(Date.parse(dateJoined)) && new Date(dateJoined).toISOString().slice(0, 10) === dateJoined && dateJoined <= new Date().toISOString().slice(0, 10);
+    if (!valid) { setDateError('Enter a valid joining date that is not in the future.'); return; }
+    setDateError('');
+    onSave(() => profileApi.saveDateJoined(dateJoined));
+    setEditingDate(false);
+  };
   return (
     <>
       <Alert severity="info">
         <AlertTitle>{t('People and Culture maintains these details')}</AlertTitle>
         {t('If something is wrong, ask them to correct your staff record. Your category decides your approval route.')}
       </Alert>
+      {!e.dateJoined && <Alert severity="warning" sx={{ mb: 2 }}><AlertTitle>{t('Profile Update Required')}</AlertTitle>{t('Your employment joining date is missing from your staff profile. Please enter your Date Joined before applying for a staff loan.')}</Alert>}
+      <div style={{ marginBottom: 16 }}>
+        {editingDate ? <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField type="date" label={t('Date Joined')} value={dateJoined} onChange={(event) => setDateJoined(event.target.value)} InputLabelProps={{ shrink: true }} error={!!dateError} helperText={dateError} inputProps={{ max: new Date().toISOString().slice(0, 10) }} />
+          <Button variant="contained" onClick={saveDate}>{t('Save')}</Button>
+          <Button onClick={() => { setEditingDate(false); setDateError(''); }}>{t('Cancel')}</Button>
+        </div> : <Button variant="outlined" onClick={() => { setDateJoined(e.dateJoined || ''); setEditingDate(true); }}>{t('Update Date Joined')}</Button>}
+      </div>
       <dl className={s.kv}>
         <dt>{t('Staff number')}</dt><dd>{profile.staffNo}</dd>
         <dt>{t('Job title')}</dt><dd>{e.title}</dd>
