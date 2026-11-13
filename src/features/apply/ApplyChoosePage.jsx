@@ -86,6 +86,10 @@ export default function ApplyChoosePage() {
     );
   }
 
+  if (elig.blockers?.some((reason) => /joining date|date joined/i.test(reason))) {
+    return <div className="page"><h1>{t('Apply for a loan')}</h1><Alert severity="warning" action={<Button variant="contained" component={RouterLink} to="/profile?tab=employment">{t('Update Date Joined')}</Button>}><AlertTitle>{t('Profile Update Required')}</AlertTitle>{t('Your employment joining date is missing from your staff profile. Please enter your Date Joined before applying for a staff loan.')}</Alert></div>;
+  }
+
   const openApps = mine.filter((a) => a.open);
   const openFor = (p) => openApps.find((a) => a.productId === p.id);
   const reasonFor = (p) => {

@@ -89,7 +89,6 @@ const preview = {
 
 async function toSignStep() {
   await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
-  await userEvent.click(await screen.findByRole('button', { name: 'Review application' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Continue to agreement' }));
   await screen.findByLabelText('Loan agreement text');
 }
@@ -272,7 +271,8 @@ describe('apply wizard', () => {
       const go = screen.getByRole('button', { name: 'Continue to documents' });
       expect(go).toBeEnabled();
       await userEvent.click(go);
-      expect(await screen.findByRole('heading', { name: 'Supporting documents' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Continue to agreement' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Supporting documents' })).not.toBeInTheDocument();
     });
 
     it('6: a slow answer for older values never replaces the answer for newer ones', async () => {
@@ -322,10 +322,10 @@ describe('apply wizard', () => {
     expect(sign).toBeDisabled();
     // jsdom has no layout, so the document counts as fully visible: the consents unlock.
     for (const cb of screen.getAllByRole('checkbox')) await userEvent.click(cb);
-    await userEvent.type(screen.getByLabelText(/Enter your password to sign/), 'Sample#2026');
     expect(sign).toBeEnabled();
     await userEvent.click(sign);
     const body = JSON.parse(calls.find((c) => c.key === 'POST /applications/a1/sign-and-submit').config.data);
+    expect(body).not.toHaveProperty('password');
     expect(body).toMatchObject({ consents: { truth: true, deduct: true, crb: true, sms: true }, accepted: true, scrolledToEnd: true, textSha256: 'f'.repeat(64) });
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
   });
@@ -356,19 +356,18 @@ describe('apply wizard', () => {
     }
   });
 
-  it('shows the attempts left after a wrong password', async () => {
+  it('shows submission errors without requiring a second password', async () => {
     stubHttp({
       'GET /applications/a1': () => [200, { data: app }],
       'PATCH /applications/a1': () => [200, { data: app }],
       'GET /applications/a1/agreement/preview': () => [200, { data: preview }],
-      'POST /applications/a1/sign-and-submit': () => [401, { code: 'PASSWORD_WRONG', message: 'Your password is not right.', details: { remainingAttempts: 3 } }],
+      'POST /applications/a1/sign-and-submit': () => [409, { code: 'AGREEMENT_CHANGED', message: 'The agreement changed. Read it again.' }],
     });
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
     await toSignStep();
     for (const cb of screen.getAllByRole('checkbox')) await userEvent.click(cb);
-    await userEvent.type(screen.getByLabelText(/Enter your password to sign/), 'wrong');
     await userEvent.click(screen.getByRole('button', { name: 'Sign agreement and submit' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your password is not right. 3 attempts left before the account locks.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The agreement changed. Read it again.');
     expect(within(screen.getByLabelText('Loan agreement text')).getByText('Tshs 4,500,000')).toBeInTheDocument();
   });
 });

@@ -21,15 +21,14 @@ import SupportingDocuments from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
-import PasswordField from '../../components/PasswordField';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
-export function Steps({ step }) {
+export function Steps({ step, hasDocuments = true }) {
   const t = useT();
   return (
     <ol className={s.steps} aria-label={t('Application steps')}>
-      {STEPS.map((label, i) => (
+      {STEPS.map((label, i) => ({ label, i })).filter(({ i }) => hasDocuments || i !== 2).map(({ label, i }) => (
         <li key={label} className={i === step ? s.on : i < step ? s.done : undefined} aria-current={i === step ? 'step' : undefined}>
           {t(label)}
         </li>
@@ -305,7 +304,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const requirements = (app.product?.requiredDocuments || []).filter((d) => d.active !== false).sort((a, b) => a.displayOrder - b.displayOrder);
-  const validFiles = (d) => app.documents.filter((f) => f.documentCode === d.code && f.scanStatus === 'clean' && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => type === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime] || (type === 'jpeg' && f.mime === 'image/jpeg')));
+  const validFiles = (d) => app.documents.filter((f) => String(f.documentCode || '').trim().toLowerCase() === String(d.code || '').trim().toLowerCase() && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => String(type).toLowerCase().replace('jpeg', 'jpg') === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime]));
   const missing = requirements.filter((d) => d.mandatory && validFiles(d).length < d.minFiles);
   const add = async (files, category) => {
     if (!files?.length) return;
@@ -332,7 +331,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
       <div style={{ padding: 24 }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {requirements.map((d) => {
-          const uploaded = app.documents.filter((f) => f.documentCode === d.code);
+          const uploaded = app.documents.filter((f) => String(f.documentCode || '').trim().toLowerCase() === String(d.code || '').trim().toLowerCase());
           const valid = validFiles(d);
           return (
             <div key={d.code} style={{ marginBottom: 20, padding: 16, border: '1px solid var(--line-2)', borderRadius: 8 }}>
@@ -340,7 +339,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
               {d.description && <p className="small muted">{d.description}</p>}
               <p className="xs">{valid.length} / {d.minFiles} {t('valid minimum files')} · {d.maxFiles} {t('maximum files')}</p>
               <FileDrop accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} label={d.name} busy={busy || uploaded.length >= d.maxFiles} onFile={(file) => add([file], d)} />
-              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName} — {f.scanStatus === 'clean' ? t('Checked') : t('Not verified')}</div>)}
+              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName}</div>)}
               {d.mandatory && valid.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
             </div>
           );
@@ -421,7 +420,6 @@ function SignStep({ app, onBack, onSigned }) {
   const [progress, setProgress] = useState(0);
   const [consents, setConsents] = useState({ truth: false, deduct: false, crb: false, sms: false });
   const [agree, setAgree] = useState(false);
-  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const resubmit = app.status === 'returned';
@@ -457,11 +455,10 @@ function SignStep({ app, onBack, onSigned }) {
   const sign = async (e) => {
     e.preventDefault();
     if (!allTicked) return setError(t('Tick every statement and the agreement to sign.'));
-    if (!password) return setError(t('Enter your password to sign.'));
     setBusy(true);
     setError(null);
     try {
-      const done = await applicationsApi.signAndSubmit(app.id, { consents, accepted: agree, scrolledToEnd: read, password, textSha256: preview.textSha256 });
+      const done = await applicationsApi.signAndSubmit(app.id, { consents, accepted: agree, scrolledToEnd: read, textSha256: preview.textSha256 });
       onSigned(done);
     } catch (err) {
       const x = apiError(err);
@@ -470,8 +467,7 @@ function SignStep({ app, onBack, onSigned }) {
         setProgress(0);
         await load();
       }
-      setError(x.code === 'PASSWORD_WRONG' ? t('Your password is not right. {n} attempts left before the account locks.', { n: x.details.remainingAttempts }) : x.message);
-      setPassword('');
+      setError(x.message);
       setBusy(false);
     }
     return undefined;
@@ -517,10 +513,9 @@ function SignStep({ app, onBack, onSigned }) {
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                 <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted" lang="en">I have read, understood and accept all the terms of this agreement.</span></span>
               </label>
-              <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} sx={{ mt: 1 }} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !allTicked || !password || busy}>
+            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !allTicked || busy}>
               {resubmit ? t('Sign and resubmit') : t('Sign agreement and submit')}
             </Button>
             <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>{t('Back')}</Button>
@@ -635,7 +630,7 @@ export default function ApplyWizardPage() {
       if (Object.keys(c.fieldErrors).length || c.checks.length || c.eligibility.length) {
         setError(Object.keys(c.fieldErrors).length ? t('Fill in the required fields.') : c.eligibility[0] || c.checks[0]);
         setAttempt((n) => n + 1);
-      } else setStep(2);
+      } else setStep((a.product?.requiredDocuments || []).some((d) => d.active !== false) ? 2 : 3);
     } catch (err) {
       setSaveFailure(apiError(err));
     } finally {
@@ -682,13 +677,13 @@ export default function ApplyWizardPage() {
         </div>
         {!correcting && <Button variant="text" disabled={cancelling} onClick={cancelDraft}>{cancelling ? t('Cancelling…') : t('Cancel application')}</Button>}
       </div>
-      <Steps step={step} />
+      <Steps step={step} hasDocuments={(app.product?.requiredDocuments || []).some((d) => d.active !== false)} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
-      {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(2)} onNext={() => setStep(4)} onEdit={setStep} />}
+      {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep((app.product?.requiredDocuments || []).some((d) => d.active !== false) ? 2 : 1)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}
       </StepTransition>
     </div>
