@@ -7,6 +7,7 @@ export const profileApi = {
   get: () => data(api.get('/me/profile')),
   completeness: () => data(api.get('/me/profile/completeness')),
   eligibility: () => data(api.get('/me/eligibility')),
+  saveDateJoined: (dateJoined) => data(api.patch('/me/profile/date-joined', { dateJoined })),
   savePersonal: (body) => data(api.patch('/me/profile/personal', body)),
   saveBank: (body) => data(api.patch('/me/profile/bank', body)),
   saveKin: (nextOfKin) => data(api.patch('/me/profile/kin', { nextOfKin })),
