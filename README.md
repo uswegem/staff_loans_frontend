@@ -1,6 +1,6 @@
 # SLAS web app: LFB Staff Loan Application System
 
-The browser app for Letshego Faidika Bank's staff loan system. Requirements are in `docs\BRD_v0.8.md` in the parent workspace, the visual reference is `docs\LFB_Staff_Loans_Prototype.html`, and the API contract is `openapi.json` in `staff_loans_backend`.
+The browser app for Letshego Faidika Bank's staff loan system. Requirements are in `docs\BRD_v0.9.md` in the parent workspace, the visual reference is `docs\LFB_Staff_Loans_Prototype.html`, and the API contract is `openapi.json` in `staff_loans_backend`.
 
 Stack: React 18 with Vite, React Router 6, Redux Toolkit (session only), axios with a refresh interceptor, React Hook Form, MUI 5 themed to the prototype tokens (`src/styles/tokens.css`, `src/theme.js`), and Vitest with Testing Library.
 
