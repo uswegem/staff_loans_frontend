@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
 import { dobApi, profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
@@ -146,15 +147,32 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
   );
 }
 
-function EmploymentTab({ profile, roles, permissions, mfaRequired }) {
+function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
   const t = useT();
   const e = profile.employment;
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateJoined, setDateJoined] = useState(e.dateJoined || '');
+  const [dateError, setDateError] = useState('');
+  const saveDate = async () => {
+    const valid = /^\d{4}-\d{2}-\d{2}$/.test(dateJoined) && !Number.isNaN(Date.parse(dateJoined)) && new Date(dateJoined).toISOString().slice(0, 10) === dateJoined && dateJoined <= new Date().toISOString().slice(0, 10);
+    if (!valid) { setDateError('Enter a valid joining date that is not in the future.'); return; }
+    setDateError('');
+    if (await onSave(() => profileApi.saveDateJoined(dateJoined))) setEditingDate(false);
+  };
   return (
     <>
       <Alert severity="info">
         <AlertTitle>{t('People and Culture maintains these details')}</AlertTitle>
         {t('If something is wrong, ask them to correct your staff record. Your category decides your approval route.')}
       </Alert>
+      {!e.dateJoined && <Alert severity="warning" sx={{ mb: 2 }}><AlertTitle>{t('Profile Update Required')}</AlertTitle>{t('Your employment joining date is missing from your staff profile. Please enter your Date Joined before applying for a staff loan.')}</Alert>}
+      <div style={{ marginBottom: 16 }}>
+        {editingDate ? <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField type="date" label={t('Date Joined')} value={dateJoined} onChange={(event) => setDateJoined(event.target.value)} InputLabelProps={{ shrink: true }} error={!!dateError} helperText={dateError} inputProps={{ max: new Date().toISOString().slice(0, 10) }} />
+          <Button variant="contained" onClick={saveDate}>{t('Save')}</Button>
+          <Button onClick={() => { setEditingDate(false); setDateError(''); }}>{t('Cancel')}</Button>
+        </div> : <Button variant="outlined" onClick={() => { setDateJoined(e.dateJoined || ''); setEditingDate(true); }}>{t('Update Date Joined')}</Button>}
+      </div>
       <dl className={s.kv}>
         <dt>{t('Staff number')}</dt><dd>{profile.staffNo}</dd>
         <dt>{t('Job title')}</dt><dd>{e.title}</dd>
@@ -297,7 +315,8 @@ export default function ProfilePage() {
   const t = useT();
   const { roles, permissions, mfaRequired } = useSelector((st) => st.auth);
   const [profile, setProfile] = useState(null);
-  const [tab, setTab] = useState('personal');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get('tab') === 'employment' ? 'employment' : 'personal');
   const [toast, setToast] = useState(null);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -335,11 +354,13 @@ export default function ProfilePage() {
       const ready = next.completeness.complete && !next.applyBlockers?.length;
       setToast(ready ? t('Profile complete. You can now apply for a loan.') : next.completeness.complete ? t('Profile complete.') : t('Saved.'));
       if (nextMissing) setTab(nextMissing);
+      return true;
     } catch (err) {
       const x = apiError(err);
       setFieldErrors(x.details || {});
       setError(x.message);
       setErrorCode(x.code);
+      return false;
     }
   };
 
@@ -374,7 +395,7 @@ export default function ProfilePage() {
               ))}
             </Tabs>
             {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
-            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} />}
+            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} onSave={save} />}
             {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
             {tab === 'pay' && <PayTab key={`pay${version}`} profile={shown} onSave={save} />}
