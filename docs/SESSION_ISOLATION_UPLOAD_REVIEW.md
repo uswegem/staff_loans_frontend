@@ -24,6 +24,6 @@
 - Verify behavior across browser tabs, including browsers without BroadcastChannel support.
 - Add complete drag-and-drop file validation/progress/retry/multiple-file tests and check all upload locations.
 - Coordinate any necessary backend security changes only after tests identify a gap.
-- Malware scanning is currently a stub and is not production-ready.
+- Uploads are not scanned for malware; the residual risk is accepted (backend decision D-104).
 
 No merge, deployment or enforcement activation is authorized by this work.
