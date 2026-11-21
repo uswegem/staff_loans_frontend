@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
 import { refreshSession, startSessionSync } from './api/client';
@@ -9,33 +9,38 @@ import SignIn from './features/auth/SignIn';
 import ChangePassword from './features/auth/ChangePassword';
 import Home from './features/home/Home';
 import MyAccess from './features/account/MyAccess';
-import UsersPage from './features/admin/users/UsersPage';
-import RolesPage from './features/admin/roles/RolesPage';
-import ProductsPage from './features/admin/products/ProductsPage';
-import NewProductPage from './features/admin/products/NewProductPage';
-import ProductHistoryPage from './features/admin/products/ProductHistoryPage';
-import VersionPage from './features/admin/products/VersionPage';
 import ProfilePage from './features/profile/ProfilePage';
-import StaffListPage from './features/staff/StaffListPage';
-import StaffDetailPage, { NewStaffPage } from './features/staff/StaffDetailPage';
-import StaffImportPage from './features/staff/StaffImportPage';
 import ApplyChoosePage from './features/apply/ApplyChoosePage';
 import ApplyWizardPage from './features/apply/ApplyWizardPage';
 import MyApplicationsPage from './features/applications/MyApplicationsPage';
 import ApplicationPage from './features/applications/ApplicationPage';
 import AgreementPage from './features/agreement/AgreementPage';
 import AcceptRevisedPage from './features/agreement/AcceptRevisedPage';
-import QueuePage from './features/review/QueuePage';
-import ReviewPage from './features/review/ReviewPage';
-import DelegationPage from './features/review/DelegationPage';
-import DisbursementsPage from './features/disburse/DisbursementsPage';
 import NotificationsPage from './features/notifications/NotificationsPage';
-import ReportsPage from './features/reports/ReportsPage';
-import WorkflowPage from './features/admin/workflow/WorkflowPage';
-import TemplatesPage from './features/admin/templates/TemplatesPage';
-import AuditPage from './features/admin/audit/AuditPage';
-import DobVerificationsPage from './features/staff/DobVerificationsPage';
 import { useT } from './i18n';
+
+// Pages for reviewers, Operations, People and Culture, reports and administration load
+// on first visit, so staff who only apply download less (UX review, phase G). Sign-in,
+// Home, Apply, My applications and My profile stay in the main bundle.
+const UsersPage = lazy(() => import('./features/admin/users/UsersPage'));
+const RolesPage = lazy(() => import('./features/admin/roles/RolesPage'));
+const ProductsPage = lazy(() => import('./features/admin/products/ProductsPage'));
+const NewProductPage = lazy(() => import('./features/admin/products/NewProductPage'));
+const ProductHistoryPage = lazy(() => import('./features/admin/products/ProductHistoryPage'));
+const VersionPage = lazy(() => import('./features/admin/products/VersionPage'));
+const StaffListPage = lazy(() => import('./features/staff/StaffListPage'));
+const StaffImportPage = lazy(() => import('./features/staff/StaffImportPage'));
+const QueuePage = lazy(() => import('./features/review/QueuePage'));
+const ReviewPage = lazy(() => import('./features/review/ReviewPage'));
+const DelegationPage = lazy(() => import('./features/review/DelegationPage'));
+const DisbursementsPage = lazy(() => import('./features/disburse/DisbursementsPage'));
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage'));
+const WorkflowPage = lazy(() => import('./features/admin/workflow/WorkflowPage'));
+const TemplatesPage = lazy(() => import('./features/admin/templates/TemplatesPage'));
+const AuditPage = lazy(() => import('./features/admin/audit/AuditPage'));
+const DobVerificationsPage = lazy(() => import('./features/staff/DobVerificationsPage'));
+const StaffDetailPage = lazy(() => import('./features/staff/StaffDetailPage'));
+const NewStaffPage = lazy(() => import('./features/staff/StaffDetailPage').then((m) => ({ default: m.NewStaffPage })));
 
 const PRODUCT_PERMS = ['products.view', 'products.make', 'products.approveCredit', 'products.approveRisk'];
 const STAFF_PERMS = ['staff.view', 'staff.manage'];
