@@ -38,8 +38,9 @@ export default function AppShell() {
       <div className={s.layout}>
         <nav id="sidenav" className={`${s.nav} ${open ? s.navOpen : ''}`} aria-label={t('Main')}>
           {visibleNav(permissions).map((g) => (
-            <div key={g.group}>
-              <div className={s.group}>{t(g.group)}</div>
+            <div key={g.group} className={g.items.length > 1 ? undefined : s.single}>
+              {/* A heading over a single link only repeats it. */}
+              {g.items.length > 1 && <div className={s.group}>{t(g.group)}</div>}
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end} className={({ isActive }) => (isActive ? s.active : undefined)}>
                   {t(i.label)}

@@ -67,7 +67,11 @@ export default function NotificationBell() {
         {items.length === 0 && <MenuItem disabled>{t('Nothing new.')}</MenuItem>}
         {items.map((n) => (
           <MenuItem key={n.id} onClick={() => go(n)} sx={{ whiteSpace: 'normal', alignItems: 'flex-start', display: 'block', background: n.read ? undefined : 'var(--brand-050)', py: 1.25 }}>
-            <div className="small" style={{ fontWeight: n.read ? 400 : 600 }}>{n.text}</div>
+            <div className="small" style={{ fontWeight: n.read ? 400 : 600 }}>
+              {!n.read && <span className="unread-dot" aria-hidden="true" />}
+              {n.text}
+              {!n.read && <span className="visually-hidden">{' '}{t('(unread)')}</span>}
+            </div>
             <div className="xs muted">{formatDateTime(n.createdAt)}</div>
           </MenuItem>
         ))}

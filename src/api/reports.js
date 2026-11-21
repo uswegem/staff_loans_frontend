@@ -36,4 +36,5 @@ export const templatesApi = {
 
 export const auditApi = {
   list: (params) => data(api.get('/audit', { params: clean(params) })),
+  people: (q) => data(api.get('/audit/people', { params: clean({ q }) })),
 };

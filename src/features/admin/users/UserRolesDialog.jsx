@@ -8,11 +8,13 @@ import { usersApi } from '../../../api/admin';
 import { apiError } from '../../../api/client';
 import { isoDay } from '../../../lib/format';
 import { conflictsFor, needsMfa } from './sod';
+import { useSelector } from 'react-redux';
 import { useT } from '../../../i18n';
 import DateField from '../../../components/fields/DateField';
 
 export default function UserRolesDialog({ user, roles, catalogue, onClose, onSaved }) {
   const t = useT();
+  const mfaOn = useSelector((st) => st.auth.mfaSystemEnabled);
   const [picked, setPicked] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -123,7 +125,7 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
           </Table>
         </div>
         <h4 style={{ marginTop: 16 }}>
-          {t('Effective permissions')} {needsMfa(effective, catalogue) && <Chip size="small" color="success" label={t('MFA required')} sx={{ ml: 1 }} />}
+          {t('Effective permissions')} {mfaOn && needsMfa(effective, catalogue) && <Chip size="small" color="success" label={t('MFA required')} sx={{ ml: 1 }} />}
         </h4>
         <p className="small">{effective.map(label).join('; ') || t('None')}</p>
       </DialogContent>

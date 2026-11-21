@@ -11,7 +11,7 @@ const GROUP_ORDER = ['My loans', 'Reviews', 'Operations', 'Staff records', 'Repo
 
 export default function MyAccess() {
   const t = useT();
-  const { roles, permissions, mfaRequired } = useSelector((st) => st.auth);
+  const { roles, permissions, mfaRequired, mfaSystemEnabled } = useSelector((st) => st.auth);
   const [catalogue, setCatalogue] = useState(null);
 
   useEffect(() => {
@@ -40,9 +40,12 @@ export default function MyAccess() {
                 </span>
               ))}
             </div>
-            <p className="small muted" style={{ marginTop: 12, marginBottom: 0 }}>
-              {t('One-time code at sign-in:')} {mfaRequired ? <Chip size="small" color="success" label={t('Required')} /> : t('not required for your roles')}
-            </p>
+            {/* Only while one-time codes are switched on for the system. */}
+            {mfaSystemEnabled && (
+              <p className="small muted" style={{ marginTop: 12, marginBottom: 0 }}>
+                {t('One-time code at sign-in:')} {mfaRequired ? <Chip size="small" color="success" label={t('Required')} /> : t('not required for your roles')}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>

@@ -205,8 +205,9 @@ export default function ReportsPage() {
       </div>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!catalogue && !error && <LoadingSkeleton label={t('Loading…')} rows={3} />}
+      {/* All reports in view: the tabs wrap onto a second line instead of hiding behind arrows. */}
       {catalogue && (
-        <Tabs value={tab || false} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }} aria-label={t('Reports')}>
+        <Tabs value={tab || false} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTabs-flexContainer': { flexWrap: 'wrap' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { boxShadow: 'inset 0 -3px 0 var(--y)' } }} aria-label={t('Reports')}>
           {canOverview && <Tab value="overview" label={t('Overview')} />}
           {catalogue.reports.map((r) => <Tab key={r.key} value={r.key} label={t(r.name)} />)}
         </Tabs>

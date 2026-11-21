@@ -10,6 +10,8 @@ const initialState = {
   roles: [],
   permissions: [],
   mfaRequired: false,
+  // One-time codes switched on for the system; an older API that does not say counts as on.
+  mfaSystemEnabled: true,
   inactivityTimeoutMin: 10,
   endedReason: null,
   sessionGeneration: 0,
@@ -26,6 +28,7 @@ const authSlice = createSlice({
       state.roles = payload.roles || [];
       state.permissions = payload.permissions || [];
       state.mfaRequired = !!payload.mfaRequired;
+      state.mfaSystemEnabled = payload.mfaSystemEnabled !== false;
       state.inactivityTimeoutMin = payload.session?.inactivityTimeoutMin || state.inactivityTimeoutMin;
       state.endedReason = null;
     },
@@ -35,6 +38,7 @@ const authSlice = createSlice({
       state.roles = payload.roles || [];
       state.permissions = payload.permissions || [];
       state.mfaRequired = !!payload.mfaRequired;
+      if ('mfaSystemEnabled' in payload) state.mfaSystemEnabled = payload.mfaSystemEnabled !== false;
     },
     sessionEnded(state, { payload }) {
       // The limit that applied is kept so the sign-in page can name it.

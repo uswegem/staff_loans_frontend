@@ -115,7 +115,7 @@ export default function DobVerificationsPage() {
                   return (
                     <TableRow key={r.id}>
                       <TableCell>{r.staff.name}<div className="xs muted">{r.staff.staffNo}{r.staff.title ? `, ${r.staff.title}` : ''}</div></TableCell>
-                      <TableCell>{r.current ? formatDate(r.current) : <span className="muted">{t('None')}</span>}</TableCell>
+                      <TableCell>{r.current ? formatDate(r.current) : <span className="muted">{t('First date')}</span>}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{formatDate(r.proposed)}</TableCell>
                       <TableCell>{r.submittedBy}<div className="xs muted">{formatDateTime(r.submittedAt)}</div></TableCell>
                       {tab !== 'pending' && <TableCell>{r.decidedBy}, {formatDateTime(r.decidedAt)}{r.reason && <div className="xs muted">{r.reason}</div>}</TableCell>}
