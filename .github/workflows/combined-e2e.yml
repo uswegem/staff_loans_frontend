@@ -22,11 +22,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: staff_loans_frontend
-      - name: Checkout matching backend SLAS v2.1 feature branch
+      - name: Checkout matching backend products-pricing feature branch
         uses: actions/checkout@v4
         with:
           repository: uswegem/staff_loans_backend
-          ref: feature/slas-enhancements-v2-1
+          ref: feature/products-pricing-ux-approval
           path: staff_loans_backend
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
