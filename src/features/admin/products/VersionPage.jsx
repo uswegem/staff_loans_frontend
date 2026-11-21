@@ -167,7 +167,7 @@ export default function VersionPage({ kind }) {
       setMessage(t('Approval recorded. Forwarded to {stage}.', { stage: result.stageLabel || t('the next approver') }));
       setApprovalOutcome('forwarded');
     } else {
-      setMessage(t('Product approved successfully. Redirecting to Products and pricing…'));
+      setMessage(t('{item} approved successfully. Redirecting to Products and pricing…', { item: kind === 'pricing' ? t('Pricing') : t('Product') }));
       setApprovalOutcome('final');
     }
   };
