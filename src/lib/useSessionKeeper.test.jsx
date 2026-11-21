@@ -133,10 +133,10 @@ describe('inactivity warning and sign-out (NFR-04, 10 minutes)', () => {
     expect(store.getState().auth).toMatchObject({ status: 'signedOut', endedReason: 'idle' });
   });
 
-  it('Log out now ends the session at once', async () => {
+  it('Sign out now ends the session at once', async () => {
     start();
     await advance(8 * MIN + 40 * SEC);
-    fireEvent.click(screen.getByRole('button', { name: 'Log out now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out now' }));
     await advance(0);
     expect(posted('POST /auth/logout')).toHaveLength(1);
     expect(store.getState().auth).toMatchObject({ status: 'signedOut', endedReason: null });

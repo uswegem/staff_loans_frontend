@@ -58,3 +58,11 @@ a { color: var(--brand-500); }
 @media (prefers-reduced-motion: no-preference) {
   .slas-step-enter { animation: slas-step-enter 220ms ease-out both; }
 }
+
+/* Shared card header (components/CardHeader.jsx) and label–value list (components/FactList.jsx). */
+.cardhead { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: 16px 24px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.cardhead h3, .cardhead h2 { margin: 0; }
+.facts { display: grid; grid-template-columns: 150px 1fr; gap: var(--s2) var(--s4); margin: 0; }
+.facts dt { color: var(--ink-3); font-size: var(--fs-sm); }
+.facts dd { margin: 0; font-weight: 600; }
+@media (max-width: 600px) { .facts { grid-template-columns: 1fr; gap: 2px var(--s4); } .facts dd { margin-bottom: var(--s2); } }

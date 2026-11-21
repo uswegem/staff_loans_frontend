@@ -15,6 +15,7 @@ import StaffForm, { EMPTY_STAFF, toBody } from './StaffForm';
 import StaffDobCard from './StaffDobCard';
 import s from './staff.module.css';
 import { useT } from '../../i18n';
+import DateField from '../../components/fields/DateField';
 
 const toForm = (d) => ({
   ...EMPTY_STAFF,
@@ -52,7 +53,7 @@ function StatusDialog({ current, onClose, onSave }) {
             {current !== 'deactivated' && <MenuItem value="deactivated">{t('Inactive')}</MenuItem>}
             {current !== 'exited' && <MenuItem value="exited">{t('Exited (left LFB)')}</MenuItem>}
           </TextField>
-          {status === 'exited' && <TextField label={t('Exit date')} type="date" required value={exitDate} onChange={(e) => setExitDate(e.target.value)} />}
+          {status === 'exited' && <DateField label={t('Exit date')} required value={exitDate} onChange={(e) => setExitDate(e.target.value)} />}
           <TextField label={t('Reason')} multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
           {status !== 'active' && <Alert severity="warning">{t('They are signed out at once and cannot sign in or apply. Their loan records stay visible to People and Culture and Finance (FR-04).')}</Alert>}
         </DialogContent>

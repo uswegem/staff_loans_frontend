@@ -10,6 +10,7 @@ import { todayEat } from '../../lib/dates';
 import FileDrop from '../../components/FileDrop';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
+import DateField from '../../components/fields/DateField';
 
 const BUTTON = { approve: 'Approve application', return: 'Return to applicant', reject: 'Reject application' };
 
@@ -94,7 +95,7 @@ export default function DecisionPanel({ app, onDone }) {
               <TextField select label={t('Outcome')} required value={crb.outcome} onChange={(e) => setCrb({ ...crb, outcome: e.target.value })}>
                 {p.crbOutcomes.map((o) => <MenuItem key={o} value={o}>{t(o)}</MenuItem>)}
               </TextField>
-              <TextField label={t('Report date')} type="date" required value={crb.reportDate} onChange={(e) => setCrb({ ...crb, reportDate: e.target.value })} />
+              <DateField label={t('Report date')} required value={crb.reportDate} onChange={(e) => setCrb({ ...crb, reportDate: e.target.value })} />
             </div>
             <div>
               <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>{t('Report (optional)')}</div>
