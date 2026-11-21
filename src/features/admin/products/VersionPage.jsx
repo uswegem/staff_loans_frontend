@@ -201,7 +201,7 @@ export default function VersionPage({ kind }) {
       </div>
 
       <div className="stack">
-        {message && <Alert severity="success" role="status" onClose={() => setMessage(null)}>{message}{approvalOutcome === 'final' && <Button size="small" component={RouterLink} to="/admin/products" sx={{ ml: 2 }}>{t('Back to products')}</Button>}</Alert>}}
+        {message && <Alert severity="success" role="status" onClose={() => setMessage(null)}>{message}{approvalOutcome === 'final' && <Button size="small" component={RouterLink} to="/admin/products" sx={{ ml: 2 }}>{t('Back to products')}</Button>}</Alert>}
         {failureShown(failure, errors, live) && <Alert severity="error" onClose={() => setFailure(null)}>{failure.message}</Alert>}
         {v.rejectionReason && ['draft', 'rejected'].includes(v.state) && (
           <Alert severity="warning">
