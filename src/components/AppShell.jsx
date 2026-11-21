@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { IconButton } from '@mui/material';
@@ -8,6 +8,7 @@ import NotificationBell from './NotificationBell';
 import useSessionKeeper from '../lib/useSessionKeeper';
 import SessionTimeoutDialog from './SessionTimeoutDialog';
 import ActionFeedback from './ux/ActionFeedback';
+import LoadingSkeleton from './ux/LoadingSkeleton';
 import { visibleNav } from './nav';
 import logo from '../assets/lfb-logo.png';
 import s from './AppShell.module.css';
@@ -59,7 +60,10 @@ export default function AppShell() {
         <main id="main" className={s.main} tabIndex={-1}>
           {/* A new language re-opens the page, so messages from the API come back in it too. */}
           <div key={language} style={{ display: 'contents' }}>
-            <Outlet />
+            {/* Pages split out of the main bundle (App.jsx) show a placeholder while they load. */}
+            <Suspense fallback={<div className="page"><LoadingSkeleton label={t('Loading…')} /></div>}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
