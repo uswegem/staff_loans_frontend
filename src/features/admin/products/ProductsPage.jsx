@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, Chip, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Alert, AlertTitle, Box, Button, Card, Chip, Collapse, Link, Menu, MenuItem, Tab, Tabs, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { productsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { formatDate, formatNumber } from '../../../lib/format';
@@ -26,20 +26,26 @@ function OpenChange({ change, href }) {
 function PricingCard({ pricing, canMake, onChange }) {
   const t = useT();
   const live = pricing?.live;
+  const [expanded, setExpanded] = useState(false);
+  const [pricingTab, setPricingTab] = useState(0);
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '16px 24px', borderBottom: '1px solid var(--line-2)', flexWrap: 'wrap' }}>
         <div>
-          <h3>{t('Pricing for all products')}</h3>
+          <h3>{t('Global pricing & PAYE')}</h3>
           {live && <span className="small muted">{t('Version {n}, in force since {date}', { n: live.version, date: formatDate(live.liveFrom) })}</span>}
         </div>
         <div className="row">
+          <Button size="small" aria-expanded={expanded} aria-controls="global-pricing-content" onClick={() => setExpanded((value) => !value)}>{expanded ? t('Collapse') : t('Expand')}</Button>
           <OpenChange change={pricing?.openChange} href={`/admin/pricing/versions/${pricing?.openChange?.id}`} />
           {canMake && !pricing?.openChange && <Button size="small" onClick={onChange}>{t('Change pricing')}</Button>}
         </div>
       </div>
+      <Collapse in={expanded} id="global-pricing-content">
       {live ? (
         <div style={{ padding: 24 }}>
+          <Tabs value={pricingTab} onChange={(_, value) => setPricingTab(value)} aria-label={t('Global pricing sections')} sx={{ mb: 2 }}><Tab label={t('Pricing parameters')} /><Tab label={t('PAYE bands')} /></Tabs>
+          {pricingTab === 0 && <>
           <div className={s.figures}>
             {[
               [pct(live.interestBps), 'Interest a year, reducing balance'],
@@ -55,7 +61,8 @@ function PricingCard({ pricing, canMake, onChange }) {
               </div>
             ))}
           </div>
-          <h4 style={{ margin: '20px 0 8px' }}>{t('PAYE bands')}</h4>
+          </>}
+          {pricingTab === 1 && <><h4 style={{ margin: '20px 0 8px' }}>{t('PAYE bands')}</h4>
           <div className="tablewrap">
             <Table size="small" aria-label={t('PAYE bands in force')}>
               <TableHead>
@@ -73,13 +80,15 @@ function PricingCard({ pricing, canMake, onChange }) {
                     <TableCell align="right">{pct(b.rateBps, 0)}</TableCell>
                   </TableRow>
                 ))}
+                {filteredRows.length === 0 && <TableRow><TableCell colSpan={4}>{t('No products match these filters.')}</TableCell></TableRow>}
               </TableBody>
             </Table>
-          </div>
+          </div></>}
         </div>
       ) : (
         <div style={{ padding: 24 }} className="muted">{t('No pricing is in force.')}</div>
       )}
+      </Collapse>
     </Card>
   );
 }
@@ -89,7 +98,11 @@ export default function ProductsPage() {
   const navigate = useNavigate();
   const permissions = useSelector((st) => st.auth.permissions);
   const canMake = permissions.includes('products.make');
-  const canCheck = permissions.includes('products.approveCredit') || permissions.includes('products.approveRisk');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [readinessFilter, setReadinessFilter] = useState('all');
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [menuRow, setMenuRow] = useState(null);
   const [rows, setRows] = useState([]);
   const [pricing, setPricing] = useState(null);
   const [configuration, setConfiguration] = useState(null);
@@ -102,6 +115,7 @@ export default function ProductsPage() {
       setRows(p);
       setPricing(pr);
       setConfiguration(config);
+      setError(null);
     } catch (err) {
       setError(apiError(err).message);
     }
@@ -111,9 +125,16 @@ export default function ProductsPage() {
   }, [load]);
 
   const waiting = [
-    ...rows.filter((r) => r.openChange?.state === 'pending_approval').map((r) => ({ label: `${r.name} (${r.code}) version ${r.openChange.version}`, href: `/admin/products/versions/${r.openChange.id}` })),
-    ...(pricing?.openChange?.state === 'pending_approval' ? [{ label: t('Pricing version {n}', { n: pricing.openChange.version }), href: `/admin/pricing/versions/${pricing.openChange.id}` }] : []),
+    ...rows.filter((r) => r.openChange?.canCheck).map((r) => ({ label: `${r.name} (${r.code}) version ${r.openChange.version}`, href: `/admin/products/versions/${r.openChange.id}` })),
+    ...(pricing?.openChange?.canCheck ? [{ label: t('Pricing version {n}', { n: pricing.openChange.version }), href: `/admin/pricing/versions/${pricing.openChange.id}` }] : []),
   ];
+
+  const filteredRows = rows.filter((r) => {
+    const matchesSearch = `${r.name || ''} ${r.code}`.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'pending' ? r.openChange?.state === 'pending_approval' : r.status === statusFilter);
+    const matchesReadiness = readinessFilter === 'all' || (readinessFilter === 'ready' ? r.configuration?.ready : r.configuration && !r.configuration.ready);
+    return matchesSearch && matchesStatus && matchesReadiness;
+  });
 
   return (
     <div className="page">
@@ -127,47 +148,41 @@ export default function ProductsPage() {
       <div className="stack">
         {error && <Alert severity="error">{error}</Alert>}
         {waiting.length > 0 && (
-          <Alert severity="warning">
-            <AlertTitle>{canCheck ? t('Waiting for your approval') : t('Waiting for a checker')}</AlertTitle>
+          <Card sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <h3>{t('Approval center')}</h3>
+              <Chip color="warning" size="small" label={t('{count} awaiting your review', { count: waiting.length })} />
+            </Box>
+            <p className="small muted">{t('Only changes you can approve at the current stage appear here.')}</p>
             {waiting.map((w) => (
-              <div key={w.href}>
-                <Link component={RouterLink} to={w.href}>{w.label}</Link>
-              </div>
+              <Box key={w.href} sx={{ py: 1, display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span>{w.label}</span>
+                <Button variant="outlined" size="small" component={RouterLink} to={w.href}>{t('Review changes')}</Button>
+              </Box>
             ))}
-          </Alert>
+          </Card>
         )}
-        <Alert severity="warning">
-          <AlertTitle>{t('Some product values are still samples')}</AlertTitle>
-          {t('Amounts are confirmed: TZS 500,000 to 300,000,000 for every product. Tenor range and minimum service are sample values until confirmed from the Staff Loan Policy (BRD section 5).')}
-        </Alert>
-        {configuration && <Alert severity={configuration.enforcementEnabled && configuration.incomplete ? 'error' : 'info'}>
-          <AlertTitle>{t('Product configuration readiness')}</AlertTitle>
-          {configuration.ready} / {configuration.total} {t('live products ready')}. {configuration.incomplete} {t('require configuration')}.
-          {' '}{configuration.enforcementEnabled ? t('Enforcement is active.') : t('Enforcement is not active. Existing products remain available until authorized activation.')}
-        </Alert>}
-        <PricingCard pricing={pricing} canMake={canMake} onChange={() => setDialog({ kind: 'pricing' })} />
+        {configuration && <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Chip size="small" variant="outlined" label={t('{ready} of {total} products ready', { ready: configuration.ready, total: configuration.total })} />
+          {configuration.incomplete > 0 && <Button size="small" onClick={() => setReadinessFilter('incomplete')}>{t('{count} need configuration', { count: configuration.incomplete })}</Button>}
+        </Box>}
+
         <Card>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-            <h3>{t('Products')}</h3>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}><h3>{t('Loan products')}</h3><Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}><TextField size="small" label={t('Search products')} value={search} onChange={(e) => setSearch(e.target.value)} /><TextField select size="small" label={t('Workflow')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ minWidth: 150 }}><MenuItem value="all">{t('All statuses')}</MenuItem><MenuItem value="active">{t('Active')}</MenuItem><MenuItem value="pending">{t('Pending approval')}</MenuItem><MenuItem value="inactive">{t('Inactive')}</MenuItem><MenuItem value="not_live">{t('Not live')}</MenuItem></TextField><TextField select size="small" label={t('Readiness')} value={readinessFilter} onChange={(e) => setReadinessFilter(e.target.value)} sx={{ minWidth: 145 }}><MenuItem value="all">{t('All readiness')}</MenuItem><MenuItem value="ready">{t('Ready')}</MenuItem><MenuItem value="incomplete">{t('Needs setup')}</MenuItem></TextField></Box></Box>
           </div>
           <div className="tablewrap">
             <Table aria-label={t('Products')}>
               <TableHead>
                 <TableRow>
                   <TableCell>{t('Product')}</TableCell>
-                  <TableCell align="right">{t('Min (TZS)')}</TableCell>
-                  <TableCell align="right">{t('Max (TZS)')}</TableCell>
-                  <TableCell>{t('Tenor (months)')}</TableCell>
-                  <TableCell>{t('Min service')}</TableCell>
-                  <TableCell>{t('Top-up')}</TableCell>
-                  <TableCell>{t('Status')}</TableCell>
-                  <TableCell>{t('Configuration')}</TableCell>
-                  <TableCell>{t('Open change')}</TableCell>
+                  <TableCell>{t('Workflow')}</TableCell>
+                  <TableCell>{t('Readiness')}</TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((r) => {
+                {filteredRows.map((r) => {
                   const v = r.live;
                   return (
                     <TableRow key={r.id} hover>
@@ -179,22 +194,10 @@ export default function ProductsPage() {
                           {r.scheduled ? `; version ${r.scheduled.version} from ${formatDate(r.scheduled.liveFrom)}` : ''}
                         </div>
                       </TableCell>
-                      <TableCell align="right" className="num">{v ? formatNumber(v.minAmount) : '—'}</TableCell>
-                      <TableCell align="right" className="num">{v ? formatNumber(v.maxAmount) : '—'}</TableCell>
-                      <TableCell>{v ? t('{min} to {max}', { min: v.minTenor, max: v.maxTenor }) : '—'}</TableCell>
-                      <TableCell>{v ? `${v.minServiceMonths} m` : '—'}</TableCell>
-                      <TableCell>{v ? (v.topUpAllowed ? t('Allowed') : t('No')) : '—'}</TableCell>
-                      <TableCell><StateChip state={r.status} map={PRODUCT_STATUS} /></TableCell>
-                      <TableCell>{r.configuration ? <Chip size="small" color={r.configuration.ready ? 'success' : 'warning'} label={t(r.configuration.ready ? 'Ready' : 'Configuration incomplete')} title={r.configuration.missing?.join(' ')} /> : '—'}</TableCell>
-                      <TableCell><OpenChange change={r.openChange} href={`/admin/products/versions/${r.openChange?.id}`} /></TableCell>
-                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        {canMake && !r.openChange && r.status !== 'not_live' && (
-                          <>
-                            <Button size="small" onClick={() => setDialog({ kind: 'change', row: r })}>{t('Change')}</Button>{' '}
-                            {r.status === 'active' && <Button size="small" onClick={() => setDialog({ kind: 'deactivate', row: r })}>{t('Deactivate')}</Button>}{' '}
-                          </>
-                        )}
-                        <Button size="small" variant="text" component={RouterLink} to={`/admin/products/${r.id}`}>{t('History')}</Button>
+                      <TableCell>{r.openChange?.state === 'pending_approval' ? <Chip size="small" color="warning" label={r.openChange.stageLabel ? t('Awaiting {stage}', { stage: r.openChange.stageLabel }) : t('Pending approval')} /> : <StateChip state={r.status} map={PRODUCT_STATUS} />}</TableCell>
+                      <TableCell>{r.configuration ? <span title={r.configuration.missing?.join(' ')}>{t(r.configuration.ready ? 'Ready' : 'Needs setup')}</span> : '—'}</TableCell>
+                      <TableCell align="right">
+                        <Button size="small" aria-label={t('Actions for {name}', { name: r.name })} onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuRow(r); }}>{t('Actions')}</Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -203,7 +206,14 @@ export default function ProductsPage() {
             </Table>
           </div>
         </Card>
+        <PricingCard pricing={pricing} canMake={canMake} onChange={() => setDialog({ kind: 'pricing' })} />
       </div>
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+        <MenuItem component={RouterLink} to={menuRow ? `/admin/products/${menuRow.id}` : '#'} onClick={() => setMenuAnchor(null)}>{t('View change history')}</MenuItem>
+        {menuRow?.openChange && <MenuItem component={RouterLink} to={`/admin/products/versions/${menuRow.openChange.id}`} onClick={() => setMenuAnchor(null)}>{t('View open change')}</MenuItem>}
+        {canMake && menuRow && !menuRow.openChange && menuRow.status !== 'not_live' && <MenuItem onClick={() => { setDialog({ kind: 'change', row: menuRow }); setMenuAnchor(null); }}>{t('Change product')}</MenuItem>}
+        {canMake && menuRow?.status === 'active' && !menuRow.openChange && <MenuItem onClick={() => { setDialog({ kind: 'deactivate', row: menuRow }); setMenuAnchor(null); }}>{t('Deactivate')}</MenuItem>}
+      </Menu>
 
       {dialog?.kind === 'pricing' && (
         <ChangeDialog
