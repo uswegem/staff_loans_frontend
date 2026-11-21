@@ -414,6 +414,26 @@ describe('documents only for products that need them', () => {
     expect(screen.queryByText('None attached')).toBeNull();
   });
 
+  it('documents: says what is needed and flags a missing one only after Review application', async () => {
+    open({ ...carLoan, documents: [] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+    expect(await screen.findByText('Add at least 1 file (up to 2)')).toBeInTheDocument();
+    expect(screen.getByText('Add Invoice to continue.')).toBeInTheDocument();
+    expect(screen.queryByText('Required document missing')).toBeNull();
+    expect(screen.queryByText('No supporting documents attached.')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Review application' }));
+    expect(screen.getByText('Required document missing')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue to agreement' })).toBeNull();
+  });
+
+  it('documents: each file is listed once, under its requirement', async () => {
+    open(carLoan);
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+    expect(await screen.findByText('1 file added ✓ (up to 2)')).toBeInTheDocument();
+    expect(screen.getAllByText('invoice.pdf')).toHaveLength(1);
+    expect(screen.queryByRole('columnheader', { name: 'Uploaded by' })).toBeNull();
+  });
+
   it('a product with required documents keeps the documents step and the Documents card', async () => {
     open(carLoan);
     await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
@@ -423,5 +443,20 @@ describe('documents only for products that need them', () => {
     const card = documentsCard().closest('.MuiCard-root');
     expect(within(card).getByText('invoice.pdf')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  });
+});
+
+describe('correcting a returned application', () => {
+  it('shows what the reviewer asked for at the top of the form', async () => {
+    const returned = {
+      ...app,
+      status: 'returned',
+      route: { key: 'nonmgmt', stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] },
+      history: [{ action: 'return', stage: 'credit', at: '2026-11-20T06:00:00Z', comment: 'Add the CRDB loan under other loans.' }],
+    };
+    stubHttp({ 'GET /applications/a1': () => [200, { data: returned }], 'PATCH /applications/a1': () => [200, { data: returned }] });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+    expect(await screen.findByText('Returned by the Credit Analyst on 20 Nov 2026')).toBeInTheDocument();
+    expect(screen.getByText('Add the CRDB loan under other loans.')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ApplicationPage from './ApplicationPage';
 import { renderAt } from '../../test/render';
 import { stubHttp } from '../../test/http';
@@ -46,5 +47,30 @@ describe('submitted application: Documents card (FR-09)', () => {
     }));
     expect(screen.getByRole('heading', { name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'invoice.pdf' })).toBeInTheDocument();
+  });
+});
+
+describe('application page: terms, history and withdrawing', () => {
+  const route = { key: 'nonmgmt', stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] };
+
+  it('shows the approved terms, with what was signed for underneath', async () => {
+    await open(submitted({ status: 'pending_reaccept', amount: 5000000, tenor: 36, approved: { amount: 4500000, tenor: 36, instalment: 136900 }, route }));
+    expect(screen.getAllByText('TZS 4,500,000').length).toBeGreaterThan(0);
+    expect(screen.getByText('TZS 136,900')).toBeInTheDocument();
+    expect(screen.getByText('Signed for')).toBeInTheDocument();
+    expect(screen.getByText('TZS 5,000,000 over 36 months')).toBeInTheDocument();
+  });
+
+  it('names the stage that decided', async () => {
+    await open(submitted({ route, history: [{ action: 'approve', stage: 'credit', at: '2026-11-20T07:00:00Z' }, { action: 'approve', stage: 'hr', at: '2026-11-21T07:00:00Z' }] }));
+    expect(screen.getByText('Approved by Credit Analyst')).toBeInTheDocument();
+    expect(screen.getByText('Approved by Head of HR')).toBeInTheDocument();
+  });
+
+  it('keeps Withdraw one step away, under More', async () => {
+    await open(submitted({ withdrawable: true, route }));
+    expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('menuitem', { name: 'Withdraw application' })).toBeInTheDocument();
   });
 });

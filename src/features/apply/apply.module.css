@@ -20,7 +20,7 @@
 
 /* product cards */
 .prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
-.prod { position: relative; text-align: left; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
+.prod { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; text-align: left; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
 .prod:hover { border-color: var(--strong); }
 .prod:disabled { cursor: not-allowed; opacity: .85; }
 .prod:disabled:hover { border-color: var(--line); }
@@ -125,3 +125,16 @@
 
 /* The loan estimate before there is anything to estimate */
 .empty { margin: 0; color: var(--ink-3); font-size: var(--fs-sm); line-height: 1.5; }
+
+/* Steps with the draft reference beside them. */
+.stepsRow { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.stepsRow > ol { margin-bottom: 0; }
+.stepsRow { margin-bottom: var(--s5); }
+
+/* Phones: instalment and Continue in a bar fixed to the bottom of the screen on the details step
+   (a sticky bar would not work inside the card, which clips its overflow). */
+.mobileBar { display: none; }
+@media (max-width: 600px) {
+  .mobileBar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 12px rgba(0,0,0,.08); }
+  .withMobileBar { padding-bottom: 72px; }
+}

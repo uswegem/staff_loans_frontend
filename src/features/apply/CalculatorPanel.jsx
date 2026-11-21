@@ -137,7 +137,8 @@ export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = 
         )}
         {hasPayslip && (
           <div className={s.calc} style={{ marginTop: 12 }}>
-            <div className={s.line}><span>{t('Room: the instalment you can afford')}</span><b>{t('TZS {amount} a month', { amount: formatNumber(q.combined.available) })}</b></div>
+            {/* The bar above already shows the limit; repeat Room only when it differs. */}
+            {!(ready && q.combined.available === q.maxInstalment) && <div className={s.line}><span>{t('Room: the instalment you can afford')}</span><b>{t('TZS {amount} a month', { amount: formatNumber(q.combined.available) })}</b></div>}
             <div className={s.line}><span>{t('You can borrow up to')}</span><b>{t('TZS {amount} over {n} months', { amount: formatNumber(q.maxAmount), n: q.maxTenor })}</b></div>
             {ready && tenor !== q.maxTenor && <div className={s.line}><span>{t('Over {n} months, up to', { n: tenor })}</span><b>TZS {formatNumber(q.maxAmountAtTenor)}</b></div>}
           </div>

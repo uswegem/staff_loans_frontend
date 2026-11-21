@@ -1,54 +1,66 @@
-// Home (prototype #/). For staff: profile completeness (decision 7) and, per product,
-// whether they can apply now or how many days until they can apply again or top up
-// (NS-02, NS-03). Applications and affordability join in milestone 4.
+// Home (prototype #/). For staff: profile completeness while it is incomplete (decision 7),
+// open applications, and per product whether they can apply now (with a direct Apply), the
+// open application that blocks it, or how many days until they can apply again (NS-02, NS-03).
+// Roles and the last sign-in are in the account menu.
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Link as RouterLink } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, Chip, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Alert, Button, Card, CardContent, Chip, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { profileApi } from '../../api/staff';
 import { applicationsApi } from '../../api/applications';
 import AppStatusChip from '../../components/AppStatusChip';
 import { OPEN } from '../../lib/statuses';
-import { formatDate, formatDateTime, formatTzs } from '../../lib/format';
+import { formatDate, formatTzs } from '../../lib/format';
+import { apiError } from '../../api/client';
 import Meter from '../../components/Meter';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import { useT } from '../../i18n';
 
-function Eligibility({ data }) {
+// Where an open application lives: drafts and returned ones continue in the wizard.
+const openPath = (a) => (['draft', 'returned'].includes(a.status) ? `/apply/${a.id}` : `/applications/${a.id}`);
+
+function Eligibility({ data, onApply, busy }) {
   const t = useT();
   return (
     <Card>
       <CardContent sx={{ p: 3 }}>
-        <h3 style={{ marginBottom: 4 }}>{t('Loans you can apply for')}</h3>
-        <p className="small muted">{t('Eligibility and reapplication waiting periods depend on each loan product. See the status and details below.')}</p>
+        <h3 style={{ marginBottom: 8 }}>{t('Loans you can apply for')}</h3>
         <div className="tablewrap">
           <Table size="small" aria-label={t('Loans you can apply for')}>
             <TableHead>
               <TableRow>
                 <TableCell>{t('Product')}</TableCell>
-                <TableCell>{t('Now')}</TableCell>
-                <TableCell>{t('Details')}</TableCell>
+                <TableCell align="right">{t('Now')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {data.products.map((p) => (
-                <TableRow key={p.productId}>
-                  <TableCell sx={{ fontWeight: 600 }}>{p.name}</TableCell>
-                  <TableCell>
-                    {p.canApply ? <Chip size="small" color="success" label={t('You can apply')} /> : p.daysRemaining ? <Chip size="small" color="warning" label={t(p.daysRemaining === 1 ? 'In {n} day' : 'In {n} days', { n: p.daysRemaining })} /> : <Chip size="small" label={t('Not yet')} />}
-                  </TableCell>
-                  <TableCell className="small">
-                    {p.daysRemaining > 0 && p.topUpAllowed && (
-                      <div>
-                        <b>{t(p.daysRemaining === 1 ? 'You can apply for a top-up in {n} day (from {date}).' : 'You can apply for a top-up in {n} days (from {date}).', { n: p.daysRemaining, date: formatDate(p.nextEligibleDate) })}</b>
-                      </div>
-                    )}
-                    {p.reasons.filter((r) => !r.startsWith('You can apply once your profile') && !r.startsWith(t('You can apply once your profile is complete.').slice(0, 24))).map((r) => <div key={r}>{r}</div>)}
-                    {p.canApply && (p.lastAppliedAt ? t('Last applied {date}.', { date: formatDate(p.lastAppliedAt) }) : '—')}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {data.products.map((p) => {
+                // The open application gets its own link; other reasons show under the name.
+                const reasons = p.reasons.filter((r) => !p.openApplication || !r.includes(p.openApplication.ref));
+                return (
+                  <TableRow key={p.productId}>
+                    <TableCell>
+                      <b>{p.name}</b>
+                      {!p.canApply && reasons.length > 0 && <div className="small muted">{reasons.join(' ')}</div>}
+                      {p.daysRemaining > 0 && p.topUpAllowed && (
+                        <div className="small muted">{t(p.daysRemaining === 1 ? 'You can apply for a top-up in {n} day (from {date}).' : 'You can apply for a top-up in {n} days (from {date}).', { n: p.daysRemaining, date: formatDate(p.nextEligibleDate) })}</div>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                      {p.openApplication ? (
+                        <Link component={RouterLink} to={openPath(p.openApplication)}>{t('Open: {ref}', { ref: p.openApplication.ref })}</Link>
+                      ) : p.canApply ? (
+                        <Button size="small" variant="outlined" disabled={busy} onClick={() => onApply(p)} aria-label={t('Apply for {product}', { product: p.name })}>{t('Apply')}</Button>
+                      ) : p.daysRemaining ? (
+                        <Chip size="small" color="warning" label={t(p.daysRemaining === 1 ? 'In {n} day' : 'In {n} days', { n: p.daysRemaining })} />
+                      ) : (
+                        <Chip size="small" label={t('Not yet')} />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -59,10 +71,13 @@ function Eligibility({ data }) {
 
 export default function Home() {
   const t = useT();
-  const { user, roles, permissions, mfaRequired } = useSelector((st) => st.auth);
+  const navigate = useNavigate();
+  const { user, permissions } = useSelector((st) => st.auth);
   const canApply = permissions.includes('loan.apply');
   const [elig, setElig] = useState(null);
   const [apps, setApps] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
   const firstName = user.fullName.split(' ')[0];
 
   useEffect(() => {
@@ -70,7 +85,21 @@ export default function Home() {
     if (canApply) applicationsApi.list().then(setApps).catch(() => setApps([]));
   }, [canApply]);
 
+  // Starts that product's application straight away, as choosing it on Apply does.
+  const startApplication = async (p) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const app = await applicationsApi.create(p.productId);
+      navigate(`/apply/${app.id}`);
+    } catch (err) {
+      setError(apiError(err).message);
+      setBusy(false);
+    }
+  };
+
   const c = elig?.profile;
+  const open = apps.filter((a) => OPEN.includes(a.status));
   return (
     <div className="page">
       <div className="pagehead">
@@ -82,23 +111,23 @@ export default function Home() {
             {user.department ? `, ${user.department}` : ''}
           </p>
         </div>
-        {canApply && <Button variant="contained" component={RouterLink} to="/apply">{t('Apply for a loan')}</Button>}
+        {canApply && c?.complete && <Button variant="contained" component={RouterLink} to="/apply">{t('Apply for a loan')}</Button>}
       </div>
       <div className="stack">
+        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
         {c && !c.complete && (
           <Alert severity="warning" action={<Button component={RouterLink} to="/profile" variant="contained" size="small">{t('Complete my profile')}</Button>}>
-            <AlertTitle>{t('You can apply once your profile is complete')}</AlertTitle>
-            {t('Missing: {list}.', { list: c.missing.map((m) => t(m.label)).join(', ') })}
+            {t('You can apply once your profile is complete and People and Culture have verified your date of birth.')}
           </Alert>
         )}
         {c?.complete && <ApplyBlockers blockers={elig.blockers} />}
-        {c && (
+        {c && !c.complete && (
           <Card>
             <CardContent sx={{ p: 3 }}>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                   <h3>{t('My profile')}</h3>
-                  <p className="small muted" style={{ margin: 0 }}>{c.complete ? t('Complete. Each application fills in from it.') : t('Complete every required detail once.')}</p>
+                  <p className="small muted" style={{ margin: 0 }}>{t('Complete every required detail once.')}</p>
                 </div>
                 <div style={{ minWidth: 240, flex: '0 1 320px' }}>
                   <Meter value={c.done} max={c.total} label={t('{done} of {total} required details', { done: c.done, total: c.total })} />
@@ -107,14 +136,14 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
-        {apps.filter((a) => OPEN.includes(a.status)).length > 0 && (
+        {open.length > 0 && (
           <Card>
             <CardContent sx={{ p: 3 }}>
               <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
                 <h3>{t('Open applications')}</h3>
                 <Link component={RouterLink} to="/applications">{t('All my applications')}</Link>
               </div>
-              {apps.filter((a) => OPEN.includes(a.status)).map((a) => (
+              {open.map((a) => (
                 <div key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--line-2)' }}>
                   <span>
                     <Link component={RouterLink} to={a.status === 'draft' ? `/apply/${a.id}` : `/applications/${a.id}`} sx={{ fontWeight: 600 }}>{a.ref}</Link> {a.product}{a.amount ? `, ${formatTzs(a.amount)}` : ''}
@@ -125,21 +154,8 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
-        {elig && <Eligibility data={elig} />}
-        <Card>
-          <CardContent sx={{ p: 3 }}>
-            <h3 style={{ marginBottom: 8 }}>{t('Your access')}</h3>
-            <div className="row" style={{ marginBottom: 12 }}>
-              {roles.map((r) => (
-                <span key={r.id} className="tag">{r.name}</span>
-              ))}
-            </div>
-            <p className="small muted" style={{ margin: 0 }}>
-              {t('Last sign-in {when}.', { when: formatDateTime(user.lastLoginAt) })} {mfaRequired ? t('You confirm a one-time code at every sign-in.') : ''}{' '}
-              <Link component={RouterLink} to="/account/access">{t('See all your permissions')}</Link>
-            </p>
-          </CardContent>
-        </Card>
+        {/* While the profile is incomplete every product shows the same reason: the alert above says it once. */}
+        {elig && c?.complete && <Eligibility data={elig} onApply={startApplication} busy={busy} />}
       </div>
     </div>
   );
