@@ -17,6 +17,7 @@ import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import WithdrawDialog from '../../components/WithdrawDialog';
+import { needsDocuments } from '../../lib/products';
 
 const ACTIONS = {
   create: ['Started', ''],
@@ -192,20 +193,22 @@ export default function ApplicationPage() {
                 </CardContent>
               </Card>
             )}
-            <Card>
-              <CardContent sx={{ p: 3 }}>
-                <h3 style={{ marginBottom: 12 }}>{t('Documents')}</h3>
-                {app.documents.length ? (
-                  app.documents.map((d) => (
-                    <div key={d.id}>
-                      <Link component="button" type="button" onClick={() => downloadFile(`/files/${d.id}`, d.originalName).catch((e) => setError(apiError(e).message))}>{d.originalName}</Link>
-                    </div>
-                  ))
-                ) : (
-                  <span className="small muted">{t('None attached')}</span>
-                )}
-              </CardContent>
-            </Card>
+            {(needsDocuments(app.product) || app.documents.length > 0) && (
+              <Card>
+                <CardContent sx={{ p: 3 }}>
+                  <h3 style={{ marginBottom: 12 }}>{t('Documents')}</h3>
+                  {app.documents.length ? (
+                    app.documents.map((d) => (
+                      <div key={d.id}>
+                        <Link component="button" type="button" onClick={() => downloadFile(`/files/${d.id}`, d.originalName).catch((e) => setError(apiError(e).message))}>{d.originalName}</Link>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="small muted">{t('None attached')}</span>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
         {app.schedule && <Schedule app={app} />}

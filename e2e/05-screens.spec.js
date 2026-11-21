@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '@playwright/test';
-import { as, attachPayslip, openFromQueue } from './helpers';
+import { as, attachPayslip, continueButton, openFromQueue } from './helpers';
 
 const OUT = path.resolve('test-results', 'screens');
 fs.mkdirSync(OUT, { recursive: true });
@@ -115,7 +115,7 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   await expect(daniel.getByLabel('Amount')).toHaveAttribute('aria-invalid', 'false');
   await shot(daniel, 'apply-details-open');
 
-  await daniel.getByRole('button', { name: 'Continue to documents' }).click();
+  await continueButton(daniel).click();
   await expect(daniel.getByText('Fill in the required fields.')).toBeVisible();
   await expect(daniel.getByText('Enter the amount you want to borrow.')).toBeVisible();
   await expect(daniel.getByText('Say what the loan is for.')).toBeVisible();
@@ -204,6 +204,12 @@ test('Room from the payslip on apply and review, in both languages and themes (D
     await daniel.getByLabel('Amount').fill('5000000');
     await daniel.getByLabel('Tenor (months)').fill('24');
     await choose(daniel, m);
+    // The payslip shows a Personal Loan deduction, so top-up starts ticked, saying why.
+    const topUp = daniel.getByRole('checkbox', { name: m.lang === 'sw' ? /nyongeza|ongeza/i : /This tops up an existing staff loan/ });
+    await expect(topUp).toBeChecked();
+    await expect(daniel.getByText(m.lang === 'sw' ? /Imewekewa alama kwa sababu hati yako ya mshahara inaonyesha makato ya Staff Loan - Personal/ : 'Ticked because your payslip shows a Staff Loan - Personal deduction for this product. Untick it if this is a separate loan.')).toBeVisible();
+    // A separate loan: unticked, every payslip deduction counts.
+    await topUp.uncheck();
     await daniel.getByText(m.lang === 'sw' ? /Jinsi kikomo chako/ : 'How your limit is worked out').click();
     await expect(daniel.getByText(m.lang === 'sw' ? 'Toa makato ya hati ya mshahara' : 'Less payslip deductions', { exact: true })).toBeVisible();
     await expect(daniel.getByText(m.lang === 'sw' ? 'Toa mikopo ya Mikopo ya Wafanyakazi ambayo bado haijaonekana kwenye hati ya mshahara' : 'Less SLAS loans not yet on the payslip')).toBeVisible();
@@ -211,7 +217,7 @@ test('Room from the payslip on apply and review, in both languages and themes (D
     await shot(daniel, `room-new-${m.lang}-${m.theme}`);
 
     // A top-up of the Personal Loan line on the payslip, with no Staff Loans record.
-    await daniel.getByRole('checkbox', { name: m.lang === 'sw' ? /nyongeza|ongeza/i : /This tops up an existing staff loan/ }).check();
+    await topUp.check();
     await expect(daniel.getByText(m.lang === 'sw' ? /Unaongeza makato ya hati ya mshahara Staff Loan - Personal/ : /Topping up the payslip deduction Staff Loan - Personal/)).toBeVisible();
     await expect(daniel.getByText('−70,000')).toBeVisible();
     await shot(daniel, `room-topup-${m.lang}-${m.theme}`);
