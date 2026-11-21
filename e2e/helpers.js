@@ -129,9 +129,12 @@ export async function attachPayslip(page, staffNo, { lfbLines = [] } = {}) {
   await expect(page.getByRole('button', { name: 'Replace' })).toBeVisible({ timeout: 30_000 });
 }
 
+/** The loan details step's Continue: "Continue to documents" when the product asks for documents, else "Continue". */
+export const continueButton = (page) => page.getByRole('button', { name: /^Continue( to documents)?$/ });
+
 /** From the loan details step to a signed, submitted application; returns its reference. */
 export async function signAndSubmit(page, { resubmit = false } = {}) {
-  await page.getByRole('button', { name: 'Continue to documents' }).click();
+  await continueButton(page).click();
   const reviewButton = page.getByRole('button', { name: 'Review application' });
   if (await reviewButton.isVisible()) await reviewButton.click();
   await page.getByRole('button', { name: 'Continue to agreement' }).click();

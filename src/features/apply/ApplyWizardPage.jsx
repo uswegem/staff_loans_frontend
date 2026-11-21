@@ -21,6 +21,7 @@ import SupportingDocuments from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
+import { needsDocuments } from '../../lib/products';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
@@ -44,13 +45,26 @@ const CONSENTS = [
   ['sms', 'Ninakubali kupokea ujumbe mfupi (SMS) kuhusu salio, malipo na malimbikizo ya mkopo huu.', "I agree to receive SMS about this loan's balance, payments and arrears."],
 ];
 
-function formOf(app) {
+/**
+ * Top-up starts ticked when the payslip shows a deduction for this product. Other products'
+ * deductions never count. A running Staff Loans loan alone does not either: the API allows a
+ * top-up only of a deduction on the payslip (D-101), so ticking it would only show an error.
+ */
+const canDefaultTopUp = (app) => !!app.product?.topUpAllowed && (app.deductions?.ownLines || []).length > 0;
+
+/**
+ * The form for an application. Until the staff member ticks or unticks top-up themselves
+ * (topUp.chosen), it is ticked by default when canDefaultTopUp; after, their choice is kept.
+ * withDefault false gives the values as the API holds them.
+ */
+function formOf(app, withDefault = true) {
+  const chosen = !!app.topUp?.chosen;
   return {
     amount: app.amount,
     tenor: app.tenor || Math.min(app.product.maxTenor, Math.max(app.product.minTenor, 12)),
     purpose: app.purpose || '',
     productFields: app.productFields || {},
-    topUp: { on: !!app.topUp?.on, payslipLine: app.topUp?.payslipLine?.label ? app.topUp.payslipLine : null },
+    topUp: { on: chosen ? !!app.topUp.on : !!app.topUp?.on || (withDefault && canDefaultTopUp(app)), chosen, payslipLine: app.topUp?.payslipLine?.label ? app.topUp.payslipLine : null },
     probationReason: app.probation?.reason || '',
   };
 }
@@ -61,7 +75,7 @@ function bodyOf(form, app) {
     tenor: form.tenor ?? null,
     purpose: form.purpose,
     productFields: form.productFields,
-    topUp: form.topUp.on ? { on: true, payslipLine: form.topUp.payslipLine || null } : { on: false },
+    topUp: form.topUp.on ? { on: true, chosen: !!form.topUp.chosen, payslipLine: form.topUp.payslipLine || null } : { on: false, chosen: !!form.topUp.chosen },
   };
   if (app.probation.onProbation) body.probationReason = form.probationReason;
   return body;
@@ -229,7 +243,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
           {p.topUpAllowed && (
             <div style={{ marginTop: 12 }}>
               <FormControlLabel
-                control={<Checkbox checked={form.topUp.on} onChange={(e) => set({ topUp: { ...form.topUp, on: e.target.checked } })} />}
+                control={<Checkbox checked={form.topUp.on} onChange={(e) => set({ topUp: { ...form.topUp, on: e.target.checked, chosen: true } })} />}
                 label={
                   <span>
                     <b>{t('This tops up an existing staff loan')}</b>
@@ -241,6 +255,9 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
               {form.topUp.on && (
                 // D-101: the loan topped up is a deduction on the payslip, in Staff Loans or not.
                 <div style={{ margin: '4px 0 8px 32px' }}>
+                  {!form.topUp.chosen && ownLines.length > 0 && (
+                    <p className="small muted" style={{ margin: '0 0 8px' }}>{t('Ticked because your payslip shows a {label} deduction for this product. Untick it if this is a separate loan.', { label: ownLines[0].label })}</p>
+                  )}
                   {shown('topUp.on') && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '0 0 8px' }}>{shown('topUp.on')}</p>}
                   {!app.payslip && <p className="small muted" style={{ margin: 0 }}>{t('Attach your payslip: the deduction being topped up is read from it.')}</p>}
                   {ownLines.length === 1 && (
@@ -288,7 +305,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
 
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
             <Button onClick={onBack}>{t('Back')}</Button>
-            <Button type="submit" variant="contained" disabled={busy}>{t('Continue to documents')}</Button>
+            <Button type="submit" variant="contained" disabled={busy}>{needsDocuments(p) ? t('Continue to documents') : t('Continue')}</Button>
           </div>
         </form>
       </Card>
@@ -385,13 +402,15 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
             {app.probation.onProbation && (<><dt>{t('Probation reason')}</dt><dd>{form.probationReason}</dd></>)}
           </dl>
         </Card>
-        <Card>
-          <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-            <h3>{t('Documents')}</h3>
-            <Button size="small" variant="text" onClick={() => onEdit(2)}>{t('Edit')}</Button>
-          </div>
-          <div className="small" style={{ padding: 24 }}>{app.documents.length ? app.documents.map((d) => <div key={d.id}>{d.originalName}</div>) : <span className="muted">{t('None attached')}</span>}</div>
-        </Card>
+        {(needsDocuments(p) || app.documents.length > 0) && (
+          <Card>
+            <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
+              <h3>{t('Documents')}</h3>
+              {needsDocuments(p) && <Button size="small" variant="text" onClick={() => onEdit(2)}>{t('Edit')}</Button>}
+            </div>
+            <div className="small" style={{ padding: 24 }}>{app.documents.length ? app.documents.map((d) => <div key={d.id}>{d.originalName}</div>) : <span className="muted">{t('None attached')}</span>}</div>
+          </Card>
+        )}
         <Card>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('What happens next')}</h3></div>
           <div style={{ padding: 24 }}>
@@ -557,7 +576,8 @@ export default function ApplyWizardPage() {
       if (n !== seq.current) return;
       setApp(a);
       setForm((f) => f || formOf(a));
-      saved.current = JSON.stringify(bodyOf(formOf(a), a));
+      // What the API holds, without the top-up default, so a default tick is still sent and checked.
+      saved.current = JSON.stringify(bodyOf(formOf(a, false), a));
       sent.current = saved.current;
     } catch (err) {
       if (n === seq.current) setError(apiError(err).message);
@@ -619,6 +639,9 @@ export default function ApplyWizardPage() {
     // A save that was on its way is dropped with its answer: send the latest values again.
     sent.current = saved.current;
     setApp(a);
+    // A new payslip can show, or stop showing, this product's deduction: apply the top-up
+    // default again, but never over the staff member's own choice.
+    setForm((f) => (f && !f.topUp.chosen ? { ...f, topUp: { ...f.topUp, on: canDefaultTopUp(a) } } : f));
   };
 
   const next = async () => {
@@ -630,7 +653,7 @@ export default function ApplyWizardPage() {
       if (Object.keys(c.fieldErrors).length || c.checks.length || c.eligibility.length) {
         setError(Object.keys(c.fieldErrors).length ? t('Fill in the required fields.') : c.eligibility[0] || c.checks[0]);
         setAttempt((n) => n + 1);
-      } else setStep((a.product?.requiredDocuments || []).some((d) => d.active !== false) ? 2 : 3);
+      } else setStep(needsDocuments(a.product) ? 2 : 3);
     } catch (err) {
       setSaveFailure(apiError(err));
     } finally {
@@ -677,13 +700,13 @@ export default function ApplyWizardPage() {
         </div>
         {!correcting && <Button variant="text" disabled={cancelling} onClick={cancelDraft}>{cancelling ? t('Cancelling…') : t('Cancel application')}</Button>}
       </div>
-      <Steps step={step} hasDocuments={(app.product?.requiredDocuments || []).some((d) => d.active !== false)} />
+      <Steps step={step} hasDocuments={needsDocuments(app.product)} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>
       {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
-      {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep((app.product?.requiredDocuments || []).some((d) => d.active !== false) ? 2 : 1)} onNext={() => setStep(4)} onEdit={setStep} />}
+      {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(needsDocuments(app.product) ? 2 : 1)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}
       </StepTransition>
     </div>
