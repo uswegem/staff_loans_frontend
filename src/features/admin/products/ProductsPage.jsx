@@ -80,7 +80,6 @@ function PricingCard({ pricing, canMake, onChange }) {
                     <TableCell align="right">{pct(b.rateBps, 0)}</TableCell>
                   </TableRow>
                 ))}
-                {filteredRows.length === 0 && <TableRow><TableCell colSpan={4}>{t('No products match these filters.')}</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div></>}
