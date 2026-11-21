@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { quote, roomInputs } from '../../lib/calc/loanCalculator';
 import ApplyWizardPage from './ApplyWizardPage';
@@ -70,7 +70,8 @@ const row = (label) => screen.getByText(label).closest('div');
 
 describe('Room on the apply screen (D-101)', () => {
   it('a new loan: limit, less every payslip deduction, less SLAS loans not yet on it, then Room', async () => {
-    await open(app());
+    // The staff member unticked top-up: a separate loan.
+    await open(app({ topUp: { on: false, chosen: true } }));
     // 668,750 − (150,000 + 100,000 + 70,000) − 60,000 = 288,750
     expect(within(row('Combined limit (50% of Net Pay)')).getByText('668,750')).toBeInTheDocument();
     expect(within(row('Less payslip deductions')).getByText('−320,000')).toBeInTheDocument();
@@ -106,13 +107,91 @@ describe('Room on the apply screen (D-101)', () => {
   it('a top-up with no deduction for the product shows why it is blocked', async () => {
     const message = 'Your payslip shows no Personal Loan deduction (Staff Loan - Personal), so there is no loan to top up. Untick top-up to apply for a new loan, or attach a payslip that shows it.';
     await open(app({ topUp: { on: true }, deductions: { lines: [lines[1]], ownLines: [], topUpLine: -1, topUpLoan: null, topUpCandidate: null, slas: [] }, checks: { eligibility: [], fieldErrors: { 'topUp.on': message }, checks: [], canSubmit: false } }));
-    await userEvent.click(screen.getByRole('button', { name: 'Continue to documents' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
   it('gives the same Room as the shared calculator', () => {
     const q = quote({ amount: 1000000, tenor: 12, pay: { basic: 1850000 }, existing: roomInputs({ lines, slas }), pricing: PRICING, maxTenor: 60 });
     expect(q.combined).toMatchObject({ cap: 668750, payslipDeductions: 320000, slasNotOnPayslip: 60000, available: 288750 });
+  });
+});
+
+describe('top-up starts ticked when the payslip shows this product (chosen)', () => {
+  const REASON = 'Ticked because your payslip shows a Staff Loan - Personal deduction for this product. Untick it if this is a separate loan.';
+  const box = () => screen.getByRole('checkbox', { name: /This tops up an existing staff loan/ });
+  const render = (data, routes = {}) => {
+    const calls = stubHttp({ 'GET /applications/a1': () => [200, { data }], 'PATCH /applications/a1': () => [200, { data }], ...routes });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+    return calls;
+  };
+  const patches = (calls) => calls.filter((c) => c.key === 'PATCH /applications/a1').map((c) => JSON.parse(c.config.data).topUp);
+
+  it("is ticked by default for this product's deduction, says why, and saves the default as not chosen", async () => {
+    const calls = render(app());
+    await screen.findByText('How your limit is worked out');
+    expect(box()).toBeChecked();
+    expect(screen.getByText(REASON)).toBeInTheDocument();
+    await waitFor(() => expect(patches(calls).at(-1)).toEqual({ on: true, chosen: false, payslipLine: null }), { timeout: 2000 });
+  });
+
+  it("is not ticked when the only deductions are another product's", async () => {
+    render(app({ deductions: { lines: [lines[1], lines[2]], ownLines: [], topUpLine: -1, topUpLoan: null, topUpCandidate: null, slas } }));
+    await screen.findByText('How your limit is worked out');
+    expect(box()).not.toBeChecked();
+    expect(screen.queryByText(/^Ticked because/)).toBeNull();
+  });
+
+  it('is not ticked for a running Staff Loans loan the payslip does not show (the API needs the deduction)', async () => {
+    const candidate = { applicationId: 'x2', ref: 'SL-2026-00041', productId: 'pl', status: 'pending_disbursement', instalment: 90000, firstDue: '2026-12-25' };
+    render(app({ deductions: { lines: [lines[1]], ownLines: [], topUpLine: -1, topUpLoan: null, topUpCandidate: candidate, slas: [] } }));
+    await screen.findByText('How your limit is worked out');
+    expect(box()).not.toBeChecked();
+  });
+
+  it('is not offered when the product cannot be topped up', async () => {
+    render(app({ product: { ...app().product, name: 'Staff Car Loan', topUpAllowed: false } }));
+    await screen.findByText('How your limit is worked out');
+    expect(screen.queryByRole('checkbox', { name: /This tops up an existing staff loan/ })).toBeNull();
+  });
+
+  it('a top-up the staff member ticked themselves gives no reason line', async () => {
+    render(app({ topUp: { on: true, chosen: true } }));
+    await screen.findByText('How your limit is worked out');
+    expect(box()).toBeChecked();
+    expect(screen.queryByText(REASON)).toBeNull();
+  });
+
+  it('unticking is saved as chosen and kept on reopening', async () => {
+    const calls = render(app());
+    await screen.findByText('How your limit is worked out');
+    await userEvent.click(box());
+    expect(box()).not.toBeChecked();
+    expect(screen.queryByText(REASON)).toBeNull();
+    await waitFor(() => expect(patches(calls).at(-1)).toEqual({ on: false, chosen: true }), { timeout: 2000 });
+  });
+
+  it('reopened after unticking: stays unticked, also when a new payslip is attached', async () => {
+    const unticked = app({ topUp: { on: false, chosen: true } });
+    // The new payslip still shows this product's deduction, which would otherwise tick it.
+    const calls = render(unticked, { 'POST /applications/a1/payslip': () => [201, { data: { ...unticked, payslip: { ...unticked.payslip, payDate: '2026-11-20' } } }] });
+    await screen.findByText('How your limit is worked out');
+    expect(box()).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Replace' }));
+    await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(calls.some((c) => c.key === 'POST /applications/a1/payslip')).toBe(true));
+    expect(box()).not.toBeChecked();
+    expect(screen.queryByText(REASON)).toBeNull();
+  });
+
+  it('a payslip attached after opening applies the default while nothing was chosen', async () => {
+    const noSlip = app({ payslip: null, deductions: { lines: [], ownLines: [], topUpLine: -1, topUpLoan: null, topUpCandidate: null, slas: [] } });
+    render(noSlip, { 'POST /applications/a1/payslip': () => [201, { data: app() }] });
+    expect(await screen.findByText('Attach your latest payslip to see your limit.')).toBeInTheDocument();
+    expect(box()).not.toBeChecked();
+    await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(box()).toBeChecked());
+    expect(screen.getByText(REASON)).toBeInTheDocument();
   });
 });
 

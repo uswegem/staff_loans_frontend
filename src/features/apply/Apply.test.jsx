@@ -88,7 +88,7 @@ const preview = {
 };
 
 async function toSignStep() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Continue to agreement' }));
   await screen.findByLabelText('Loan agreement text');
 }
@@ -164,12 +164,12 @@ describe('apply wizard', () => {
     it('on Continue shows every missing field, says so once, and focuses the first problem', async () => {
       stubHttp({ 'GET /applications/a1': () => [200, { data: blank }], 'PATCH /applications/a1': () => [200, { data: blank }] });
       renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
-      await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Continue' }));
       expect(await screen.findByText('Fill in the required fields.')).toBeInTheDocument();
       for (const m of ['Enter the amount you want to borrow.', 'Say what the loan is for.']) expect(screen.getByText(m)).toBeInTheDocument();
       expect(screen.getAllByText(blankErrors.payslip).length).toBeGreaterThan(0);
       expect(document.activeElement).toHaveAttribute('aria-labelledby', 'payslip-h');
-      expect(screen.getByRole('button', { name: 'Continue to documents' })).toBeInTheDocument(); // still on step 2
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument(); // still on step 2
     });
 
     it('explains the longest tenor when a longer one is typed (D-82)', async () => {
@@ -264,11 +264,11 @@ describe('apply wizard', () => {
     it('5: Continue is refused while a check fails and goes through once corrected', async () => {
       await open();
       await setAmount(350000000);
-      await userEvent.click(screen.getByRole('button', { name: 'Continue to documents' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
       expect(await screen.findByText('Fix this before you continue')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Supporting documents' })).not.toBeInTheDocument();
       await setAmount(4500000);
-      const go = screen.getByRole('button', { name: 'Continue to documents' });
+      const go = screen.getByRole('button', { name: 'Continue' });
       expect(go).toBeEnabled();
       await userEvent.click(go);
       expect(await screen.findByRole('button', { name: 'Continue to agreement' })).toBeInTheDocument();
@@ -389,5 +389,39 @@ describe('draft cancellation failure handling (SLAS-003)', () => {
     } finally {
       window.confirm = originalConfirm;
     }
+  });
+});
+
+describe('documents only for products that need them', () => {
+  const INVOICE = { code: 'invoice', name: 'Invoice', description: '', mandatory: true, minFiles: 1, maxFiles: 2, allowedTypes: ['pdf'], maxFileMb: 10, displayOrder: 0, active: true };
+  const carLoan = {
+    ...app,
+    product: { ...app.product, name: 'Staff Car Loan', topUpAllowed: false, requiredDocuments: [INVOICE] },
+    documents: [{ id: 'd1', originalName: 'invoice.pdf', documentCode: 'invoice', size: 1000, mime: 'application/pdf' }],
+  };
+  const open = (data) => {
+    stubHttp({ 'GET /applications/a1': () => [200, { data }], 'PATCH /applications/a1': () => [200, { data }] });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+  };
+  const documentsCard = () => screen.queryByRole('heading', { name: 'Documents' });
+
+  it('a product without required documents: Continue goes straight to a Review with no Documents card', async () => {
+    open(app);
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+    expect(screen.queryByRole('button', { name: 'Continue to documents' })).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Continue to agreement' })).toBeInTheDocument();
+    expect(documentsCard()).toBeNull();
+    expect(screen.queryByText('None attached')).toBeNull();
+  });
+
+  it('a product with required documents keeps the documents step and the Documents card', async () => {
+    open(carLoan);
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue to documents' }));
+    expect(await screen.findByText('Supporting documents')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Review application' }));
+    await screen.findByRole('button', { name: 'Continue to agreement' });
+    const card = documentsCard().closest('.MuiCard-root');
+    expect(within(card).getByText('invoice.pdf')).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
   });
 });
