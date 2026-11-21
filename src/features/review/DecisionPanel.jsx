@@ -12,7 +12,6 @@ import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
 
-const BUTTON = { approve: 'Approve application', return: 'Return to applicant', reject: 'Reject application' };
 
 export default function DecisionPanel({ app, onDone }) {
   const t = useT();
@@ -33,6 +32,13 @@ export default function DecisionPanel({ app, onDone }) {
       ? t('Final approval at the recommended terms. The applicant accepts the revised agreement, then OPS disburses.')
       : t('Final approval. The signed agreement takes effect and OPS disburses.')
     : t('Moves to {stage}.', { stage: t(p.nextStageLabel) });
+
+  // The button says what will happen: where an approval goes, whom a return goes to.
+  const applicantFirst = app.applicant?.firstName || (app.applicant?.fullName || '').split(' ')[0];
+  const buttonLabel = action === 'approve'
+    ? p.isFinal ? t('Approve (final approval)') : t('Approve and send to {stage}', { stage: t(p.nextStageLabel) })
+    : action === 'return' ? (applicantFirst ? t('Return to {name}', { name: applicantFirst }) : t('Return to applicant'))
+      : action === 'reject' ? t('Reject application') : t('Choose a decision');
 
   /** What still stops this decision, from the current choices (null when it can be sent). */
   const blocker = () => {
@@ -76,7 +82,7 @@ export default function DecisionPanel({ app, onDone }) {
         <h3>{t('Your decision')}</h3>
         {p.onBehalfOf && <span className="tag">{t('On behalf of {name}', { name: p.onBehalfOf })}</span>}
       </div>
-      <div style={{ padding: 24, display: 'grid', gap: 12 }}>
+      <div className={s.decisionBody} style={{ padding: 24, display: 'grid', gap: 12, alignContent: 'start' }}>
         {p.stage === 'pcm' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('You review in place of the Head of HR. After you approve, the CEO gives final approval.')}</Alert>}
         {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then OPS disburses.')}</Alert>}
         {p.stage === 'ceo' && app.route?.key === 'hrhead' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('The People and Culture Manager reviewed in place of the Head of HR. You give final approval.')}</Alert>}
@@ -148,8 +154,10 @@ export default function DecisionPanel({ app, onDone }) {
           ))}
         </div>
         <TextField label={t('Comment')} required={!!action && action !== 'approve'} multiline minRows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('Visible to the applicant and later approvers')} helperText={t('Required to return or reject.')} />
-        {problem && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: 0 }}>{problem}</p>}
-        <Button type="submit" variant="contained" fullWidth disabled={busy}>{BUTTON[action] ? t(BUTTON[action]) : t('Record decision')}</Button>
+      </div>
+      <div className={s.decisionFoot}>
+        {problem && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '0 0 8px' }}>{problem}</p>}
+        <Button type="submit" variant="contained" fullWidth disabled={busy}>{buttonLabel}</Button>
       </div>
     </form>
   );

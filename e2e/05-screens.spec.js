@@ -231,7 +231,8 @@ test('Room from the payslip on apply and review, in both languages and themes (D
     await choose(grace, { lang: 'en', theme: 'light' });
     await openFromQueue(grace, 'SL-2026-00025');
     await choose(grace, m);
-    await expect(grace.getByText(m.lang === 'sw' ? 'Nafasi: rejesho unaloweza kumudu' : 'Room: the instalment you can afford')).toBeVisible();
+    await grace.getByText(m.lang === 'sw' ? 'Ukokotoaji hatua kwa hatua' : 'Step-by-step calculation').click();
+    await expect(grace.getByText(m.lang === 'sw' ? 'Nafasi: kiasi cha rejesho ambacho mwombaji anaweza kumudu' : 'Room: the instalment the applicant can afford')).toBeVisible();
     await shot(grace, `room-review-${m.lang}-${m.theme}`);
     await grace.context().close();
   }

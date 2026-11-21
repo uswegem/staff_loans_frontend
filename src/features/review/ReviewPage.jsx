@@ -5,8 +5,8 @@
 // An Auditor's full view leaves out the payslip and salary details (D-102).
 
 import { useEffect, useState } from 'react';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-import { Alert, AlertTitle, Card, CardContent, Chip, Link } from '@mui/material';
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Alert, AlertTitle, Button, Card, CardContent, Chip, Link } from '@mui/material';
 import { reviewApi } from '../../api/review';
 import { downloadFile } from '../../api/staff';
 import SupportingDocuments from '../../components/SupportingDocuments';
@@ -20,21 +20,29 @@ import { Breakdown, Meter } from '../apply/CalculatorPanel';
 import DecisionPanel from './DecisionPanel';
 import s from '../apply/apply.module.css';
 import { translate, useT } from '../../i18n';
+import CardHeader from '../../components/CardHeader';
+import { formatPhone } from '../../lib/formats';
 
 const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', disburse: 'Disbursement confirmed' };
 const TONE = { approve: 'ok', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
 
-function Panel({ title, action, children }) {
+/** A titled card; collapsed starts it closed with a one-click "Show" (detail most decisions do not need). */
+function Panel({ title, action, children, collapsed = false }) {
+  const t = useT();
+  const [open, setOpen] = useState(!collapsed);
   return (
     <Card>
-      <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
-        <h3>{title}</h3>
-        {action}
-      </div>
-      <CardContent sx={{ p: 3 }}>{children}</CardContent>
+      <CardHeader
+        title={title}
+        action={collapsed ? <Button size="small" variant="text" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{open ? t('Hide') : t('Show')}</Button> : action}
+      />
+      {open && <CardContent sx={{ p: 3 }}>{children}</CardContent>}
     </Card>
   );
 }
+
+/** Whether a documents card has anything to show: required documents, files, or the bureau report. */
+const hasDocuments = (app) => (app.documentChecklist || []).length > 0 || (app.documents || []).length > 0 || !!app.crbReport;
 
 function Side({ app, onDone }) {
   const t = useT();
@@ -74,7 +82,7 @@ function LimitedReview({ app, onDone }) {
       <div className="pagehead">
         <div>
           <h1>{app.applicant.firstName} {app.applicant.lastName}</h1>
-          <p>{app.ref}, submitted {formatDate(app.submittedAt)}</p>
+          <p>{t('{ref}, submitted {date}', { ref: app.ref, date: formatDate(app.submittedAt) })}</p>
         </div>
         <div className="row"><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
       </div>
@@ -85,7 +93,7 @@ function LimitedReview({ app, onDone }) {
               <dt>{t('First Name')}</dt><dd>{app.applicant.firstName}</dd>
               <dt>{t('Surname')}</dt><dd>{app.applicant.lastName}</dd>
               <dt>{t('NIDA number')}</dt><dd className="num">{app.applicant.nida || t('Not on the profile')}</dd>
-              <dt>{t('Mobile number')}</dt><dd>{app.applicant.mobile || '—'}</dd>
+              <dt>{t('Mobile number')}</dt><dd>{app.applicant.mobile ? formatPhone(app.applicant.mobile) : t('Not on the profile')}</dd>
             </dl>
           </Panel>
           <Panel title={t('Loan request')}>
@@ -102,9 +110,11 @@ function LimitedReview({ app, onDone }) {
               <p className="xs muted" style={{ margin: '8px 0 0' }}>{t('Worked out from the payslip; pay details are not shared with you.')}</p>
             </Panel>
           )}
-          <Panel title={t('Supporting documents')}>
-            <SupportingDocuments documents={app.documents || []} documentChecklist={app.documentChecklist || []} />
-          </Panel>
+          {hasDocuments(app) && (
+            <Panel title={t('Supporting documents')}>
+              <SupportingDocuments documents={app.documents || []} documentChecklist={app.documentChecklist || []} />
+            </Panel>
+          )}
           {app.myDecisions.length > 0 && (
             <Panel title={t('Your decisions')}>
               {app.myDecisions.map((d) => (
@@ -113,7 +123,7 @@ function LimitedReview({ app, onDone }) {
             </Panel>
           )}
         </div>
-        <Card className={s.sticky}><Side app={app} onDone={onDone} /></Card>
+        <Card className={`${s.sticky} ${s.decisionCard}`}><Side app={app} onDone={onDone} /></Card>
       </div>
     </div>
   );
@@ -131,16 +141,17 @@ function FullReview({ app, onDone, onError }) {
       <div className="pagehead">
         <div>
           <h1>{a.fullName}, {app.product.name}</h1>
-          <p>{app.ref}, submitted {formatDate(app.submittedAt)}{app.cycle > 1 ? ', resubmitted after correction' : ''}</p>
+          <p>{t('{ref}, submitted {date}', { ref: app.ref, date: formatDate(app.submittedAt) })}{app.cycle > 1 ? `, ${t('resubmitted after correction')}` : ''}</p>
         </div>
         <div className="row"><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
       </div>
-      <Card sx={{ mb: 2.5 }}><CardContent sx={{ p: 3 }}><LoanRoute app={{ ...app, stageDueAt: app.due?.dueAt }} /></CardContent></Card>
       <div className={s.split}>
         <div className="stack">
+          {/* The route sits in the content column so the decision panel starts at the top. */}
+          <Card><CardContent sx={{ p: 3 }}><LoanRoute app={{ ...app, stageDueAt: app.due?.dueAt }} /></CardContent></Card>
           <Panel title={t('Loan request')} action={<span className="tag">{t('Signed on these terms')}</span>}>
             <dl className={s.kv}>
-              <dt>{t('Product')}</dt><dd>{app.product.name} (version {app.product.version})</dd>
+              <dt>{t('Product')}</dt><dd>{app.product.name} {t('(version {n})', { n: app.product.version })}</dd>
               <dt>{t('Amount')}</dt><dd>{formatTzs(app.amount)}</dd>
               <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: app.tenor })}</dd>
               <dt>{t('Purpose')}</dt><dd>{app.purpose}</dd>
@@ -164,10 +175,10 @@ function FullReview({ app, onDone, onError }) {
           {q && (
             <Panel title={t('Affordability at submission')} action={q.pass ? <Chip size="small" color="success" label={t('Within limit')} /> : <Chip size="small" color="error" label={t('Over limit')} />}>
               <p className="small" style={{ margin: '0 0 8px' }}>{t('Instalment')}{' '}<b>TZS {formatNumber(q.instalment)}</b>{' '}{t('of a limit of')}{' '}<b>TZS {formatNumber(q.maxInstalment)}</b> {t('({pct}% used).', { pct: Math.round((q.instalment / Math.max(q.maxInstalment, 1)) * 100) })} {t('From the payslip attached to the application.')}</p>
-              <Meter q={q} />
-              <details open style={{ marginTop: 12 }}>
+              <Meter q={q} viewer="reviewer" />
+              <details style={{ marginTop: 12 }}>
                 <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>{t('Step-by-step calculation')}</summary>
-                <div style={{ marginTop: 8, maxWidth: 520 }}><Breakdown q={q} deductions={app.deductions} topUp={app.topUp?.on} /></div>
+                <div style={{ marginTop: 8, maxWidth: 520 }}><Breakdown q={q} deductions={app.deductions} topUp={app.topUp?.on} viewer="reviewer" /></div>
               </details>
               {app.checks.length ? (
                 <Alert severity="error" sx={{ mt: 2 }}><AlertTitle>{t('Rule checks to note')}</AlertTitle><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{app.checks.map((c) => <li key={c}>{c}</li>)}</ul></Alert>
@@ -185,17 +196,17 @@ function FullReview({ app, onDone, onError }) {
               {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
             </Panel>
           )}
-          <Panel title={t('Applicant')}>
+          <Panel title={t('Applicant')} collapsed>
             <dl className={s.kv}>
               <dt>{t('Staff number')}</dt><dd>{a.staffNo}</dd>
               <dt>{t('Position')}</dt><dd>{a.title}, {a.department}</dd>
               <dt>{t('Work station')}</dt><dd>{a.station}</dd>
               <dt>{t('Category')}</dt><dd>{a.category}</dd>
-              <dt>{t('Route')}</dt><dd>{app.route.label}: {app.route.stageLabels.join(', ')}, then OPS</dd>
+              <dt>{t('Route')}</dt><dd>{t(app.route.label)}: {app.route.stageLabels.map((l) => t(l)).join(', ')}, {t('then OPS')}</dd>
               <dt>{t('NIDA number')}</dt><dd>{a.nida || '—'}</dd>
-              <dt>{t('Employment')}</dt><dd>{a.employmentType}, joined {formatDate(a.dateJoined)}</dd>
+              <dt>{t('Employment')}</dt><dd>{t('{type}, joined {date}', { type: t(a.employmentType), date: formatDate(a.dateJoined) })}</dd>
               <dt>{t('Retirement')}</dt><dd>{a.retirementDate ? formatDate(a.retirementDate) : t('No verified date of birth')}</dd>
-              <dt>{t('Mobile')}</dt><dd>{a.mobile}</dd>
+              <dt>{t('Mobile')}</dt><dd>{formatPhone(a.mobile)}</dd>
               <dt>{t('Next of kin')}</dt><dd>{a.nextOfKin ? `${[a.nextOfKin.firstName, a.nextOfKin.lastName].filter(Boolean).join(' ') || a.nextOfKin.name || ''} (${a.nextOfKin.relationship}), ${a.nextOfKin.phone}` : '—'}</dd>
               {!app.payHidden && <dt>{t('Staff loans declared')}</dt>}{!app.payHidden && <dd>{a.existingLfbLoans.map((l) => `${l.description || t('Staff loan')}${l.instalment ? `: ${t('{amount} a month', { amount: formatTzs(l.instalment) })}` : ''}`).join('; ') || t('None')}</dd>}
               <dt>{t('Staff loans in this system')}</dt><dd>{a.runningLoans.map((r) => `${r.ref}, ${formatTzs(r.amount)}`).join('; ') || t('None')}</dd>
@@ -220,10 +231,12 @@ function FullReview({ app, onDone, onError }) {
               {app.arrearsNote && <Alert severity="warning" sx={{ mt: 1.5 }}><AlertTitle>{t('Arrears recorded by Credit (BR-10)')}</AlertTitle>{app.arrearsNote}</Alert>}
             </Panel>
           )}
-          <Panel title={t('Documents')}>
-            <SupportingDocuments documents={app.documents} documentChecklist={app.documentChecklist} />
-            {app.crbReport && <p className="small" style={{ margin: '12px 0 0' }}>{t('Credit bureau report:')}{' '}<Link component="button" type="button" onClick={() => dl(`/files/${app.crbReport.id}`, app.crbReport.originalName)}>{app.crbReport.originalName}</Link></p>}
-          </Panel>
+          {hasDocuments(app) && (
+            <Panel title={t('Documents')}>
+              {((app.documentChecklist || []).length > 0 || (app.documents || []).length > 0) && <SupportingDocuments documents={app.documents} documentChecklist={app.documentChecklist} />}
+              {app.crbReport && <p className="small" style={{ margin: '12px 0 0' }}>{t('Credit bureau report:')}{' '}<Link component="button" type="button" onClick={() => dl(`/files/${app.crbReport.id}`, app.crbReport.originalName)}>{app.crbReport.originalName}</Link></p>}
+            </Panel>
+          )}
           <Panel title={t('History')}>
             <ul className={s.tl}>
               {app.history.map((h) => (
@@ -237,7 +250,7 @@ function FullReview({ app, onDone, onError }) {
             </ul>
           </Panel>
         </div>
-        <Card className={s.sticky}><Side app={app} onDone={onDone} /></Card>
+        <Card className={`${s.sticky} ${s.decisionCard}`}><Side app={app} onDone={onDone} /></Card>
       </div>
     </div>
   );
@@ -258,9 +271,14 @@ export default function ReviewPage() {
   const [app, setApp] = useState(null);
   const [error, setError] = useState(null);
 
+  const location = useLocation();
+  const [notice, setNotice] = useState(location.state?.toast || null);
+
   useEffect(() => {
+    setApp(null);
+    setNotice(location.state?.toast || null);
     reviewApi.get(id).then(setApp).catch((e) => setError(apiError(e)));
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error && !app) {
     return (
@@ -272,9 +290,21 @@ export default function ReviewPage() {
     );
   }
   if (!app) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={4} /></div>;
-  const onDone = (res) => navigate('/queue', { state: { toast: DONE[res.outcome]?.(app.ref), outcome: res.outcome, reference: app.ref } });
+  // After a decision: straight on to the next application waiting, or back to an empty queue.
+  const onDone = async (res) => {
+    const toast = DONE[res.outcome]?.(app.ref);
+    let next = null;
+    try {
+      next = (await reviewApi.queue('waiting')).items.find((i) => i.id !== app.id) || null;
+    } catch {
+      next = null;
+    }
+    if (next) navigate(`/review/${next.id}`, { state: { toast } });
+    else navigate('/queue', { state: { toast, outcome: res.outcome, reference: app.ref, empty: true } });
+  };
   return (
     <>
+      {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice(null)}>{notice} {t('This is the next application waiting for you.')}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error.message || error}</Alert>}
       {app.limited ? <LimitedReview app={app} onDone={onDone} /> : <FullReview app={app} onDone={onDone} onError={(m) => setError({ message: m })} />}
     </>

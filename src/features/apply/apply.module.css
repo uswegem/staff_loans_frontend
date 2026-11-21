@@ -138,3 +138,13 @@
   .mobileBar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 12px rgba(0,0,0,.08); }
   .withMobileBar { padding-bottom: 72px; }
 }
+
+/* Review: the decision panel stays in view on wide screens; its own content scrolls and the
+   submit button stays at its foot. */
+@media (min-width: 1001px) {
+  /* Short enough to fit below the page title on a 768px-high screen, so the button shows at once. */
+  .decisionCard { max-height: calc(100vh - var(--topbar-h) - 150px); display: flex; flex-direction: column; }
+  .decisionCard > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .decisionBody { overflow-y: auto; min-height: 0; flex: 1; }
+}
+.decisionFoot { padding: 12px 24px 20px; border-top: 1px solid var(--line-2); background: var(--surface); }

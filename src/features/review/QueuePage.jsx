@@ -2,8 +2,9 @@
 // working-hours clock. Limited-details rows show only the name (FR-55).
 
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Alert, AlertTitle, Card, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs } from '@mui/material';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { Alert, AlertTitle, Card, Link, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs } from '@mui/material';
 import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
 import { formatDate, formatNumber } from '../../lib/format';
@@ -19,7 +20,7 @@ export default function QueuePage() {
   const location = useLocation();
   const [toast, setToast] = useState(location.state?.toast || null);
   const [outcome, setOutcome] = useState(location.state?.outcome || null);
-  const [reference] = useState(location.state?.reference || null);
+  const canDelegate = useSelector((st) => st.auth.permissions).includes('review.delegate');
   const [tab, setTab] = useState('waiting');
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -35,11 +36,14 @@ export default function QueuePage() {
           <h1>{t('Review queue')}</h1>
           <p>{t('Applications waiting for your decision. Target: 8 working hours per stage, 48 for the CEO.')}</p>
         </div>
+        {canDelegate && <Link component={RouterLink} to="/delegation">{t('Away? Set a delegate')}</Link>}
       </div>
       {toast && ['moved', 'approved', 'revised'].includes(outcome) ? (
-        <SuccessScreen title={t('Decision recorded successfully')} message={toast} details={reference ? [{ label: t('Application reference'), value: reference }] : []} primaryAction={{ label: t('Continue reviewing'), onClick: () => { setToast(null); setOutcome(null); } }} />
+        <SuccessScreen title={t('Decision recorded successfully')} message={location.state?.empty ? `${toast} ${t('No more applications waiting for you.')}` : toast} primaryAction={{ label: t('Back to the queue'), onClick: () => { setToast(null); setOutcome(null); } }} />
       ) : toast && <Alert severity={outcome === 'rejected' ? 'info' : 'success'} sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {/* Explains the short rows once, only when there are some. */}
+      {data?.items.some((r) => r.limited) && <p className="small muted" style={{ margin: '0 0 12px' }}>{t('Limited details: management applicant; you see name, mobile and NIDA only.')}</p>}
       {data?.covering?.map((c) => (
         <Alert key={c.name} severity="info" sx={{ mb: 2 }}>
           <AlertTitle>{t('You are covering for {name} until {date}', { name: c.name, date: formatDate(c.until) })}</AlertTitle>
@@ -67,7 +71,7 @@ export default function QueuePage() {
                   <TableCell>{t('Product')}</TableCell>
                   <TableCell align="right">{t('Amount (TZS)')}</TableCell>
                   <TableCell align="right">{t('Tenor')}</TableCell>
-                  <TableCell>{t('Stage')}</TableCell>
+                  {tab === 'handled' && <TableCell>{t('Stage')}</TableCell>}
                   <TableCell>{tab === 'handled' ? t('Status') : t('Time left')}</TableCell>
                 </TableRow>
               </TableHead>
@@ -82,8 +86,8 @@ export default function QueuePage() {
                     {/* D-102: the Credit Analyst's rows show the product and requested terms too. */}
                     <TableCell>{r.product}</TableCell>
                     <TableCell align="right" className="num">{formatNumber(r.amount)}</TableCell>
-                    <TableCell align="right">{r.tenor} m</TableCell>
-                    <TableCell>{r.stageLabel || '—'}</TableCell>
+                    <TableCell align="right">{t('{n} months', { n: r.tenor })}</TableCell>
+                    {tab === 'handled' && <TableCell>{r.stageLabel ? t(r.stageLabel) : ''}</TableCell>}
                     <TableCell>{tab === 'handled' ? <AppStatusChip status={r.status} /> : <DueClock due={r.due} />}</TableCell>
                   </TableRow>
                 ))}
