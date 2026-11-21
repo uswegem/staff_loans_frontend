@@ -17,6 +17,7 @@ import PricingForm from './PricingForm';
 import { formatCompareValue } from './compareFormat';
 import s from './products.module.css';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 function Comparison({ comparison }) {
   const t = useT();
@@ -241,7 +242,7 @@ export default function VersionPage({ kind }) {
                 <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
                   {v.canEdit && (
                     <>
-                      <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
+                      <DateField label={t('Effective from')} value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
                       <TextField label={t('Why this change')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
                       <Button onClick={save} disabled={busy}>{t('Save draft')}</Button>
                       <Button variant="contained" onClick={submit} disabled={busy}>{t('Submit for approval')}</Button>

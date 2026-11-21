@@ -353,6 +353,7 @@ const SW = {
   'Disbursed by product': 'Kilichotolewa kwa bidhaa',
   'Disbursed loans register': 'Rejista ya mikopo iliyotolewa',
   'Disbursed on {date}': 'Ulitolewa tarehe {date}',
+  'Disbursed through Staff Loans ({n} loan)': 'Kilichotolewa kupitia Mikopo ya Wafanyakazi (mkopo {n})',
   'Disbursed through Staff Loans ({n} loans)': 'Kilichotolewa kupitia Mikopo ya Wafanyakazi (mikopo {n})',
   'Disbursement': 'Utoaji wa mkopo',
   'Disbursement confirmed': 'Utoaji umethibitishwa',
@@ -519,6 +520,7 @@ const SW = {
   'Instalment rounded up to': 'Rejesho linazungushwa juu hadi',
   'Instalment uses {pct}% of your limit': 'Rejesho linatumia {pct}% ya kikomo chako',
   'Insurance': 'Bima',
+  'Insurance ({rate} × {n} year)': 'Bima ({rate} × mwaka {n})',
   'Insurance ({rate} × {n} years)': 'Bima ({rate} × miaka {n})',
   'Insurance a year, pro-rata, one-off': 'Bima kwa mwaka, kwa uwiano, mara moja',
   'Interest': 'Riba',
@@ -1358,6 +1360,12 @@ const SW = {
   "Largest loan": "Mkopo mkubwa zaidi",
   "Worked out from the payslip; pay details are not shared with you.": "Imekokotolewa kutoka kwenye hati ya mshahara; taarifa za mshahara hazishirikishwi kwako.",
   "Payslip and salary details are not shown to Auditors.": "Hati ya mshahara na taarifa za mshahara hazionyeshwi kwa Wakaguzi.",
+  "Enter a date like 21 Nov 2026.": "Weka tarehe kama 21 Nov 2026.",
+  "Choose {date} or later.": "Chagua {date} au baadaye.",
+  "Choose {date} or earlier.": "Chagua {date} au kabla yake.",
+  "e.g. 21 Nov 2026": "mfano 21 Nov 2026",
+  "Choose a date": "Chagua tarehe",
+  "Sign out now": "Toka sasa",
 };
 
 export default SW;

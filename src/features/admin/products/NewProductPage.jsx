@@ -10,6 +10,7 @@ import { failureShown, useLiveErrors } from '../../../lib/validation';
 import ProductForm, { EMPTY_PRODUCT } from './ProductForm';
 import s from './products.module.css';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 export default function NewProductPage() {
   const t = useT();
@@ -64,7 +65,7 @@ export default function NewProductPage() {
           <Card className={s.sticky}>
             <CardContent sx={{ p: 3, display: 'grid', gap: 2 }}>
               <TextField label={t('Product code')} required value={code} onChange={(e) => setCode(e.target.value)} error={!!live.code} helperText={live.code?.join(' ') || '2 to 10 capital letters or digits. It never changes.'} inputProps={{ maxLength: 10, autoCapitalize: 'characters' }} />
-              <TextField label={t('Effective from')} type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
+              <DateField label={t('Effective from')} value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!live.effectiveFrom} helperText={live.effectiveFrom?.join(' ')} />
               <TextField label={t('Why this product')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
               <Button variant="contained" onClick={create} disabled={busy}>{t('Save draft')}</Button>
             </CardContent>

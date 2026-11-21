@@ -3,12 +3,13 @@
 // role change in Users.js; restyled as the prototype dialog. The server re-checks SoD.
 
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, AlertTitle, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { usersApi } from '../../../api/admin';
 import { apiError } from '../../../api/client';
 import { isoDay } from '../../../lib/format';
 import { conflictsFor, needsMfa } from './sod';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 export default function UserRolesDialog({ user, roles, catalogue, onClose, onSaved }) {
   const t = useT();
@@ -104,8 +105,8 @@ export default function UserRolesDialog({ user, roles, catalogue, onClose, onSav
                       {isStaff ? (
                         <span className="small muted">{t('Always')}</span>
                       ) : (
-                        <TextField
-                          type="date"
+                        <DateField
+                         
                           size="small"
                           sx={{ maxWidth: 180 }}
                           inputProps={{ 'aria-label': t('End date for {role}', { role: t(r.name) }), min: isoDay(new Date()) }}

@@ -15,6 +15,7 @@ import { todayEat } from '../../../lib/dates';
 import FileDrop from '../../../components/FileDrop';
 import AgreementDoc from '../../apply/AgreementDoc';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 const STATE = {
   pending_legal_approval: ['Pending Legal Approval', 'warning'],
@@ -88,7 +89,7 @@ function EditDialog({ editing, onClose, onSaved }) {
           {approved && <Alert severity="info">{t('Version {n} is approved, so it is not changed. Your edit is saved as a new version and waits for the Head of Legal; {n} stays in use until then.', { n: editing.version })}</Alert>}
           <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <TextField label={t('Version')} required value={form.version} onChange={set('version')} placeholder="2027.01" disabled={!!editing && !approved} />
-            <TextField label={t('Use from')} type="date" required value={form.effectiveFrom} onChange={set('effectiveFrom')} InputLabelProps={{ shrink: true }} inputProps={{ min: todayEat() }} />
+            <DateField label={t('Use from')} required value={form.effectiveFrom} onChange={set('effectiveFrom')} InputLabelProps={{ shrink: true }} inputProps={{ min: todayEat() }} />
           </div>
           <FileDrop accept=".txt,.md" label={t('The template text file')} inputLabel={t('Choose template text file')} hint={t('A .txt or .md file in the SLAS markup. Or paste the text below.')} onFile={readFile} />
           <TextField

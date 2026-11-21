@@ -10,6 +10,7 @@ import { formatDate } from '../../../lib/format';
 import { failureShown, useLiveErrors } from '../../../lib/validation';
 import s from '../../apply/apply.module.css';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -221,7 +222,7 @@ export default function WorkflowPage() {
               </TableBody>
             </Table>
             <form onSubmit={addHoliday} className="row" style={{ marginTop: 12 }}>
-              <TextField size="small" type="date" label={t('Holiday date')} value={holiday.date} onChange={(e) => setHoliday({ ...holiday, date: e.target.value })} InputLabelProps={{ shrink: true }} required />
+              <DateField size="small" label={t('Holiday date')} value={holiday.date} onChange={(e) => setHoliday({ ...holiday, date: e.target.value })} InputLabelProps={{ shrink: true }} required />
               <TextField size="small" label={t('Holiday name')} value={holiday.name} onChange={(e) => setHoliday({ ...holiday, name: e.target.value })} required />
               <Button type="submit" size="small" disabled={!holiday.date || holiday.name.trim().length < 2}>{t('Add holiday')}</Button>
             </form>

@@ -12,6 +12,7 @@ import { failureShown, useServerErrors } from '../../../lib/validation';
 import { formatDate } from '../../../lib/format';
 import UserRolesDialog from './UserRolesDialog';
 import { useT } from '../../../i18n';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const statusChip = (t) => ({
   active: <Chip size="small" color="success" label={t('Active')} />,
@@ -58,22 +59,6 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
           <Button type="submit" variant="contained" disabled={busy}>{t('Save')}</Button>
         </DialogActions>
       </form>
-    </Dialog>
-  );
-}
-
-function ConfirmDialog({ title, body, action, onClose, onConfirm }) {
-  const t = useT();
-  return (
-    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{title}</DialogTitle>
-      <DialogContent>
-        <p style={{ margin: 0 }}>{body}</p>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t('Cancel')}</Button>
-        <Button variant="contained" onClick={onConfirm}>{action}</Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -280,7 +265,7 @@ export default function UsersPage() {
         <ConfirmDialog title={t('Reset MFA')} body={t('{name} will be signed out and must set up their authenticator app again at the next sign-in.', { name: dialog.user.fullName })} action={t('Reset MFA')} onClose={() => setDialog(null)} onConfirm={() => run(() => usersApi.resetMfa(dialog.user.id), t('MFA reset for {name}.', { name: dialog.user.fullName }))} />
       )}
       {dialog?.type === 'deactivate' && (
-        <ConfirmDialog title={t('Deactivate user')} body={t('{name} is signed out and cannot sign in until reactivated. Their loan records stay.', { name: dialog.user.fullName })} action={t('Deactivate')} onClose={() => setDialog(null)} onConfirm={() => run(() => usersApi.deactivate(dialog.user.id), t('{name} is deactivated.', { name: dialog.user.fullName }))} />
+        <ConfirmDialog title={t('Deactivate user')} body={t('{name} is signed out and cannot sign in until reactivated. Their loan records stay.', { name: dialog.user.fullName })} destructive action={t('Deactivate')} onClose={() => setDialog(null)} onConfirm={() => run(() => usersApi.deactivate(dialog.user.id), t('{name} is deactivated.', { name: dialog.user.fullName }))} />
       )}
     </div>
   );

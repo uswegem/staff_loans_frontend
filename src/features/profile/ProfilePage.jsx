@@ -28,6 +28,7 @@ import NidaField from '../../components/fields/NidaField';
 import CountryField from '../../components/fields/CountryField';
 import AddressFields from '../../components/fields/AddressFields';
 import s from './profile.module.css';
+import DateField from '../../components/fields/DateField';
 
 const TABS = [
   ['personal', 'Personal details'],
@@ -111,9 +112,9 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
         <TextField select label={t('Marital status')} required={req('maritalStatus')} value={v.maritalStatus} onChange={set('maritalStatus')} onBlur={touch('maritalStatus')} error={!!errorOf('maritalStatus')} helperText={msg('maritalStatus')}>
           {MARITAL.map((m) => <MenuItem key={m} value={m}>{t(m)}</MenuItem>)}
         </TextField>
-        <TextField
+        <DateField
           label={t('Date of birth')}
-          type="date"
+         
           required={req('dob')}
           value={v.dob}
           onChange={set('dob')} onBlur={touch('dob')}
@@ -168,7 +169,7 @@ function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
       {!e.dateJoined && <Alert severity="warning" sx={{ mb: 2 }}><AlertTitle>{t('Profile Update Required')}</AlertTitle>{t('Your employment joining date is missing from your staff profile. Please enter your Date Joined before applying for a staff loan.')}</Alert>}
       <div style={{ marginBottom: 16 }}>
         {editingDate ? <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField type="date" label={t('Date Joined')} value={dateJoined} onChange={(event) => setDateJoined(event.target.value)} InputLabelProps={{ shrink: true }} error={!!dateError} helperText={dateError} inputProps={{ max: new Date().toISOString().slice(0, 10) }} />
+          <DateField label={t('Date Joined')} value={dateJoined} onChange={(event) => setDateJoined(event.target.value)} InputLabelProps={{ shrink: true }} error={!!dateError} helperText={dateError} inputProps={{ max: new Date().toISOString().slice(0, 10) }} />
           <Button variant="contained" onClick={saveDate}>{t('Save')}</Button>
           <Button onClick={() => { setEditingDate(false); setDateError(''); }}>{t('Cancel')}</Button>
         </div> : <Button variant="outlined" onClick={() => { setDateJoined(e.dateJoined || ''); setEditingDate(true); }}>{t('Update Date Joined')}</Button>}
@@ -300,7 +301,7 @@ function PayTab({ profile, onSave }) {
             <MenuItem value="">{t('Not sure')}</MenuItem>
             {products.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          <TextField label={t('Paid out on (optional)')} type="date" value={l.disbursedOn || ''} onChange={(e) => setL(i, { disbursedOn: e.target.value || null })} InputLabelProps={{ shrink: true }} />
+          <DateField label={t('Paid out on (optional)')} value={l.disbursedOn || ''} onChange={(e) => setL(i, { disbursedOn: e.target.value || null })} InputLabelProps={{ shrink: true }} />
           <MoneyInput label={t('Monthly instalment')} value={l.instalment} onChange={(val) => setL(i, { instalment: val })} />
           <IconButton aria-label={t('Remove staff loan {n}', { n: i + 1 })} onClick={() => setLfb(lfb.filter((_, j) => j !== i))}>×</IconButton>
         </div>

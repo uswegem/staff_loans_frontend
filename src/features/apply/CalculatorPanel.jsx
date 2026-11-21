@@ -2,7 +2,8 @@
 // Uses the same calculator module as the API (generated copy, PLAN 1a); the server
 // recomputes on every save and at signing.
 
-import { formatNumber } from '../../lib/format';
+import { formatNumber, formatDay } from '../../lib/format';
+import { plural } from '../../lib/plural';
 import { pct } from '../../lib/dates';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
@@ -148,8 +149,8 @@ export default function CalculatorPanel({ q, amount, tenor, topUp, hasPayslip = 
               <div className={s.line}><span>{t('Total interest')}</span><b>{formatNumber(q.totalInterest)}</b></div>
               <div className={s.line}><span>{t('Total to repay')}</span><b>{formatNumber(q.totalRepayable)}</b></div>
               <div className={s.line}><span>{topUp ? t('Processing fee ({rate}, top-up)', { rate: pct(q.rates.processingFeeBps) }) : t('Processing fee ({rate})', { rate: pct(q.rates.processingFeeBps) })}</span><b>{formatNumber(q.processingFee)}</b></div>
-              <div className={s.line}><span>{t('Insurance ({rate} × {n} years)', { rate: pct(q.rates.insuranceBps), n: years })}</span><b>{formatNumber(q.insuranceFee)}</b></div>
-              {q.firstDueDate && <div className={s.line}><span>{t('First instalment')}</span><b>{q.firstDueDate.split('-').reverse().join('/')}</b></div>}
+              <div className={s.line}><span>{t(plural(years, 'Insurance ({rate} × {n} year)', 'Insurance ({rate} × {n} years)'), { rate: pct(q.rates.insuranceBps), n: years })}</span><b>{formatNumber(q.insuranceFee)}</b></div>
+              {q.firstDueDate && <div className={s.line}><span>{t('First instalment')}</span><b>{formatDay(q.firstDueDate)}</b></div>}
             </div>
           </>
         )}

@@ -36,3 +36,12 @@
   .logo { height: 28px; }
   .who { padding: 4px; }
 }
+
+/* Phones: language and theme move into the account menu so the bar fits 360-390px. */
+.menuPrefs { display: none; }
+@media (max-width: 600px) {
+  .prefs { display: none !important; }
+  .menuPrefs { display: block; padding: var(--s2) var(--s4); }
+  .logo { height: 24px; }
+  .topbar { gap: var(--s1); }
+}
