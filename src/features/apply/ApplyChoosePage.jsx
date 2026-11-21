@@ -16,6 +16,7 @@ import s from './apply.module.css';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import WithdrawDialog from '../../components/WithdrawDialog';
 import { useT } from '../../i18n';
+import { plural } from '../../lib/plural';
 
 export default function ApplyChoosePage() {
   const t = useT();
@@ -80,7 +81,7 @@ export default function ApplyChoosePage() {
         <div className="pagehead"><div><h1>{t('Apply for a loan')}</h1></div></div>
         <Alert severity="warning" action={<Button variant="contained" size="small" component={RouterLink} to="/profile">{t('Complete profile')}</Button>}>
           <AlertTitle>{t('Complete your profile first')}</AlertTitle>
-          {t('Every application fills in from your profile, so all required details must be there.')} {t('Missing: {list}.', { list: elig.profile.missing.map((m) => t(m.label)).join(', ') })}
+          {t('Every application fills in from your profile, so all required details must be there.')} {t(plural(elig.profile.missing.length, '{n} detail left.', '{n} details left.'), { n: elig.profile.missing.length })}
         </Alert>
       </div>
     );
