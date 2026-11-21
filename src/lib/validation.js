@@ -111,5 +111,7 @@ export function useValidatedForm(initial, rules = {}) {
   );
   const errorOf = useCallback((k) => joined(server[k]) || (shown(k) ? checkValue(values[k], rules[k]) : null) || undefined, [server, values, rules, shown]);
   const invalid = useMemo(() => Object.keys(rules).filter((k) => checkValue(values[k], rules[k])), [values, rules]);
-  return { values, set, touch, attempt, shown, setValues, errorOf, setServerErrors: setServer, serverLeft: Object.keys(server).length, invalid };
+  // Changed since the form was filled in: used to warn before unsaved input is left behind.
+  const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(start.current), [values]);
+  return { values, set, touch, attempt, shown, setValues, errorOf, setServerErrors: setServer, serverLeft: Object.keys(server).length, invalid, dirty };
 }

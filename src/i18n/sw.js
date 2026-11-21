@@ -1387,6 +1387,16 @@ const SW = {
   "Signed for": "Ulisaini kwa",
   "Returned by the {stage} on {date}": "Lilirudishwa na {stage} tarehe {date}",
   "Returned on {date}": "Lilirudishwa tarehe {date}",
+  "Save and continue": "Hifadhi na endelea",
+  "Your limit is worked out from the payslip you attach to each application.": "Kiwango chako kinakokotolewa kutoka kwenye hati ya mshahara unayoambatisha kwa kila ombi.",
+  "Enter your date joined": "Weka tarehe uliyojiunga",
+  "Correct date joined": "Sahihisha tarehe ya kujiunga",
+  "{n} detail left.": "Imebaki taarifa {n}.",
+  "{n} details left.": "Zimebaki taarifa {n}.",
+  "Start with": "Anza na",
+  "Check and save": "Kagua na hifadhi",
+  "You have unsaved changes in {tab}. Save them first?": "Una mabadiliko ambayo hayajahifadhiwa katika {tab}. Uyahifadhi kwanza?",
+  "Stay": "Baki",
 };
 
 export default SW;

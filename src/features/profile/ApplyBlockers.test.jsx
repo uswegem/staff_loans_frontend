@@ -45,7 +45,7 @@ describe('apply blockers (D-97)', () => {
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('You cannot apply for a loan yet')).toBeInTheDocument();
     BLOCKERS.forEach((b) => expect(screen.getByText(b)).toBeInTheDocument());
-    await userEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
     expect(await screen.findByText('Profile complete.')).toBeInTheDocument();
     expect(screen.queryByText('Profile complete. You can now apply for a loan.')).toBeNull();
   });
@@ -53,7 +53,7 @@ describe('apply blockers (D-97)', () => {
   it('says "you can now apply" once nothing is in the way', async () => {
     stubHttp({ 'GET /me/profile': () => [200, { data: profile({ applyBlockers: [] }) }], 'PATCH /me/profile/personal': () => [200, { data: profile({ applyBlockers: [] }) }], ...LOCATIONS });
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
-    await userEvent.click(await screen.findByRole('button', { name: 'Save personal details' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Save and continue' }));
     expect(await screen.findByText('Profile complete. You can now apply for a loan.')).toBeInTheDocument();
     expect(screen.queryByText('You cannot apply for a loan yet')).toBeNull();
   });

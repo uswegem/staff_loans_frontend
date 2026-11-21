@@ -115,7 +115,7 @@ describe('profile validation (D-93)', () => {
     await pick('Ward', 'Chamwino');
     await userEvent.type(street, 'Mtaa wa Uhuru');
     expect(invalid(street)).toBe(false);
-    await userEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
     const body = JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/personal').config.data);
     expect(body.address).toEqual({ region: 'Dodoma', district: 'Dodoma', ward: 'Chamwino', street: 'Mtaa wa Uhuru', house: '' });
     expect(body).not.toHaveProperty('poBox');
@@ -144,7 +144,7 @@ describe('profile validation (D-93)', () => {
     expect(invalid(branch)).toBe(false);
     expect(invalid(acct)).toBe(false);
     // Saving shows what is still missing; each field then turns normal as soon as it is valid.
-    await userEvent.click(screen.getByRole('button', { name: 'Save bank details' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
     expect(invalid(branch)).toBe(true);
     expect(invalid(acct)).toBe(true);
     expect(await screen.findByText('Check the highlighted fields.')).toBeInTheDocument();

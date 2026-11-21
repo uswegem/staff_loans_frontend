@@ -32,8 +32,12 @@ describe('My profile (decision 7, FR-05)', () => {
   it('shows what is missing and counts it per tab', async () => {
     stubHttp({ 'GET /me/profile': () => [200, { data: profile() }] });
     renderAt('/profile', '/profile', <ProfilePage />, { permissions: ['loan.apply'] });
-    expect(await screen.findByText('You can apply once your profile is complete')).toBeInTheDocument();
-    expect(screen.getByText('Missing: Marital status, NIDA number, Account number.')).toBeInTheDocument();
+    // One line with a link to the first tab with gaps; the tab badges say where the rest are.
+    expect(await screen.findByText(/^3 details left\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Personal details' })).toBeInTheDocument();
+    expect(screen.queryByText(/^Missing:/)).toBeNull();
+    expect(screen.getByRole('tab', { name: /Personal details\s*2/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Bank details\s*1/ })).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '13 of 16 required details' })).toHaveAttribute('aria-valuenow', '13');
   });
 
@@ -44,7 +48,7 @@ describe('My profile (decision 7, FR-05)', () => {
     });
     renderAt('/profile', '/profile', <ProfilePage />);
     await userEvent.type(await screen.findByLabelText(/NIDA number/), '1998052041108');
-    await userEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
     expect(await screen.findByText('A NIDA number has 20 digits, for example 19890712-14112-00004-21.')).toBeInTheDocument();
   });
 
@@ -55,8 +59,8 @@ describe('My profile (decision 7, FR-05)', () => {
     });
     renderAt('/profile', '/profile', <ProfilePage />);
     await userEvent.type(await screen.findByLabelText(/NIDA number/), '19980520-41108-00031-26');
-    await userEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
-    expect(await screen.findByRole('button', { name: 'Save bank details' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+    expect(await screen.findByRole('button', { name: 'Save and continue' })).toBeInTheDocument();
     expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/personal').config.data).nida).toBe('19980520-41108-00031-26');
   });
 
@@ -78,8 +82,50 @@ describe('My profile (decision 7, FR-05)', () => {
     await userEvent.click(await screen.findByRole('tab', { name: /Pay and staff loans/ }));
     expect(screen.queryByLabelText('Medical aid')).toBeNull();
     expect(screen.queryByRole('checkbox')).toBeNull();
+    // Save appears once something has changed.
+    expect(screen.queryByRole('button', { name: 'Save existing staff loans' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a staff loan' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save existing staff loans' }));
-    expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/pay').config.data)).toEqual({ existingLfbLoans: [] });
+    expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/pay').config.data)).toEqual({ existingLfbLoans: [{ description: 'Staff loan (paper)', instalment: null, productId: null, disbursedOn: null }] });
+  });
+});
+
+describe('unsaved changes', () => {
+  it('switching tab with unsaved input asks first; Stay keeps it, Discard drops it', async () => {
+    const calls = stubHttp({ 'GET /me/profile': () => [200, { data: profile() }] });
+    renderAt('/profile', '/profile', <ProfilePage />);
+    const nida = await screen.findByLabelText(/NIDA number/);
+    await userEvent.type(nida, '19980520');
+    await userEvent.click(screen.getByRole('tab', { name: /Bank details/ }));
+    expect(screen.getByRole('dialog', { name: 'Unsaved changes' })).toHaveTextContent('You have unsaved changes in Personal details. Save them first?');
+    await userEvent.click(screen.getByRole('button', { name: 'Stay' }));
+    expect(screen.getByLabelText(/NIDA number/)).toHaveValue('19980520');
+    await userEvent.click(screen.getByRole('tab', { name: /Bank details/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(await screen.findByLabelText(/Account number/)).toBeInTheDocument();
+    expect(calls.some((c) => c.key.startsWith('PATCH'))).toBe(false);
+  });
+
+  it('Save in the dialog saves the tab, then opens the tab asked for', async () => {
+    const calls = stubHttp({
+      'GET /me/profile': () => [200, { data: profile() }],
+      'PATCH /me/profile/personal': () => [200, { data: profile() }],
+    });
+    renderAt('/profile', '/profile', <ProfilePage />);
+    await userEvent.type(await screen.findByLabelText(/NIDA number/), '19980520-41108-00031-26');
+    await userEvent.click(screen.getByRole('tab', { name: /Next of kin/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByLabelText(/Relationship/)).toBeInTheDocument();
+    expect(JSON.parse(calls.find((c) => c.key === 'PATCH /me/profile/personal').config.data).nida).toBe('19980520-41108-00031-26');
+  });
+
+  it('starts the bank details from the LFB account and their name', async () => {
+    stubHttp({ 'GET /me/profile': () => [200, { data: profile({ firstName: 'Rehema', lastName: 'Ally', bank: { bank: '', branch: '', accountName: '', accountNo: '' } }) }] });
+    renderAt('/profile', '/profile', <ProfilePage />);
+    await userEvent.click(await screen.findByRole('tab', { name: /Bank details/ }));
+    expect(screen.getByLabelText(/^Bank/)).toHaveValue('Letshego Faidika Bank');
+    expect(screen.getByLabelText(/Account name/)).toHaveValue('Rehema Ally');
+    expect(screen.queryByText(/Your LFB account is filled in for you/)).toBeNull();
   });
 });
 

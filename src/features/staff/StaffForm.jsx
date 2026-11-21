@@ -9,6 +9,7 @@ import PhoneField from '../../components/fields/PhoneField';
 import { RULES, checkValue, useServerErrors } from '../../lib/validation';
 import s from './staff.module.css';
 import { useT } from '../../i18n';
+import DateField from '../../components/fields/DateField';
 
 export const EMPTY_STAFF = {
   staffNo: '',
@@ -48,7 +49,10 @@ export default function StaffForm({ values, onChange, errors = {}, isNew, readOn
     const m = server(k) || (['workPhone', 'mobile', 'stationHead.phone'].includes(k) ? phoneErr(k) : null);
     return m ? t(m) : undefined;
   };
-  const f = (k, label, { hint, ...props } = {}) => <TextField {...props} label={t(label)} value={values[k] ?? ''} onChange={set(k)} error={!!err(k)} helperText={err(k) || (hint && t(hint))} disabled={readOnly} />;
+  const f = (k, label, { hint, type, ...props } = {}) => {
+    const Field = type === 'date' ? DateField : TextField;
+    return <Field {...props} {...(type && type !== 'date' ? { type } : {})} label={t(label)} value={values[k] ?? ''} onChange={set(k)} error={!!err(k)} helperText={err(k) || (hint && t(hint))} disabled={readOnly} />;
+  };
   const phone = (k, label, hint) => <PhoneField label={t(label)} value={values[k] ?? ''} onChange={set(k)} onBlur={leave(k)} error={!!err(k)} helperText={err(k) || (hint ? t(hint) : t('Optional.'))} disabled={readOnly} />;
 
   return (
