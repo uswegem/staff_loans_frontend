@@ -51,7 +51,7 @@ jobs:
           set -e
           # Restart the disposable API and in-memory MongoDB for each spec.
           # This prevents one applicant's loan from blocking later scenarios.
-          for spec in e2e/0{1,2,3,4,5,6}-*.spec.js; do
+          for spec in e2e/0{1,2,3,4,5,6,7}-*.spec.js; do
             echo "Running isolated browser suite: $spec"
             npm run e2e -- "$spec"
           done

@@ -3,11 +3,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Alert, Button, Card, CardContent, TextField } from '@mui/material';
+import { Alert, Button, Card, CardContent } from '@mui/material';
 import { dobApi } from '../../api/staff';
 import { apiError } from '../../api/client';
 import DobStatus from '../../components/DobStatus';
 import { useT } from '../../i18n';
+import DateField from '../../components/fields/DateField';
 
 export default function StaffDobCard({ staffId, canManage }) {
   const t = useT();
@@ -55,7 +56,7 @@ export default function StaffDobCard({ staffId, canManage }) {
         />
         {canManage && status && !status.pending && (
           <form onSubmit={propose} className="row" noValidate>
-            <TextField size="small" type="date" label={t('New date of birth')} value={dob} onChange={(e) => setDob(e.target.value)} InputLabelProps={{ shrink: true }} />
+            <DateField size="small" label={t('New date of birth')} value={dob} onChange={(e) => setDob(e.target.value)} InputLabelProps={{ shrink: true }} />
             <Button type="submit" size="small" disabled={!dob || busy}>{t('Send for verification')}</Button>
           </form>
         )}

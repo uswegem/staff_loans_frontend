@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Divider, ListItemText, Menu, MenuItem } from '@mui/material';
 import { authApi } from '../api/auth';
 import { sessionEnded } from '../store/authSlice';
+import PreferenceSwitches from './PreferenceSwitches';
 import s from './AppShell.module.css';
 import { useT } from '../i18n';
 
@@ -61,6 +62,10 @@ export default function AccountMenu() {
         <MenuItem onClick={() => go('/account/access')}>{t('My roles and permissions')}</MenuItem>
         <MenuItem onClick={() => go('/change-password')}>{t('Change password')}</MenuItem>
         <Divider />
+        {/* Shown on phones only, where the top bar has no room for them (AppShell.module.css). */}
+        <div className={s.menuPrefs}>
+          <PreferenceSwitches />
+        </div>
         <MenuItem onClick={signOut}>{t('Sign out')}</MenuItem>
       </Menu>
     </>

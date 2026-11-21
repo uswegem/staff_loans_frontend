@@ -7,6 +7,7 @@ import { auditApi, reportsApi } from '../../../api/reports';
 import { apiError } from '../../../api/client';
 import { formatDateTime } from '../../../lib/format';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 const pretty = (v) => JSON.stringify(v, null, 2);
 
@@ -46,8 +47,8 @@ export default function AuditPage() {
       <Card>
         <div className="row" style={{ padding: 16, borderBottom: '1px solid var(--line-2)' }}>
           <TextField size="small" sx={{ maxWidth: 340, flex: 1 }} label={t('Filter by user, action or reference')} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
-          <TextField size="small" type="date" label={t('From')} value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} />
-          <TextField size="small" type="date" label={t('To')} value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} />
+          <DateField size="small" label={t('From')} value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} />
+          <DateField size="small" label={t('To')} value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} />
           {data && <span className="small muted">{t('{n} entries', { n: data.total.toLocaleString('en-US') })}</span>}
         </div>
         <div className="tablewrap">

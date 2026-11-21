@@ -35,7 +35,7 @@ export default function SessionTimeoutDialog({ remaining, onStay, onLogOut }) {
         </p>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Button onClick={onLogOut} disabled={busy}>{t('Log out now')}</Button>
+        <Button onClick={onLogOut} disabled={busy}>{t('Sign out now')}</Button>
         <Button variant="contained" autoFocus onClick={stay} disabled={busy}>{busy ? t('Checking…') : t('Stay signed in')}</Button>
       </DialogActions>
     </Dialog>

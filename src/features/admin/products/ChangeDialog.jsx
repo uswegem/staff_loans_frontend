@@ -4,6 +4,7 @@ import { apiError } from '../../../api/client';
 import { failureShown, useServerErrors } from '../../../lib/validation';
 import { todayEat } from '../../../lib/dates';
 import { useT } from '../../../i18n';
+import DateField from '../../../components/fields/DateField';
 
 /** Starts a draft: asks for the effective date and a note, then opens the editor. */
 export default function ChangeDialog({ title, intro, action, onClose, onCreate }) {
@@ -37,7 +38,7 @@ export default function ChangeDialog({ title, intro, action, onClose, onCreate }
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{intro}</p>
           {failureShown(failure, errors, server) && <Alert severity="error">{failure.message}</Alert>}
-          <TextField label={t('Effective from')} type="date" required value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!server('effectiveFrom')} helperText={server('effectiveFrom') || t('Applications submitted from this date use the new values. Running applications keep theirs.')} />
+          <DateField label={t('Effective from')} required value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} inputProps={{ min: todayEat() }} error={!!server('effectiveFrom')} helperText={server('effectiveFrom') || t('Applications submitted from this date use the new values. Running applications keep theirs.')} />
           <TextField label={t('Why this change')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} helperText={t('Shown to the checker.')} />
         </DialogContent>
         <DialogActions>

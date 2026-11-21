@@ -9,6 +9,7 @@ import { formatDate } from '../../lib/format';
 import { todayEat } from '../../lib/dates';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
+import DateField from '../../components/fields/DateField';
 
 const STATUS = { active: ['Active', 'success'], scheduled: ['Scheduled', 'default'], ended: ['Ended', 'default'] };
 
@@ -89,8 +90,8 @@ export default function DelegationPage() {
               renderInput={(params) => <TextField {...params} label={t('Delegate')} required helperText={t('They cannot review their own applications.')} />}
             />
             <div className={s.grid}>
-              <TextField label={t('From')} type="date" required value={from} onChange={(e) => setFrom(e.target.value)} inputProps={{ min: todayEat() }} />
-              <TextField label={t('Until')} type="date" required value={until} onChange={(e) => setUntil(e.target.value)} inputProps={{ min: from }} />
+              <DateField label={t('From')} required value={from} onChange={(e) => setFrom(e.target.value)} inputProps={{ min: todayEat() }} />
+              <DateField label={t('Until')} required value={until} onChange={(e) => setUntil(e.target.value)} inputProps={{ min: from }} />
             </div>
             <TextField label={t('Reason')} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('For example, annual leave')} />
             <div className="row"><Button type="submit" variant="contained" disabled={busy}>{t('Save delegation')}</Button></div>

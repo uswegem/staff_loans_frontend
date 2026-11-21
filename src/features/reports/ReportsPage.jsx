@@ -11,6 +11,8 @@ import { useSelector } from 'react-redux';
 import s from './reports.module.css';
 import { translate, useT } from '../../i18n';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
+import DateField from '../../components/fields/DateField';
+import { plural } from '../../lib/plural';
 
 const hm = (h) => translate('{h} h {m} min', { h: Math.floor(h), m: String(Math.round((h % 1) * 60)).padStart(2, '0') });
 
@@ -23,7 +25,7 @@ function Overview({ data }) {
       <div className={s.figures}>
         <Card><CardContent className={s.figure}><span className={s.v}>{data.inReview}</span><span className={s.k}>{t('In review now, {n} overdue', { n: data.overdue })}</span></CardContent></Card>
         <Card><CardContent className={s.figure}><span className={s.v}>{data.pendingDisbursement}</span><span className={s.k}>{t('Approved, not yet disbursed')}{data.outsideSla ? `; ${t('{n} outside SLA', { n: data.outsideSla })}` : ''}</span></CardContent></Card>
-        <Card><CardContent className={s.figure}><span className={s.v}>{formatTzs(data.disbursedAmount)}</span><span className={s.k}>{t('Disbursed through Staff Loans ({n} loans)', { n: data.disbursedCount })}</span></CardContent></Card>
+        <Card><CardContent className={s.figure}><span className={s.v}>{formatTzs(data.disbursedAmount)}</span><span className={s.k}>{t(plural(data.disbursedCount, 'Disbursed through Staff Loans ({n} loan)', 'Disbursed through Staff Loans ({n} loans)'), { n: data.disbursedCount })}</span></CardContent></Card>
       </div>
       <div className={s.two}>
         <Card>
@@ -78,8 +80,8 @@ function Filters({ def, options, value, onChange }) {
   if (!def.filters.length) return null;
   return (
     <div className={s.filters}>
-      {has('dates') && <TextField size="small" type="date" label={t('From')} value={value.from} onChange={set('from')} InputLabelProps={{ shrink: true }} />}
-      {has('dates') && <TextField size="small" type="date" label={t('To')} value={value.to} onChange={set('to')} InputLabelProps={{ shrink: true }} />}
+      {has('dates') && <DateField size="small" label={t('From')} value={value.from} onChange={set('from')} InputLabelProps={{ shrink: true }} />}
+      {has('dates') && <DateField size="small" label={t('To')} value={value.to} onChange={set('to')} InputLabelProps={{ shrink: true }} />}
       {has('groupBy') && (
         <TextField select size="small" label={t('Group by')} value={value.groupBy} onChange={set('groupBy')}>
           <MenuItem value="product">{t('Product')}</MenuItem>

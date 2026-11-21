@@ -104,6 +104,12 @@ export function makeTheme(mode = 'light') {
           root: { minHeight: 40, padding: '0 18px', borderRadius: 8, whiteSpace: 'nowrap', '&.Mui-focusVisible': focusRing },
           outlined: { borderColor: T.line, background: T.surface, color: T.ink, '&:hover': { borderColor: T.strong, color: T.strong, background: T.surface } },
           containedPrimary: { '&:hover': { background: T.y600 } },
+          // The default colour is 'inherit' so outlined and text buttons stay neutral; a
+          // contained button without an explicit colour is the page's primary action, so it
+          // takes the brand yellow instead of MUI's grey (which reads as disabled).
+          contained: ({ ownerState }) => (ownerState.color === 'inherit'
+            ? { background: T.y, color: '#000', '&:hover': { background: T.y600 }, '&.Mui-disabled': { background: T.line2, color: T.ink3 } }
+            : {}),
           text: { color: T.strong, textDecoration: 'underline', textUnderlineOffset: 3, padding: '0 10px', '&:hover': { background: T.brand050, textDecoration: 'underline' } },
           sizeSmall: { minHeight: 32, padding: '0 12px', fontSize: 14 },
         },
