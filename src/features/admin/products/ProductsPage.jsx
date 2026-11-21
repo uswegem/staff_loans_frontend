@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { Alert, AlertTitle, Box, Button, Card, Chip, Collapse, Link, Menu, MenuItem, Tab, Tabs, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Collapse, Link, Menu, MenuItem, Tab, Tabs, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { productsApi } from '../../../api/products';
 import { apiError } from '../../../api/client';
 import { formatDate, formatNumber } from '../../../lib/format';
