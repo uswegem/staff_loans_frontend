@@ -65,7 +65,7 @@ export const tokensFor = (mode) => (mode === 'dark' ? DARK : LIGHT);
 /** Light tokens; kept for code that only ever renders light (printed documents). */
 export const T = LIGHT;
 
-export function makeTheme(mode = 'light') {
+export function makeTheme(mode = 'light', t = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k]) : text)) {
   const T = tokensFor(mode);
   const focusRing = { outline: `3px solid ${T.strong}`, boxShadow: `0 0 0 6px ${T.y}`, outlineOffset: 2 };
   return createTheme({
@@ -179,6 +179,13 @@ export function makeTheme(mode = 'light') {
       MuiAutocomplete: { styleOverrides: { paper: { border: `1px solid ${T.line}`, boxShadow: T.shadow }, option: { '&.Mui-focused': { background: `${T.brand050} !important` } } } },
       MuiLink: { styleOverrides: { root: { color: T.ink, textUnderlineOffset: 3 } } },
       MuiSlider: { styleOverrides: { root: { color: T.strong } } },
+      MuiTablePagination: {
+        defaultProps: {
+          labelRowsPerPage: t('Rows per page:'),
+          labelDisplayedRows: ({ from, to, count }) => t('{from}–{to} of {count}', { from, to, count: count === -1 ? t('more than {to}', { to }) : count }),
+          getItemAriaLabel: (type) => t({ first: 'Go to first page', last: 'Go to last page', next: 'Go to next page', previous: 'Go to previous page' }[type]),
+        },
+      },
     },
   });
 }

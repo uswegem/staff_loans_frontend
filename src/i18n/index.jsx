@@ -49,10 +49,19 @@ export const currentLanguage = () => current;
 /** Fills {name} placeholders. */
 const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : m)) : text);
 
+/**
+ * Requirement and decision codes ("(BR-10)", "(D-88)", "(BRD 5.1, D-89)") are for
+ * developers. Text saved before they were taken out (role descriptions, review flags)
+ * can still carry them, so they are dropped from anything shown (UX review #10).
+ */
+const CODES = /\s*\((?:[^()]*?,\s*)?(?:BRD \d+(?:\.\d+)*|(?:D|BR|FR|NFR|NS|RP)-\d+)(?:\s*(?:,|to|and)\s*(?:BRD \d+(?:\.\d+)*|(?:D|BR|FR|NFR|NS|RP)-\d+))*\)/g;
+export const withoutCodes = (text) => text.replace(CODES, '');
+
 /** text in the current language (or lang), falling back to English. */
 export function translate(text, vars, lang = current) {
   if (typeof text !== 'string') return text;
-  return fill(lang === 'sw' ? (SW[text] ?? text) : text, vars);
+  const key = withoutCodes(text);
+  return fill(lang === 'sw' ? (SW[key] ?? key) : key, vars);
 }
 
 const Ctx = createContext({ language: 'en', theme: 'light', t: translate, setLanguage: () => {}, setTheme: () => {} });
@@ -111,7 +120,8 @@ export function PreferencesProvider({ children }) {
     }),
     [prefs, change]
   );
-  const muiTheme = useMemo(() => makeTheme(prefs.theme), [prefs.theme]);
+  // MUI's own words (table pagination) follow the interface language too.
+  const muiTheme = useMemo(() => makeTheme(prefs.theme, (text, vars) => translate(text, vars, prefs.language)), [prefs.theme, prefs.language]);
 
   return (
     <Ctx.Provider value={value}>

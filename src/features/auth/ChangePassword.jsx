@@ -9,8 +9,15 @@ import { profileUpdated } from '../../store/authSlice';
 import { useT } from '../../i18n';
 import PasswordField from '../../components/PasswordField';
 
-// Policy shown before typing (DECISIONS Q2). The server enforces it.
-const RULES = ['At least 8 characters', 'Three of: lower-case letters, capital letters, numbers, symbols', 'Not your staff number', 'Not one of your last 5 passwords'];
+// Policy shown before typing (DECISIONS Q2), ticked as the new password meets each rule.
+// The server enforces it; password history can only be checked there.
+const CLASSES = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/];
+export const RULES = [
+  ['At least 8 characters', (p) => p.length >= 8],
+  ['Three of: lower-case letters, capital letters, numbers, symbols', (p) => CLASSES.filter((re) => re.test(p)).length >= 3],
+  ['Not your staff number', (p, staffNo) => !!p && !!staffNo && !p.toLowerCase().includes(staffNo.toLowerCase())],
+  ['Not one of your last 5 passwords', null],
+];
 
 export default function ChangePassword() {
   const t = useT();
@@ -18,8 +25,8 @@ export default function ChangePassword() {
   const navigate = useNavigate();
   const user = useSelector((st) => st.auth.user);
   const [serverError, setServerError] = useState(null);
-  const [done, setDone] = useState(false);
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, setError, watch, reset, formState: { errors, isSubmitting } } = useForm();
+  const typed = watch('newPassword') || '';
 
   const onSubmit = async (v) => {
     setServerError(null);
@@ -27,8 +34,9 @@ export default function ChangePassword() {
     try {
       const profile = await authApi.changePassword(v.currentPassword, v.newPassword);
       dispatch(profileUpdated(profile));
-      setDone(true);
-      if (user.mustChangePassword) navigate('/', { replace: true });
+      // A short toast either way; after a temporary password the person goes on to Home.
+      reset();
+      navigate(user.mustChangePassword ? '/' : '/change-password', { replace: true, state: { toast: 'Password changed.' } });
     } catch (err) {
       const e = apiError(err);
       if (e.details?.currentPassword) setError('currentPassword', { message: e.details.currentPassword[0] });
@@ -46,7 +54,6 @@ export default function ChangePassword() {
           <p>{user.mustChangePassword ? t('You signed in with a temporary password. Choose your own to continue.') : t('Other sessions are signed out when you change it.')}</p>
         </div>
       </div>
-      {done && <Alert severity="success" sx={{ mb: 2 }}>{t('Password changed.')}</Alert>}
       {serverError && <Alert severity="error" sx={{ mb: 2 }}>{serverError}</Alert>}
       <Card>
         <CardContent sx={{ p: 3 }}>
@@ -56,7 +63,17 @@ export default function ChangePassword() {
             <PasswordField label={t('Repeat the new password')} autoComplete="new-password" required {...register('confirm', { required: 'Repeat the new password.' })} error={!!errors.confirm} helperText={errors.confirm?.message && t(errors.confirm.message)} />
             <Alert severity="info" icon={false}>
               <AlertTitle>{t('Your password needs')}</AlertTitle>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>{RULES.map((r) => <li key={r}>{t(r)}</li>)}</ul>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none' }} aria-live="polite">
+                {RULES.map(([r, check]) => {
+                  const met = check ? check(typed, user.staffNo) : null;
+                  return (
+                    <li key={r} style={{ display: 'flex', gap: 8, color: met ? 'var(--ok)' : undefined }}>
+                      <span aria-hidden="true" style={{ width: 16, fontWeight: 700 }}>{met ? '✓' : '•'}</span>
+                      <span>{t(r)}{met ? <span className="visually-hidden"> {t('(met)')}</span> : null}{check ? null : <span className="muted"> {t('(checked when you save)')}</span>}</span>
+                    </li>
+                  );
+                })}
+              </ul>
             </Alert>
             <div className="row">
               <Button type="submit" variant="contained" disabled={isSubmitting}>{t('Change password')}</Button>

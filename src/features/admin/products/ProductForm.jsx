@@ -202,7 +202,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
         ))}
         {!readOnly && <Button onClick={() => set('requiredDocuments')([...(values.requiredDocuments || []), { code: '', name: '', description: '', mandatory: true, minFiles: 1, maxFiles: 1, allowedTypes: ['pdf', 'jpg', 'jpeg', 'png'], maxFileMb: 10, displayOrder: (values.requiredDocuments || []).length, active: true }])}>{t('Add document requirement')}</Button>}
       </section>
-      <Section title="Loan Agreement" hint="Choose the legally approved agreement that applicants for this product must sign.">
+      <Section title={t('Loan agreement')} hint={t('Choose the legally approved agreement that applicants for this product must sign.')}>
         {agreementError && <Alert severity="warning">{agreementError}</Alert>}
         <TextField select fullWidth label={t('Approved loan agreement')} value={values.agreementTemplateId || ''} disabled={readOnly || !!agreementError} onChange={(e) => set('agreementTemplateId')(e.target.value || null)} helperText={err('agreementTemplateId') || t('A valid approved agreement is mandatory before configuration enforcement is activated.')} error={!!errors.agreementTemplateId}>
           <MenuItem value="">{t('Select a loan agreement')}</MenuItem>

@@ -242,8 +242,8 @@ export default function UsersPage() {
                     <div className="row" style={{ gap: 4 }}>
                       {u.assignments.map((a) => (
                         <span key={a.assignmentId} className="tag">
-                          {a.name}
-                          {a.endsOn ? ` until ${formatDate(a.endsOn)}` : ''}
+                          {t(a.name)}
+                          {a.endsOn ? ` ${t('until {date}', { date: formatDate(a.endsOn) })}` : ''}
                         </span>
                       ))}
                     </div>

@@ -3,6 +3,7 @@
 
 import s from '../features/apply/apply.module.css';
 import { translate, useT } from '../i18n';
+import { statusLabel } from '../lib/statuses';
 
 const STAGE_STATUS = { credit: 'pending_credit', pcm: 'pending_pcm', hr: 'pending_hr', ceo: 'pending_ceo' };
 
@@ -54,7 +55,7 @@ export default function LoanRoute({ app, compact }) {
       if (st.key === 'submit') return t('Draft');
       return hoursLeft(app.stageDueAt) || t('In progress');
     }
-    if (st.cls === 'stop') return t(app.statusLabel);
+    if (st.cls === 'stop') return statusLabel(app.status, app.statusLabel);
     return SUB[st.cls] ? t(SUB[st.cls]) : '';
   };
   return (

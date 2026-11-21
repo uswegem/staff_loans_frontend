@@ -38,7 +38,8 @@ test('sign-in screen in both languages and themes, desktop and phone', async ({ 
     await page.goto('/login');
     await choose(page, m);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(m.lang === 'sw' ? 'Mfumo wa Maombi ya Mikopo ya Wafanyakazi' : 'Staff Loan Application System');
-    await expect(page.getByText(m.lang === 'sw' ? 'Kwa matumizi ya ndani tu | Wasiliana na TEHAMA kwa msaada' : 'Internal use only | Contact IT for Support')).toBeVisible();
+    // One support wording on the panel and below the form (UX review #31).
+    await expect(page.getByText(m.lang === 'sw' ? 'Umesahau nenosiri? Wasiliana na Dawati la Huduma za TEHAMA.' : 'Forgot your password? Contact the IT Service Desk.', { exact: false })).toHaveCount(2);
     await shot(page, `login-${m.lang}-${m.theme}`);
     await page.setViewportSize({ width: 390, height: 844 });
     await shot(page, `login-${m.lang}-${m.theme}-phone`);

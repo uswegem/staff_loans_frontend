@@ -55,7 +55,7 @@ function StatusDialog({ current, onClose, onSave }) {
           </TextField>
           {status === 'exited' && <DateField label={t('Exit date')} required value={exitDate} onChange={(e) => setExitDate(e.target.value)} />}
           <TextField label={t('Reason')} multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
-          {status !== 'active' && <Alert severity="warning">{t('They are signed out at once and cannot sign in or apply. Their loan records stay visible to People and Culture and Finance (FR-04).')}</Alert>}
+          {status !== 'active' && <Alert severity="warning">{t('They are signed out at once and cannot sign in or apply. Their loan records stay visible to People and Culture and Finance.')}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>

@@ -63,7 +63,7 @@ export default function AccountMenu() {
             secondary={
               <>
                 {`${user.staffNo}${user.title ? `, ${user.title}` : ''}`}
-                {roles.length > 0 && <><br />{roles.map((r) => r.name).join(', ')}</>}
+                {roles.length > 0 && <><br />{roles.map((r) => t(r.name)).join(', ')}</>}
                 {user.lastLoginAt && <><br />{t('Last sign-in {when}.', { when: formatDateTime(user.lastLoginAt) })}</>}
               </>
             }

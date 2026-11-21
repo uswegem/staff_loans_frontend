@@ -20,4 +20,5 @@ export const STATUS = {
 
 export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_disbursement'];
 
-export const statusLabel = (s) => translate((STATUS[s] || [s])[0]);
+/** The label for a status key in the chosen language; the API's own label is the fallback. */
+export const statusLabel = (s, fallback) => translate(STATUS[s]?.[0] || fallback || s);
