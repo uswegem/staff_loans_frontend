@@ -16,6 +16,7 @@ import { apiError } from '../../api/client';
 import Meter from '../../components/Meter';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import { useT } from '../../i18n';
+import YourWork from './YourWork';
 
 // Where an open application lives: drafts and returned ones continue in the wizard.
 const openPath = (a) => (['draft', 'returned'].includes(a.status) ? `/apply/${a.id}` : `/applications/${a.id}`);
@@ -114,6 +115,7 @@ export default function Home() {
         {canApply && c?.complete && <Button variant="contained" component={RouterLink} to="/apply">{t('Apply for a loan')}</Button>}
       </div>
       <div className="stack">
+        <YourWork />
         {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
         {c && !c.complete && (
           <Alert severity="warning" action={<Button component={RouterLink} to="/profile" variant="contained" size="small">{t('Complete my profile')}</Button>}>

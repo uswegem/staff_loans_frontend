@@ -8,7 +8,8 @@ import { pct } from '../../lib/dates';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
 
-export function Meter({ q }) {
+// viewer 'reviewer' words it about the applicant ("the applicant's limit"), not to them.
+export function Meter({ q, viewer }) {
   const t = useT();
   const cap = Math.max(q.maxInstalment, 1);
   const use = (Math.min(q.instalment / cap, 1.3) / 1.3) * 100;
@@ -20,7 +21,11 @@ export function Meter({ q }) {
         <span className={s.cap} style={{ left: `${capAt}%` }} />
       </div>
       <div className="row xs" style={{ justifyContent: 'space-between' }}>
-        <span style={q.pass ? undefined : { color: 'var(--bad)', fontWeight: 600 }}>{q.pass ? t('TZS {amount} below your limit', { amount: formatNumber(q.headroom) }) : t('TZS {amount} over your limit', { amount: formatNumber(-q.headroom) })}</span>
+        <span style={q.pass ? undefined : { color: 'var(--bad)', fontWeight: 600 }}>
+          {viewer === 'reviewer'
+            ? q.pass ? t("TZS {amount} below the applicant's limit", { amount: formatNumber(q.headroom) }) : t("TZS {amount} over the applicant's limit", { amount: formatNumber(-q.headroom) })
+            : q.pass ? t('TZS {amount} below your limit', { amount: formatNumber(q.headroom) }) : t('TZS {amount} over your limit', { amount: formatNumber(-q.headroom) })}
+        </span>
         <span className="muted">{t('Limit {amount}', { amount: formatNumber(q.maxInstalment) })}</span>
       </div>
     </>
@@ -32,7 +37,7 @@ export function Meter({ q }) {
  * The combined limit and Room (D-87, D-101). A calculation saved before D-101 (other loans in
  * Staff Loans, a deduction added back for a top-up) is shown as it was worked out.
  */
-export function Combined({ q }) {
+export function Combined({ q, viewer }) {
   const t = useT();
   const less = (n) => (n ? `−${formatNumber(n)}` : '0');
   const c = q.combined;
@@ -55,7 +60,7 @@ export function Combined({ q }) {
       <div className={`${s.line} ${s.total}`}><span>{t('Combined limit ({pct} of Net Pay)', { pct: pct(q.rates.affordabilityBps, 0) })}</span><b>{formatNumber(c.cap)}</b></div>
       <div className={s.line}><span>{c.topUp ? t('Less payslip deductions other than the product being topped up') : t('Less payslip deductions')}</span><b>{less(c.payslipDeductions)}</b></div>
       <div className={s.line}><span>{t('Less SLAS loans not yet on the payslip')}</span><b>{less(c.slasNotOnPayslip)}</b></div>
-      <div className={`${s.line} ${s.total}`}><span>{t('Room: the instalment you can afford')}</span><b>{formatNumber(c.available)}</b></div>
+      <div className={`${s.line} ${s.total}`}><span>{viewer === 'reviewer' ? t('Room: the instalment the applicant can afford') : t('Room: the instalment you can afford')}</span><b>{formatNumber(c.available)}</b></div>
       <div className={s.line}><span>{t('New instalment')}</span><b>−{formatNumber(c.newInstalment)}</b></div>
       {remaining}
     </>
@@ -94,7 +99,7 @@ export function DeductionLines({ deductions, topUp }) {
   );
 }
 
-export function Breakdown({ q, deductions, topUp }) {
+export function Breakdown({ q, deductions, topUp, viewer }) {
   const t = useT();
   const ps = q.payslip;
   return (
@@ -105,7 +110,7 @@ export function Breakdown({ q, deductions, topUp }) {
       <div className={s.line}><span>{t('PAYE')}</span><b>{formatNumber(ps.tax)}</b></div>
       <div className={s.line}><span>{t('Total Deductions (Pension + PAYE)')}</span><b>{formatNumber(ps.totalDeductions)}</b></div>
       <div className={`${s.line} ${s.total}`}><span>{t('Net Pay (Basic Pay − Total Deductions)')}</span><b>{formatNumber(ps.net)}</b></div>
-      <Combined q={q} />
+      <Combined q={q} viewer={viewer} />
       <DeductionLines deductions={deductions} topUp={topUp ?? q.combined?.topUp} />
       <div className={s.line}><span>{t('Maximum amount over {n} months at {rate}', { n: q.maxTenor, rate: pct(q.rates.interestBps) })}</span><b>{formatNumber(q.maxAmount)}</b></div>
     </div>

@@ -136,14 +136,14 @@ describe('review screen', () => {
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
     await userEvent.click(screen.getByRole('radio', { name: /Return for correction/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Return to applicant' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Return to Daniel' }));
     expect(screen.getByText('Add a comment so the applicant knows what to do.')).toHaveAttribute('role', 'alert');
     await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve application' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
     expect(screen.getByText('Record the credit bureau outcome before approving.')).toHaveAttribute('role', 'alert');
     await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve application' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
     expect(body).toMatchObject({ action: 'approve', crb: { outcome: 'Low Risk' } });
@@ -155,7 +155,7 @@ describe('review screen', () => {
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
     await userEvent.click(screen.getByRole('radio', { name: /Return for correction/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Return to applicant' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Return to Daniel' }));
     expect(screen.getByText('Add a comment so the applicant knows what to do.')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Comment/), 'Attach a newer payslip.');
     expect(screen.queryByText('Add a comment so the applicant knows what to do.')).toBeNull();
@@ -184,7 +184,7 @@ describe('review screen', () => {
     expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Low Risk', 'Average Risk', 'High Risk', 'No Record Found']);
     await userEvent.click(within(screen.getByRole('listbox')).getByText('High Risk'));
     await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve application' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
     await screen.findByText('Elsewhere');
     const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
     expect(body.crb.outcome).toBe('High Risk');
@@ -226,7 +226,7 @@ describe('review screen', () => {
     renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
     expect(await screen.findByText('Less payslip deductions other than the product being topped up')).toBeInTheDocument();
     expect(screen.getByText('Less SLAS loans not yet on the payslip')).toBeInTheDocument();
-    expect(screen.getByText('Room: the instalment you can afford')).toBeInTheDocument();
+    expect(screen.getByText('Room: the instalment the applicant can afford')).toBeInTheDocument();
     expect(screen.getByText('(being topped up, not counted)')).toBeInTheDocument();
     expect(screen.getByText('(matches no product: counted, check with Payroll)')).toBeInTheDocument();
     expect(screen.getByText('Staff Loan - Personal, TZS 150,000 a month')).toBeInTheDocument();
@@ -262,9 +262,49 @@ describe('review queue', () => {
     expect(within(limitedRow).getByText('Limited details')).toBeInTheDocument();
     expect(within(limitedRow).getByText('Personal Loan')).toBeInTheDocument();
     expect(within(limitedRow).getByText('5,000,000')).toBeInTheDocument();
-    expect(within(limitedRow).getByText('24 m')).toBeInTheDocument();
+    expect(within(limitedRow).getByText('24 months')).toBeInTheDocument();
+    // The short rows are explained once, and the Stage column (always your own stage) is gone.
+    expect(screen.getByText('Limited details: management applicant; you see name, mobile and NIDA only.')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Stage' })).toBeNull();
     const row = screen.getByText('SL-2026-00030').closest('tr');
     expect(within(row).getByText('600,000')).toBeInTheDocument();
     expect(within(row).getByText('Overdue by 1 h 30 min')).toBeInTheDocument();
+  });
+});
+
+describe('review flow and reviewer wording', () => {
+  it('after a decision, the next application waiting opens with what was done', async () => {
+    stubHttp({
+      'GET /review/r1': () => [200, { data: limited }],
+      'GET /review/r9': () => [200, { data: { ...limited, id: 'r9', ref: 'SL-2026-00041' } }],
+      'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
+      'GET /queue': () => [200, { data: { counts: { waiting: 2, overdue: 0 }, items: [{ id: 'r1' }, { id: 'r9' }] } }],
+    });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    await userEvent.click(await screen.findByRole('combobox', { name: /Outcome/ }));
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
+    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
+    expect(await screen.findByText(/SL-2026-00028 approved and sent to the next stage\. This is the next application waiting for you\./)).toBeInTheDocument();
+    expect((await screen.findAllByText(/SL-2026-00041/)).length).toBeGreaterThan(0);
+  });
+
+  it('before a choice the button says to choose', async () => {
+    stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    expect(await screen.findByRole('button', { name: 'Choose a decision' })).toBeInTheDocument();
+  });
+
+  it("speaks about the applicant, keeps applicant details one click away, and leaves out an empty documents card", async () => {
+    const calcAtSubmission = { payslip: { basic: 1850000, pension: 185000, taxable: 1665000, tax: 327500, totalDeductions: 512500, net: 1337500 }, combined: { basis: 'payslip', cap: 668750, payslipDeductions: 0, slasNotOnPayslip: 0, topUp: false, available: 668750, newInstalment: 136900, remaining: 531850 }, rates: { interestBps: 600, affordabilityBps: 5000, pensionBps: 1000 }, instalment: 136900, maxInstalment: 668750, headroom: 531850, pass: true, maxTenor: 60, maxAmount: 25000000 };
+    stubHttp({ 'GET /review/r2': () => [200, { data: { ...full, calcAtSubmission, documents: [], documentChecklist: [], crbReport: null } }] });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
+    expect(await screen.findByText(/below the applicant's limit/)).toBeInTheDocument();
+    expect(screen.queryByText(/below your limit/)).toBeNull();
+    expect(screen.queryByText('Staff loans in this system')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(screen.getByText('Staff loans in this system')).toBeInTheDocument();
+    expect(screen.getByText('+255 713 448 902')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Documents' })).toBeNull();
   });
 });

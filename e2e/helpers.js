@@ -182,9 +182,12 @@ export async function decide(page, { action = 'approve', comment, crb, hrChecks 
   const radio = { approve: /^Approve/, return: /^Return for correction/, reject: /^Reject/ }[action];
   await page.getByRole('radio', { name: radio }).check();
   if (comment) await page.getByLabel('Comment').fill(comment);
-  const button = { approve: 'Approve application', return: 'Return to applicant', reject: 'Reject application' }[action];
+  // The button names the outcome ("Approve and send to Head of HR", "Return to Rehema").
+  const button = { approve: /^Approve (and send to|\(final approval\))/, return: /^Return to /, reject: 'Reject application' }[action];
+  const before = page.url();
   await page.getByRole('button', { name: button }).click();
-  await expect(page).toHaveURL(/\/queue/);
+  // Recorded: the next application waiting opens, or the queue when there is none.
+  await page.waitForURL((u) => u.toString() !== before);
 }
 
 /** Approves through every stage after credit for the given people (stage holders in order). */
