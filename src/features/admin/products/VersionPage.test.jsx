@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import VersionPage from './VersionPage';
 import { formatCompareValue } from './compareFormat';
@@ -63,9 +63,31 @@ describe('product version page (FR-59)', () => {
     expect(within(table).getByText('60')).toBeInTheDocument();
     expect(within(table).getByText('72')).toBeInTheDocument();
     expect(screen.getByLabelText(/^Name/)).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
-    expect(await screen.findByText('Approved.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Review and approve' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm approval' });
+    expect(within(dialog).getByText(/This is the final approval/)).toBeInTheDocument();
+    expect(calls.map((c) => c.key)).not.toContain('POST /admin/product-versions/v2/approve');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Approve version 2' }));
+    expect(await screen.findByText(/Product approved successfully/)).toBeInTheDocument();
     expect(calls.map((c) => c.key)).toContain('POST /admin/product-versions/v2/approve');
+  });
+
+  it('at the Head of Credit stage, confirming forwards the change instead of publishing it', async () => {
+    const calls = stubHttp({
+      'GET /admin/product-versions/v2': () => [200, { data: version({ stage: 'credit', stageLabel: 'Head of Credit' }) }],
+      'POST /admin/product-versions/v2/approve': () => [200, { data: version({ stage: 'risk', stageLabel: 'Head of Risk and Compliance', canCheck: false }) }],
+    });
+    page(['products.approveCredit']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Review and approve' }));
+    const dialog = screen.getByRole('dialog', { name: 'Confirm approval' });
+    expect(within(dialog).getByText(/It does not publish the product/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(calls.map((c) => c.key)).not.toContain('POST /admin/product-versions/v2/approve');
+    await userEvent.click(screen.getByRole('button', { name: 'Review and approve' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Confirm approval' })).getByRole('button', { name: 'Approve version 2' }));
+    expect(await screen.findByText('Approval recorded. Forwarded to Head of Risk and Compliance.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Review and approve' })).toBeNull();
   });
 
   it('rejecting needs a reason', async () => {
@@ -88,7 +110,7 @@ describe('product version page (FR-59)', () => {
     stubHttp({ 'GET /admin/product-versions/v2': () => [200, { data: version({ canCheck: false, canRecall: true, isEditor: true }) }] });
     page(['products.make']);
     expect(await screen.findByText(/someone else must approve it/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /approve/i })).toBeNull();
     expect(screen.getByRole('button', { name: 'Take back to draft' })).toBeInTheDocument();
   });
 

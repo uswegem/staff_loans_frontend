@@ -8,8 +8,8 @@ import { as } from './helpers';
 test('a product change needs the Head of Credit, then the Head of Risk and Compliance', async ({ browser }) => {
   const peter = await as(browser, 'LFB0274');
   await peter.goto('/admin/products');
-  const row = peter.getByRole('row').filter({ hasText: 'Vehicle Loan' });
-  await row.getByRole('button', { name: 'Change' }).click();
+  await peter.getByRole('button', { name: 'Actions for Vehicle Loan' }).click();
+  await peter.getByRole('menuitem', { name: 'Change product' }).click();
   const dialog = peter.getByRole('dialog');
   await dialog.getByLabel('Why this change').fill('Longer tenor agreed by the Credit Committee.');
   await dialog.getByRole('button', { name: 'Start draft' }).click();
@@ -24,17 +24,21 @@ test('a product change needs the Head of Credit, then the Head of Risk and Compl
   await expect(peter.getByRole('table', { name: 'Changes against the live version' })).toContainText('96');
   await peter.getByRole('button', { name: 'Submit for approval' }).click();
   await expect(peter.getByText(/Waiting for the Head of Credit\. You prepared or edited this change/)).toBeVisible();
-  await expect(peter.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+  await expect(peter.getByRole('button', { name: 'Review and approve' })).toHaveCount(0);
 
   const asha = await as(browser, 'LFB0010');
   await asha.goto('/admin/products');
-  await expect(asha.getByText('Waiting for your approval')).toBeVisible();
-  await asha.getByRole('link', { name: /Vehicle Loan \(VL\) version/ }).click();
+  await expect(asha.getByRole('heading', { name: 'Approval center' })).toBeVisible();
+  await asha.getByRole('link', { name: /^Review changes to Vehicle Loan \(VL\) version/ }).click();
   await expect(asha).toHaveURL(versionUrl);
   await expect(asha.getByText('Your approval sends it to the Head of Risk and Compliance.')).toBeVisible();
-  await asha.getByRole('button', { name: 'Approve' }).click();
+  await asha.getByRole('button', { name: 'Review and approve' }).click();
+  const ashaConfirm = asha.getByRole('dialog', { name: 'Confirm approval' });
+  await expect(ashaConfirm).toContainText('It does not publish the product.');
+  await ashaConfirm.getByRole('button', { name: /^Approve version \d+$/ }).click();
+  await expect(asha.getByText('Approval recorded. Forwarded to Head of Risk and Compliance.')).toBeVisible();
   await expect(asha.getByText(/Waiting for the Head of Risk and Compliance/)).toBeVisible();
-  await expect(asha.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+  await expect(asha.getByRole('button', { name: 'Review and approve' })).toHaveCount(0);
 
   // Not live yet: staff still see 60 months.
   const aisha = await as(browser, 'LFB0451');
@@ -44,8 +48,13 @@ test('a product change needs the Head of Credit, then the Head of Risk and Compl
   const daniel = await as(browser, 'LFB0067');
   await daniel.goto(versionUrl);
   await expect(daniel.getByText('Your approval publishes it on the effective date.')).toBeVisible();
-  await daniel.getByRole('button', { name: 'Approve' }).click();
-  await expect(daniel.getByText('Approved.').first()).toBeVisible();
+  await daniel.getByRole('button', { name: 'Review and approve' }).click();
+  const danielConfirm = daniel.getByRole('dialog', { name: 'Confirm approval' });
+  await expect(danielConfirm).toContainText('This is the final approval.');
+  await danielConfirm.getByRole('button', { name: /^Approve version \d+$/ }).click();
+  await expect(daniel.getByText(/^Product approved successfully/)).toBeVisible();
+  // Final approval returns the checker to the products workspace.
+  await expect(daniel).toHaveURL(/\/admin\/products$/);
 
   // Live from today: new applications see the longer tenor.
   await aisha.goto('/apply');
