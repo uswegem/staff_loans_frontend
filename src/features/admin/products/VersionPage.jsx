@@ -115,6 +115,8 @@ export default function VersionPage({ kind }) {
   const [failure, setFailure] = useState(null);
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [confirmingApproval, setConfirmingApproval] = useState(false);
+  const [approvalOutcome, setApprovalOutcome] = useState(null);
   // The last save's field errors, each until its field is changed.
   const live = useLiveErrors(errors, values && { ...values, effectiveFrom });
 
@@ -151,6 +153,25 @@ export default function VersionPage({ kind }) {
     }
   };
 
+  useEffect(() => {
+    if (approvalOutcome !== 'final') return undefined;
+    const timer = window.setTimeout(() => navigate('/admin/products', { replace: true }), 1800);
+    return () => window.clearTimeout(timer);
+  }, [approvalOutcome, navigate]);
+
+  const approve = async () => {
+    setConfirmingApproval(false);
+    const result = await act(() => vapi.approve(vid));
+    if (!result) return;
+    if (result.state === 'pending_approval') {
+      setMessage(t('Approval recorded. Forwarded to {stage}.', { stage: result.stageLabel || t('the next approver') }));
+      setApprovalOutcome('forwarded');
+    } else {
+      setMessage(t('Product approved successfully. Redirecting to Products and pricing…'));
+      setApprovalOutcome('final');
+    }
+  };
+
   const save = () => act(() => vapi.update(vid, { ...(v.changeType === 'deactivate' ? {} : { values }), effectiveFrom, note }), t('Draft saved. Check what changes, then submit it for approval.'));
   const submit = async () => {
     const saved = await act(() => vapi.update(vid, { ...(v.changeType === 'deactivate' ? {} : { values }), effectiveFrom, note }));
@@ -180,7 +201,7 @@ export default function VersionPage({ kind }) {
       </div>
 
       <div className="stack">
-        {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
+        {message && <Alert severity="success" role="status" onClose={() => setMessage(null)}>{message}{approvalOutcome === 'final' && <Button size="small" component={RouterLink} to="/admin/products" sx={{ ml: 2 }}>{t('Back to products')}</Button>}</Alert>}}
         {failureShown(failure, errors, live) && <Alert severity="error" onClose={() => setFailure(null)}>{failure.message}</Alert>}
         {v.rejectionReason && ['draft', 'rejected'].includes(v.state) && (
           <Alert severity="warning">
@@ -231,7 +252,7 @@ export default function VersionPage({ kind }) {
                   {v.canCheck && (
                     <>
                       <p className="small" style={{ margin: 0 }}>{t('Check every value and the comparison.')} {v.stage === 'credit' ? t('Your approval sends it to the Head of Risk and Compliance.') : t('Your approval publishes it on the effective date.')}</p>
-                      <Button variant="contained" onClick={() => act(() => vapi.approve(vid), t('Approved.'))} disabled={busy}>{t('Approve')}</Button>
+                      <Button variant="contained" onClick={() => setConfirmingApproval(true)} disabled={busy}>{t('Review and approve')}</Button>
                       <Button onClick={() => setRejecting(true)} disabled={busy}>{t('Reject')}</Button>
                     </>
                   )}
@@ -241,6 +262,15 @@ export default function VersionPage({ kind }) {
           </div>
         </div>
       </div>
+      <Dialog open={confirmingApproval} onClose={() => setConfirmingApproval(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('Confirm approval')}</DialogTitle>
+        <DialogContent>
+          <p>{t('You are approving {name}.', { name: title })}</p>
+          <p>{v.stage === 'credit' ? t('This forwards the request to the Head of Risk and Compliance. It does not publish the product.') : t('This is the final approval. The version will take effect on its configured date.')}</p>
+          <p className="small muted">{t('Review the live and proposed values in the comparison before confirming.')}</p>
+        </DialogContent>
+        <DialogActions><Button autoFocus onClick={() => setConfirmingApproval(false)}>{t('Cancel')}</Button><Button variant="contained" disabled={busy} onClick={approve}>{t('Approve version {n}', { n: v.version })}</Button></DialogActions>
+      </Dialog>
       {rejecting && (
         <RejectDialog
           onClose={() => setRejecting(false)}
