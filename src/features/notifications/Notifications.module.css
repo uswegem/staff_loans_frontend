@@ -5,5 +5,4 @@
 .note:hover, .unread { background: var(--brand-050); }
 .note b { font-weight: 400; }
 .unread b { font-weight: 600; }
-.unread b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--y-600); margin-right: 6px; vertical-align: 1px; }
 .when { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 2px; }

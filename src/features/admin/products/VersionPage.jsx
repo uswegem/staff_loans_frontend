@@ -190,7 +190,7 @@ export default function VersionPage({ kind }) {
     <div className="page">
       <div className="small muted" style={{ marginBottom: 8 }}>
         <Link component={RouterLink} to="/admin/products" color="inherit">{t('Products and pricing')}</Link>
-        {kind === 'product' && <> / <Link component={RouterLink} to={back} color="inherit">{v.product.code}</Link></>}
+        {kind === 'product' && <> / <Link component={RouterLink} to={back} color="inherit">{v.values?.name || v.product.code}</Link></>}
       </div>
       <div className="pagehead">
         <div>

@@ -8,6 +8,7 @@ const data = (p) => p.then((r) => r.data.data);
 
 export const usersApi = {
   list: (params) => data(api.get('/users', { params })),
+  candidates: (q) => data(api.get('/users/candidates', { params: q ? { q } : {} })),
   get: (id) => data(api.get(`/users/${id}`)),
   create: (staffNo, temporaryPassword) => data(api.post('/users', { staffNo, temporaryPassword })),
   setRoles: (id, assignments) => data(api.put(`/users/${id}/roles`, { assignments })),

@@ -4,8 +4,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { Alert, Button, Card, Chip, MenuItem, Table, TableBody, TableCell, TableHead, TablePagination, TableRow, TextField } from '@mui/material';
-import { staffApi, downloadFile } from '../../api/staff';
+import { Alert, Button, Card, Chip, MenuItem, Table, TableBody, TableCell, TableHead, TablePagination, TableRow, TextField, Link } from '@mui/material';
+import { staffApi } from '../../api/staff';
 import { apiError } from '../../api/client';
 import { useT } from '../../i18n';
 
@@ -50,8 +50,8 @@ export default function StaffListPage() {
         </div>
         {canManage && (
           <div className="row">
-            <Button onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>{t('Excel template')}</Button>
-            <Button component={RouterLink} to="/staff/import">{t('Upload from Excel')}</Button>
+            {/* The import page offers the Excel template. */}
+            <Button component={RouterLink} to="/staff/import">{t('Import from Excel')}</Button>
             <Button variant="contained" component={RouterLink} to="/staff/new">{t('Add staff')}</Button>
           </div>
         )}
@@ -60,7 +60,7 @@ export default function StaffListPage() {
       <Card>
         <div className="row" style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)', justifyContent: 'space-between' }}>
           <div className="row">
-            <TextField sx={{ width: 300, maxWidth: '100%' }} placeholder={t('Search by name, staff number, title or station')} inputProps={{ 'aria-label': t('Search staff') }} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+            <TextField sx={{ width: 300, maxWidth: '100%' }} placeholder={t('Search staff')} inputProps={{ 'aria-label': t('Search staff') }} value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
             <TextField select sx={{ width: 160 }} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} inputProps={{ 'aria-label': t('Status') }}>
               <MenuItem value="">{t('All statuses')}</MenuItem>
               <MenuItem value="active">{t('Active')}</MenuItem>
@@ -85,14 +85,14 @@ export default function StaffListPage() {
                 <TableCell>{t('Type')}</TableCell>
                 <TableCell>{t('Profile')}</TableCell>
                 <TableCell>{t('Sign-in')}</TableCell>
-                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
               {result.items.map((r) => (
                 <TableRow key={r.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${r.id}`)}>
                   <TableCell>
-                    <b>{r.fullName}</b> {statusChip(t)[r.status]}
+                    {/* The name is the link for keyboard users; the whole row opens it for the mouse. */}
+                    <Link component={RouterLink} to={`/staff/${r.id}`} onClick={(e) => e.stopPropagation()} sx={{ fontWeight: 700 }}>{r.fullName}</Link> {statusChip(t)[r.status]}
                     <div className="xs muted">{r.staffNo}</div>
                   </TableCell>
                   <TableCell>
@@ -103,9 +103,6 @@ export default function StaffListPage() {
                   <TableCell>{r.employmentType}</TableCell>
                   <TableCell>{r.profile.complete ? <Chip size="small" color="success" label={t('Complete')} /> : <Chip size="small" color="warning" label={`${r.profile.done}/${r.profile.total}`} />}</TableCell>
                   <TableCell className="small">{r.signIn ? (r.signIn === 'active' ? t('Yes') : t(r.signIn)) : <span className="muted">{t('None')}</span>}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small" component={RouterLink} to={`/staff/${r.id}`} onClick={(e) => e.stopPropagation()}>{t('Open')}</Button>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

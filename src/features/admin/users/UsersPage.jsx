@@ -4,8 +4,8 @@
 // unlock and MFA reset (prompt 3a.2, 3a.3).
 
 import { useCallback, useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TablePagination, TextField } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
+import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TablePagination, TextField, Autocomplete } from '@mui/material';
 import { rolesApi, usersApi } from '../../../api/admin';
 import { apiError } from '../../../api/client';
 import { failureShown, useServerErrors } from '../../../lib/validation';
@@ -20,9 +20,54 @@ const statusChip = (t) => ({
   deactivated: <Chip size="small" label={t('Inactive')} />,
 });
 
+/** A temporary password that meets the policy: 12 characters with lower case, capitals, numbers and a symbol. */
+export function generatePassword() {
+  const sets = ['abcdefghjkmnpqrstuvwxyz', 'ABCDEFGHJKLMNPQRSTUVWXYZ', '23456789', '#$%&*+?!'];
+  const pick = (chars) => chars[crypto.getRandomValues(new Uint32Array(1))[0] % chars.length];
+  const all = sets.join('');
+  const out = [...sets.map(pick), ...Array.from({ length: 8 }, () => pick(all))];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.join('');
+}
+
+/** Staff records without a sign-in, searched by name or staff number (Add user). */
+function StaffPicker({ value, onChange, error, helperText }) {
+  const t = useT();
+  const [input, setInput] = useState('');
+  const [options, setOptions] = useState([]);
+  useEffect(() => {
+    const timer = setTimeout(() => usersApi.candidates(input).then(setOptions).catch(() => setOptions([])), 200);
+    return () => clearTimeout(timer);
+  }, [input]);
+  return (
+    <Autocomplete
+      options={options}
+      value={value}
+      onChange={(_, v) => onChange(v)}
+      inputValue={input}
+      onInputChange={(_, v) => setInput(v)}
+      filterOptions={(x) => x}
+      isOptionEqualToValue={(a, b) => a.staffNo === b.staffNo}
+      getOptionLabel={(o) => `${o.name} (${o.staffNo})`}
+      renderOption={(props, o) => (
+        <li {...props} key={o.staffNo}>
+          <span><b>{o.name}</b> <span className="small muted">{o.staffNo}{o.station ? `, ${o.station}` : ''}</span></span>
+        </li>
+      )}
+      noOptionsText={t('No staff record without a sign-in matches.')}
+      renderInput={(params) => <TextField {...params} label={t('Staff member')} required placeholder={t('Search by name or staff number')} error={error} helperText={helperText} />}
+    />
+  );
+}
+
 function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
   const t = useT();
-  const [staffNo, setStaffNo] = useState('');
+  const [picked, setPicked] = useState(null);
+  const staffNo = picked?.staffNo || '';
+  const [copied, setCopied] = useState(false);
   const [password, setPassword] = useState('');
   const [failure, setFailure] = useState(null);
   const [errors, setErrors] = useState({});
@@ -51,8 +96,21 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           <p className="small muted" style={{ margin: 0 }}>{intro}</p>
           {failureShown(failure, errors, server) && <Alert severity="error">{failure.message}</Alert>}
-          {staffNoField && <TextField label={t('Staff number')} placeholder={t('Enter staff number')} required value={staffNo} onChange={(e) => setStaffNo(e.target.value)} error={!!server('staffNo')} helperText={server('staffNo') || t('The staff record must already exist in People and Culture\'s records.')} />}
-          <TextField label={t('Temporary password')} required value={password} onChange={(e) => setPassword(e.target.value)} error={!!server('password')} helperText={server('password') || t('At least 8 characters with three of: lower case, capitals, numbers, symbols. Give it to the person directly; they change it at first sign-in.')} autoComplete="off" />
+          {staffNoField && <StaffPicker value={picked} onChange={setPicked} error={!!server('staffNo')} helperText={server('staffNo') || t('Staff records People and Culture have added, without a sign-in yet.')} />}
+          <TextField
+            label={t('Temporary password')}
+            required
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setCopied(false); }}
+            error={!!server('password')}
+            helperText={server('password') || t('At least 8 characters with three of: lower case, capitals, numbers, symbols. Give it to the person directly; they change it at first sign-in.')}
+            autoComplete="off"
+            inputProps={{ className: 'num' }}
+          />
+          <div className="row" style={{ gap: 8, marginTop: -8 }}>
+            <Button size="small" onClick={() => { setPassword(generatePassword()); setCopied(false); }}>{t('Generate')}</Button>
+            <Button size="small" disabled={!password} onClick={() => navigator.clipboard?.writeText(password).then(() => setCopied(true)).catch(() => {})}>{copied ? t('Copied') : t('Copy')}</Button>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
@@ -66,6 +124,10 @@ function TempPasswordDialog({ title, intro, staffNoField, onClose, onSubmit }) {
 export default function UsersPage() {
   const t = useT();
   const [q, setQ] = useState('');
+  // ?status=locked (from Home's "accounts locked") opens the list on that status.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const status = searchParams.get('status') || '';
+  const setStatus = (v) => { setSearchParams(v ? { status: v } : {}); setPage(0); };
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(25);
   const [result, setResult] = useState({ items: [], total: 0 });
@@ -81,14 +143,14 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      setResult(await usersApi.list({ q: q || undefined, page: page + 1, limit }));
+      setResult(await usersApi.list({ q: q || undefined, status: status || undefined, page: page + 1, limit }));
       setError(null);
     } catch (err) {
       setError(apiError(err).message);
     } finally {
       setLoading(false);
     }
-  }, [q, page, limit]);
+  }, [q, status, page, limit]);
 
   useEffect(() => {
     const timer = setTimeout(fetchUsers, 250);
@@ -121,6 +183,8 @@ export default function UsersPage() {
   };
 
   const target = menu?.user;
+  // MFA columns and actions only while one-time codes are switched on (the API says so).
+  const mfaOn = result.mfaEnabled !== false;
 
   return (
     <div className="page">
@@ -129,10 +193,7 @@ export default function UsersPage() {
           <h1>{t('Users and roles')}</h1>
           <p>{t('Give people the roles they need. Every staff member keeps Staff. Conflicting combinations are refused.')}</p>
         </div>
-        <div className="row">
-          <Button component={RouterLink} to="/admin/roles">{t('Roles and permissions')}</Button>
-          <Button variant="contained" onClick={() => setDialog({ type: 'create' })}>{t('Add user')}</Button>
-        </div>
+        <Button variant="contained" onClick={() => setDialog({ type: 'create' })}>{t('Add user')}</Button>
       </div>
       {toast && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -148,6 +209,11 @@ export default function UsersPage() {
               setPage(0);
             }}
           />
+          <div className="row" style={{ gap: 6 }} role="group" aria-label={t('Status')}>
+            {[['', 'All'], ['active', 'Active'], ['locked', 'Locked'], ['deactivated', 'Inactive']].map(([v, l]) => (
+              <Chip key={l} label={t(l)} clickable color={status === v ? 'primary' : 'default'} variant={status === v ? 'filled' : 'outlined'} onClick={() => setStatus(v)} aria-pressed={status === v} />
+            ))}
+          </div>
           <span className="small muted" role="status">{loading ? t('Loading…') : t('{n} users', { n: result.total })}</span>
         </div>
         <div className="tablewrap">
@@ -156,8 +222,7 @@ export default function UsersPage() {
               <TableRow>
                 <TableCell>{t('User')}</TableCell>
                 <TableCell>{t('Roles')}</TableCell>
-                <TableCell align="right">{t('Permissions')}</TableCell>
-                <TableCell>{t('MFA')}</TableCell>
+                {mfaOn && <TableCell>{t('MFA')}</TableCell>}
                 <TableCell>{t('Status')}</TableCell>
                 <TableCell>{t('Last sign-in')}</TableCell>
                 <TableCell />
@@ -183,10 +248,11 @@ export default function UsersPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell align="right" className="num">{u.permissions.length}</TableCell>
-                  <TableCell>
-                    {u.mfa.required ? <Chip size="small" color={u.mfa.enabled ? 'success' : 'warning'} label={u.mfa.enabled ? t('Required, enrolled') : t('Required, not enrolled')} /> : <span className="small muted">{t('Not required')}</span>}
-                  </TableCell>
+                  {mfaOn && (
+                    <TableCell>
+                      {u.mfa.required ? <Chip size="small" color={u.mfa.enabled ? 'success' : 'warning'} label={u.mfa.enabled ? t('Required, enrolled') : t('Required, not enrolled')} /> : <span className="small muted">{t('Not required')}</span>}
+                    </TableCell>
+                  )}
                   <TableCell>{statusChip(t)[u.status]}</TableCell>
                   <TableCell className="small">{formatDate(u.lastLoginAt)}</TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -214,7 +280,7 @@ export default function UsersPage() {
 
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {target?.status === 'locked' && <MenuItem onClick={() => setDialog({ type: 'unlock', user: target })}>{t('Unlock account')}</MenuItem>}
-        {target?.mfa.enabled && <MenuItem onClick={() => setDialog({ type: 'mfa', user: target })}>{t('Reset MFA')}</MenuItem>}
+        {mfaOn && target?.mfa.enabled && <MenuItem onClick={() => setDialog({ type: 'mfa', user: target })}>{t('Reset MFA')}</MenuItem>}
         <MenuItem onClick={() => setDialog({ type: 'password', user: target })}>{t('Issue temporary password')}</MenuItem>
         {target?.status === 'deactivated' ? (
           <MenuItem onClick={() => run(() => usersApi.activate(target.id), t('{name} can sign in again.', { name: target.fullName }))}>{t('Activate')}</MenuItem>

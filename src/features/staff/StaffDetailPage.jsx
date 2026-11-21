@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link, MenuItem, TextField } from '@mui/material';
 import { staffApi } from '../../api/staff';
 import { apiError } from '../../api/client';
@@ -79,7 +79,7 @@ export function NewStaffPage() {
     setBusy(true);
     try {
       const created = await staffApi.create(toBody({ ...values, staffNo: values.staffNo.trim().toUpperCase() }, { isNew: true }));
-      navigate(`/staff/${created.id}`, { replace: true });
+      navigate(`/staff/${created.id}`, { replace: true, state: { created: created.staffNo || values.staffNo.trim().toUpperCase() } });
     } catch (err) {
       const x = apiError(err);
       setErrors(x.details || {});
@@ -100,9 +100,9 @@ export function NewStaffPage() {
       <Card>
         <CardContent sx={{ p: 3 }}>
           <StaffForm values={values} onChange={setValues} errors={errors} isNew />
-          <div className="row" style={{ marginTop: 24 }}>
-            <Button variant="contained" onClick={save} disabled={busy}>{t('Save staff record')}</Button>
+          <div className="row" style={{ marginTop: 24, justifyContent: 'space-between' }}>
             <Button component={RouterLink} to="/staff">{t('Cancel')}</Button>
+            <Button variant="contained" onClick={save} disabled={busy}>{t('Save staff record')}</Button>
           </div>
         </CardContent>
       </Card>
@@ -123,6 +123,9 @@ export default function StaffDetailPage() {
   const [toast, setToast] = useState(null);
   const [dialog, setDialog] = useState(null);
   const server = useServerErrors(errors, values);
+  // Just added: say what happens next, with the staff number to pass on.
+  const created = useLocation().state?.created || null;
+  const [copied, setCopied] = useState(false);
 
   const show = (data) => {
     setD(data);
@@ -174,6 +177,14 @@ export default function StaffDetailPage() {
         {canManage && <Button onClick={() => setDialog('status')}>{t('Change status')}</Button>}
       </div>
       <div className="stack">
+        {created && (
+          <Alert
+            severity="success"
+            action={<Button size="small" onClick={() => navigator.clipboard?.writeText(created).then(() => setCopied(true)).catch(() => {})}>{copied ? t('Copied') : t('Copy staff number')}</Button>}
+          >
+            {t('Staff record saved. Next, a System Administrator adds their sign-in.')} <b className="num">{created}</b>
+          </Alert>
+        )}
         {toast && <Alert severity="success" onClose={() => setToast(null)}>{toast}</Alert>}
         {failureShown(failure, errors, server) && <Alert severity="error" onClose={() => setFailure(null)}>{failure.message}</Alert>}
         {d.probation?.onProbation && (

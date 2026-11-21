@@ -16,7 +16,7 @@ test('a product change needs the Head of Credit, then the Head of Risk and Compl
   await expect(peter).toHaveURL(/\/admin\/products\/versions\/[0-9a-f]{24}/);
   const versionUrl = peter.url();
 
-  await expect(peter.getByLabel(/Minimum number of Months Before Applying for Topup/)).toBeVisible();
+  await expect(peter.getByLabel(/^Months before a top-up/)).toBeVisible();
   await expect(peter.getByText(/Debit from staff account/)).toHaveCount(0);
   await peter.getByLabel('Maximum tenor (months)').fill('96');
   await peter.getByRole('button', { name: 'Save draft' }).click();

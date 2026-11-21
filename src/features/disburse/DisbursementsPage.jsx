@@ -189,7 +189,7 @@ export default function DisbursementsPage() {
       <div className="pagehead">
         <div>
           <h1>{t('Disbursements')}</h1>
-          <p>{t("These loans have final approval and an agreement in force: the one signed at application, or a revised one the staff member accepted. Disburse each loan in core banking, then confirm it here. Confirming ends the loan's journey in Staff Loans.")}</p>
+          <p>{t('Disburse each loan in core banking, then confirm it here.')}</p>
         </div>
         <Button onClick={() => disbursementsApi.exportRegister().catch((e) => setError(apiError(e).message))}>{t('Export disbursed register')}</Button>
       </div>
@@ -242,7 +242,7 @@ export default function DisbursementsPage() {
               <TableBody>
                 {data?.items.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell sx={{ fontWeight: 600 }}>{r.ref}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.ref}</TableCell>
                     <TableCell>{r.staff.name}<div className="xs muted">{r.staff.staffNo}, {r.staff.station}</div></TableCell>
                     <TableCell>{r.product}</TableCell>
                     <TableCell align="right" className="num">{formatNumber(r.amount)}</TableCell>

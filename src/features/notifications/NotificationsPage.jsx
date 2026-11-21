@@ -55,7 +55,7 @@ export default function NotificationsPage() {
           <h1>{t('Notifications')}</h1>
           <p>{t('Updates on your applications and items waiting for you. Staff Loans sends notifications in the app only.')}</p>
         </div>
-        <Button onClick={readAll} disabled={!data?.unread}>{t('Mark all read')}</Button>
+        <Button onClick={readAll} disabled={!data?.unread}>{t('Mark all as read')}</Button>
       </div>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!data && !error && <LoadingSkeleton variant="card" label={t('Loading…')} />}
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
               {data.items.map((n) => (
                 <li key={n.id}>
                   <button type="button" className={`${styles.note} ${n.read ? '' : styles.unread}`} onClick={() => open(n)}>
-                    <b>{n.text}</b>
+                    <b>{!n.read && <span className="unread-dot" aria-hidden="true" />}{n.text}</b>
                     {!n.read && <span className="visually-hidden">{' '}{t('(unread)')}</span>}
                     <span className={styles.when}>{formatDateTime(n.createdAt)}</span>
                   </button>

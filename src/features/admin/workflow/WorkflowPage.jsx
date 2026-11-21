@@ -111,9 +111,9 @@ function PayslipRulesCard({ rules, onSaved, onError }) {
     }
   };
   return (
-    <Card sx={{ mt: 2 }}>
+    <Card component="section" aria-labelledby="wf-payslips" sx={{ mt: 3 }}>
       <CardContent sx={{ p: 3 }}>
-        <h3 style={{ marginBottom: 4 }}>{t('Reading payslips')}</h3>
+        <h2 id="wf-payslips" style={{ marginTop: 0, marginBottom: 4 }}>{t('Payslip reading')}</h2>
         <p className="small muted" style={{ marginTop: 0 }}>{t('Basic Pay, LFB deductions and the pay date are read from the payslip PDF staff attach. If Payroll changes the payslip layout, change the words here. One per line.')}</p>
         <form onSubmit={save} style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           {RULES.map(([k, label, hint]) => (
@@ -158,77 +158,83 @@ export default function WorkflowPage() {
       <div className="pagehead">
         <div>
           <h1>{t('Workflow and calendar')}</h1>
-          <p>{t('Four approval routes, fixed by the BRD. Turnaround targets count working hours on this calendar.')}</p>
+          <p>{t('The four approval routes. Targets count working hours on this calendar.')}</p>
         </div>
       </div>
       {toast && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setToast(null)}>{toast}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <div className={s.split}>
-        <Card>
-          <CardContent sx={{ p: 3 }}>
-            <h3 style={{ marginBottom: 8 }}>{t('Approval routes')}</h3>
-            <p className="small" style={{ marginTop: 0 }}>{t("The route comes from the applicant's role and the category on their staff record. After the last approval, OPS disburses. Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.")}</p>
-            <div className="tablewrap">
-              <Table size="small" aria-label={t('Approval routes')}>
-                <TableHead>
-                  <TableRow><TableCell>{t('Applicant')}</TableCell><TableCell>{t('Route')}</TableCell><TableCell>{t('Credit Analyst sees')}</TableCell></TableRow>
-                </TableHead>
-                <TableBody>
-                  {data.routes.map((r) => (
-                    <TableRow key={r.key}>
-                      <TableCell sx={{ fontWeight: 600 }}>{t(r.label)}</TableCell>
-                      <TableCell>{[...r.stages, 'OPS'].map((x) => t(x)).join(' → ')}</TableCell>
-                      <TableCell>{r.limitedCredit ? <Chip size="small" color="warning" label={t('Name, mobile, NIDA only')} /> : t('Full application')}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <p className="small muted" style={{ marginTop: 12 }}>{t("Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Every reviewer can approve, return or reject. No amount thresholds.")}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent sx={{ p: 3 }}>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0 }}>{t('Targets and working time')}</h3>
-              <Button size="small" onClick={() => setEditing(true)}>{t('Edit')}</Button>
-            </div>
-            <dl className={s.kv} style={{ marginTop: 12 }}>
-              <dt>{t('Each review stage')}</dt><dd>{t('{n} working hours', { n: st.stageTargetHours })}</dd>
-              <dt>{t('CEO')}</dt><dd>{t('{n} working hours', { n: st.ceoTargetHours })}</dd>
-              <dt>{t('Working days')}</dt><dd>{st.workingDays.map((d) => t(DAYS[d])).join(', ')}</dd>
-              <dt>{t('Working hours')}</dt><dd>{t('{from} to {until}', { from: hhmm(st.dayStartMinutes), until: hhmm(st.dayEndMinutes) })}</dd>
-              <dt>{t('Revised terms must be accepted within')}</dt><dd>{t('{n} days', { n: st.revisedTermsExpiryDays })}</dd>
-              <dt>{t('Outside SLA after')}</dt><dd>{t('{n} days pending disbursement (no expiry)', { n: st.approvalSlaDays })}</dd>
-              <dt>{t('Probation')}</dt><dd>{t('{n} months after joining', { n: st.probationMonths })}</dd>
-              <dt>{t('First instalment')}</dt><dd>{t('Day {n} of the month after', { n: st.firstDueDay })}</dd>
-              <dt>{t('Payslip')}</dt><dd>{t('Not older than {n} days at submission', { n: st.payslipMaxAgeDays })}</dd>
-              <dt>{t('Retirement cutoff')}</dt><dd>{t('Last instalment by {n} days before age {age} (verified date of birth)', { n: st.retirementBufferDays, age: st.retirementAge })}</dd>
-              <dt>{t('Date of birth')}</dt><dd>{t('Age {min} to {max} when entered; verified by People and Culture', { min: st.dobMinAge, max: st.dobMaxAge })}</dd>
-            </dl>
-            <h4 style={{ margin: '20px 0 8px' }}>{t('Public holidays')}</h4>
-            <Table size="small" aria-label={t('Public holidays')}>
+      {/* Three separate sections: routes (read-only), the working calendar, and payslip reading. */}
+      <Card component="section" aria-labelledby="wf-routes">
+        <CardContent sx={{ p: 3 }}>
+          <h2 id="wf-routes" style={{ marginTop: 0, marginBottom: 8 }}>{t('Approval routes')}</h2>
+          <p className="small" style={{ marginTop: 0 }}>{t("The route comes from the applicant's role and the category on their staff record. After the last approval, OPS disburses. Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.")}</p>
+          <div className="tablewrap">
+            <Table size="small" aria-label={t('Approval routes')}>
+              <TableHead>
+                <TableRow><TableCell>{t('Applicant')}</TableCell><TableCell>{t('Route')}</TableCell><TableCell>{t('Credit Analyst sees')}</TableCell></TableRow>
+              </TableHead>
               <TableBody>
-                {data.holidays.length === 0 && <TableRow><TableCell className="muted">{t('No holidays added.')}</TableCell></TableRow>}
-                {data.holidays.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell>{formatDate(h.date)}</TableCell>
-                    <TableCell>{h.name}</TableCell>
-                    <TableCell align="right">
-                      <Button size="small" color="error" onClick={() => settingsApi.removeHoliday(h.id).then(load).catch((e) => setError(apiError(e).message))} aria-label={t('Remove {name}', { name: h.name })}>{t('Remove')}</Button>
-                    </TableCell>
+                {data.routes.map((r) => (
+                  <TableRow key={r.key}>
+                    <TableCell sx={{ fontWeight: 600 }}>{t(r.label)}</TableCell>
+                    <TableCell>{[...r.stages, 'OPS'].map((x) => t(x)).join(' → ')}</TableCell>
+                    <TableCell>{r.limitedCredit ? <Chip size="small" color="warning" label={t('Name, mobile, NIDA only')} /> : t('Full application')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            <form onSubmit={addHoliday} className="row" style={{ marginTop: 12 }}>
-              <DateField size="small" label={t('Holiday date')} value={holiday.date} onChange={(e) => setHoliday({ ...holiday, date: e.target.value })} InputLabelProps={{ shrink: true }} required />
-              <TextField size="small" label={t('Holiday name')} value={holiday.name} onChange={(e) => setHoliday({ ...holiday, name: e.target.value })} required />
-              <Button type="submit" size="small" disabled={!holiday.date || holiday.name.trim().length < 2}>{t('Add holiday')}</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <p className="small muted" style={{ marginTop: 12 }}>{t("Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Every reviewer can approve, return or reject. No amount thresholds.")}</p>
+        </CardContent>
+      </Card>
+      <Card component="section" aria-labelledby="wf-calendar" sx={{ mt: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <h2 id="wf-calendar" style={{ marginTop: 0, marginBottom: 16 }}>{t('Working calendar')}</h2>
+          <div className={s.split}>
+            <div>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>{t('Targets and working time')}</h3>
+                <Button size="small" onClick={() => setEditing(true)}>{t('Edit')}</Button>
+              </div>
+              <dl className={s.kv} style={{ marginTop: 12 }}>
+                <dt>{t('Each review stage')}</dt><dd>{t('{n} working hours', { n: st.stageTargetHours })}</dd>
+                <dt>{t('CEO')}</dt><dd>{t('{n} working hours', { n: st.ceoTargetHours })}</dd>
+                <dt>{t('Working days')}</dt><dd>{st.workingDays.map((d) => t(DAYS[d])).join(', ')}</dd>
+                <dt>{t('Working hours')}</dt><dd>{t('{from} to {until}', { from: hhmm(st.dayStartMinutes), until: hhmm(st.dayEndMinutes) })}</dd>
+                <dt>{t('Revised terms must be accepted within')}</dt><dd>{t('{n} days', { n: st.revisedTermsExpiryDays })}</dd>
+                <dt>{t('Outside SLA after')}</dt><dd>{t('{n} days pending disbursement (no expiry)', { n: st.approvalSlaDays })}</dd>
+                <dt>{t('Probation')}</dt><dd>{t('{n} months after joining', { n: st.probationMonths })}</dd>
+                <dt>{t('First instalment')}</dt><dd>{t('Day {n} of the month after', { n: st.firstDueDay })}</dd>
+                <dt>{t('Payslip')}</dt><dd>{t('Not older than {n} days at submission', { n: st.payslipMaxAgeDays })}</dd>
+                <dt>{t('Retirement cutoff')}</dt><dd>{t('Last instalment by {n} days before age {age} (verified date of birth)', { n: st.retirementBufferDays, age: st.retirementAge })}</dd>
+                <dt>{t('Date of birth')}</dt><dd>{t('Age {min} to {max} when entered; verified by People and Culture', { min: st.dobMinAge, max: st.dobMaxAge })}</dd>
+              </dl>
+            </div>
+            <div>
+              <h3 style={{ margin: '0 0 8px' }}>{t('Public holidays')}</h3>
+              <Table size="small" aria-label={t('Public holidays')}>
+                <TableBody>
+                  {data.holidays.length === 0 && <TableRow><TableCell className="muted">{t('No holidays added.')}</TableCell></TableRow>}
+                  {data.holidays.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell>{formatDate(h.date)}</TableCell>
+                      <TableCell>{h.name}</TableCell>
+                      <TableCell align="right">
+                        <Button size="small" color="error" onClick={() => settingsApi.removeHoliday(h.id).then(load).catch((e) => setError(apiError(e).message))} aria-label={t('Remove {name}', { name: h.name })}>{t('Remove')}</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <form onSubmit={addHoliday} className="row" style={{ marginTop: 12 }}>
+                <DateField size="small" label={t('Holiday date')} value={holiday.date} onChange={(e) => setHoliday({ ...holiday, date: e.target.value })} InputLabelProps={{ shrink: true }} required />
+                <TextField size="small" label={t('Holiday name')} value={holiday.name} onChange={(e) => setHoliday({ ...holiday, name: e.target.value })} required />
+                <Button type="submit" size="small" disabled={!holiday.date || holiday.name.trim().length < 2}>{t('Add holiday')}</Button>
+              </form>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <PayslipRulesCard key={st.version} rules={st.payslipRules} onSaved={(m) => { setToast(m); setError(null); load(); }} onError={setError} />
       {editing && (
         <EditDialog
