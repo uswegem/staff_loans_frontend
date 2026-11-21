@@ -156,7 +156,7 @@ export default function ProductsPage() {
             {waiting.map((w) => (
               <Box key={w.href} sx={{ py: 1, display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span>{w.label}</span>
-                <Button variant="outlined" size="small" component={RouterLink} to={w.href}>{t('Review changes')}</Button>
+                <Button variant="outlined" size="small" component={RouterLink} to={w.href} aria-label={t('Review changes to {item}', { item: w.label })}>{t('Review changes')}</Button>
               </Box>
             ))}
           </Card>
