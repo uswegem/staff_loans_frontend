@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DateField from './DateField';
-import { formatDay, parseDay } from '../../lib/format';
+import { formatDay, parseDay, payslipDate } from '../../lib/format';
 
 function Harness({ initial = '', min, max }) {
   const [v, setV] = useState(initial);
@@ -67,5 +67,12 @@ describe('parseDay and formatDay', () => {
   });
   it('formats a calendar day without shifting it', () => {
     expect(formatDay('2026-12-25')).toBe('25 Dec 2026');
+  });
+});
+
+describe('payslipDate', () => {
+  it('shows a month-only payslip read as a month end still ahead as its month', () => {
+    expect(payslipDate('2026-11-30', '2026-11-21')).toEqual({ month: true, text: 'November 2026' });
+    expect(payslipDate('2026-10-31', '2026-11-21')).toEqual({ month: false, text: '31 Oct 2026' });
   });
 });

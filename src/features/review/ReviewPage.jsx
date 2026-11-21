@@ -11,7 +11,7 @@ import { reviewApi } from '../../api/review';
 import { downloadFile } from '../../api/staff';
 import SupportingDocuments from '../../components/SupportingDocuments';
 import { apiError } from '../../api/client';
-import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
+import { formatDate, formatDateTime, formatNumber, formatTzs, payslipDate } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
 import DueClock from '../../components/DueClock';
@@ -204,7 +204,7 @@ function FullReview({ app, onDone, onError }) {
           {app.payslip && (
             <Panel title={t('Payslip')}>
               <dl className={s.kv}>
-                <dt>{t('File')}</dt><dd><Link component="button" type="button" onClick={() => dl(`/files/${app.payslip.fileId}`, app.payslip.originalName)}>{app.payslip.originalName}</Link>, {t('dated {date}', { date: formatDate(app.payslip.payDate) })}</dd>
+                <dt>{t('File')}</dt><dd><Link component="button" type="button" onClick={() => dl(`/files/${app.payslip.fileId}`, app.payslip.originalName)}>{app.payslip.originalName}</Link>, {payslipDate(app.payslip.payDate).month ? t('pay month {month}', { month: payslipDate(app.payslip.payDate).text }) : t('dated {date}', { date: payslipDate(app.payslip.payDate).text })}</dd>
                 <dt>{t('Basic Pay read')}</dt><dd>{formatTzs(app.payslip.basic)}</dd>
                 <dt>{t('Staff loan deductions read')}</dt><dd>{formatTzs(app.payslip.lfbDeductions)}{app.payslip.lfbLines.length ? <span className="small muted"> ({app.payslip.lfbLines.map((l) => `${l.label} ${formatTzs(l.amount)}`).join('; ')})</span> : null}</dd>
               </dl>

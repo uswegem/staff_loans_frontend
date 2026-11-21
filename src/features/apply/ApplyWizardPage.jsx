@@ -4,30 +4,33 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, Checkbox, FormControlLabel, MenuItem, Slider, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, Checkbox, FormControlLabel, MenuItem, Slider, TextField, Portal, useMediaQuery } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { apiError } from '../../api/client';
 import { quote as calcQuote, roomInputs } from '../../lib/calc/loanCalculator';
 import { todayEat } from '../../lib/dates';
-import { formatNumber, formatTzs, formatDate } from '../../lib/format';
+import { formatNumber, formatTzs, formatDate, formatDay } from '../../lib/format';
 import MoneyInput from '../../components/MoneyInput';
 import LoanRoute from '../../components/LoanRoute';
 import StepTransition from '../../components/ux/StepTransition';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
-import CalculatorPanel from './CalculatorPanel';
+import CalculatorPanel, { Breakdown } from './CalculatorPanel';
+import CardHeader from '../../components/CardHeader';
+import FactList from '../../components/FactList';
 import PayslipCard from './PayslipCard';
 import AgreementDoc from './AgreementDoc';
-import SupportingDocuments from '../../components/SupportingDocuments';
+import { FileList } from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
 import { useT } from '../../i18n';
 import { needsDocuments } from '../../lib/products';
+import { plural } from '../../lib/plural';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
-export function Steps({ step, hasDocuments = true }) {
+export function Steps({ step, hasDocuments = true, reference }) {
   const t = useT();
-  return (
+  const steps = (
     <ol className={s.steps} aria-label={t('Application steps')}>
       {STEPS.map((label, i) => ({ label, i })).filter(({ i }) => hasDocuments || i !== 2).map(({ label, i }) => (
         <li key={label} className={i === step ? s.on : i < step ? s.done : undefined} aria-current={i === step ? 'step' : undefined}>
@@ -35,6 +38,14 @@ export function Steps({ step, hasDocuments = true }) {
         </li>
       ))}
     </ol>
+  );
+  if (!reference) return steps;
+  // The draft's reference sits quietly beside the steps rather than leading the page.
+  return (
+    <div className={s.stepsRow}>
+      {steps}
+      <span className="xs muted">{t('Reference {ref}', { ref: reference })}</span>
+    </div>
   );
 }
 
@@ -177,12 +188,19 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
   const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
-  const hint = app.payslip ? t('TZS {min} to TZS {max} (up to {n} months)', { min: formatNumber(p.minAmount), max: formatNumber(q.maxAmount), n: q.maxTenor }) : t('TZS {min} to TZS {max}; attach your payslip to see your maximum', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) });
+  // The maximum for the tenor chosen (the figure that matters now); the longest-tenor one until then.
+  const hint = !app.payslip
+    ? t('TZS {min} to TZS {max}; attach your payslip to see your maximum', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) })
+    : form.tenor && q.maxAmountAtTenor
+      ? t('Up to TZS {max} over {n} months', { max: formatNumber(q.maxAmountAtTenor), n: form.tenor })
+      : t('TZS {min} to TZS {max} (up to {n} months)', { min: formatNumber(p.minAmount), max: formatNumber(q.maxAmount), n: q.maxTenor });
   // The tenor range in context, once the tenor has been changed (the API checks it too).
   const tenorRange = (touched.tenor || attempted) && form.tenor
     ? form.tenor > maxTenor ? t('The longest tenor you can take is {n} months.', { n: maxTenor }) : form.tenor < p.minTenor ? t('Choose a tenor between {min} and {max} months.', { min: p.minTenor, max: maxTenor }) : null
     : null;
   const tenorError = shown('tenor') || tenorRange;
+  const continueLabel = needsDocuments(p) ? t('Continue to documents') : t('Continue');
+  const phone = useMediaQuery('(max-width:600px)');
   // A problem with an attached payslip (too old, unreadable) shows at once; a missing one only on Continue.
   const payslipError = app.payslip || attempted ? errors.payslip : undefined;
 
@@ -197,14 +215,15 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
   }, [attempt]);
 
   return (
-    <div className={s.split}>
+    <div className={`${s.split} ${phone ? s.withMobileBar : ''}`}>
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}>
           <h3>{p.name}</h3>
         </div>
         <form ref={formRef} style={{ padding: 24 }} noValidate onSubmit={(e) => { e.preventDefault(); onNext(); }}>
           <PayslipCard app={app} error={payslipError} onChanged={onAppChanged} />
-          {r.cutoff && (
+          {/* Only when the retirement cutoff shortens the tenor: otherwise it changes nothing for them. */}
+          {r.cutoff && maxTenor < p.maxTenor && (
             <div className={s.note}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
               <span>
@@ -287,8 +306,6 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
             </div>
           )}
 
-          <p className="small muted" style={{ margin: '20px 0 0' }}>{t('Repayment: salary deduction, every month.')}</p>
-
           {!checked && saveFailure ? (
             <Alert severity="warning" sx={{ mt: 2.5 }} action={saveFailure.code === 'NETWORK' || !saveFailure.status || saveFailure.status >= 500 ? <Button size="small" onClick={onRetry}>{t('Try again')}</Button> : undefined}>
               <AlertTitle>{t('Your latest changes are not saved or checked yet')}</AlertTitle>
@@ -305,8 +322,18 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
 
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
             <Button onClick={onBack}>{t('Back')}</Button>
-            <Button type="submit" variant="contained" disabled={busy}>{needsDocuments(p) ? t('Continue to documents') : t('Continue')}</Button>
+            {!phone && <Button type="submit" variant="contained" disabled={busy}>{continueLabel}</Button>}
           </div>
+          {/* Phones: the instalment and Continue stay in view; the full estimate follows the form. */}
+          {/* In a portal: the step transition's transform would otherwise pin it inside the card. */}
+          {phone && (
+            <Portal>
+              <div className={s.mobileBar}>
+                <span className="small">{form.amount && form.tenor && app.payslip ? <>{t('Instalment')} <b>{formatTzs(q.instalment)}</b></> : null}</span>
+                <Button variant="contained" disabled={busy} onClick={() => formRef.current?.requestSubmit()}>{continueLabel}</Button>
+              </div>
+            </Portal>
+          )}
         </form>
       </Card>
       <Card className={s.sticky}>
@@ -320,8 +347,11 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
   const t = useT();
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Missing documents are flagged only after Review application is pressed, not on arrival.
+  const [tried, setTried] = useState(false);
   const requirements = (app.product?.requiredDocuments || []).filter((d) => d.active !== false).sort((a, b) => a.displayOrder - b.displayOrder);
-  const validFiles = (d) => app.documents.filter((f) => String(f.documentCode || '').trim().toLowerCase() === String(d.code || '').trim().toLowerCase() && f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => String(type).toLowerCase().replace('jpeg', 'jpg') === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime]));
+  const filesFor = (d) => app.documents.filter((f) => String(f.documentCode || '').trim().toLowerCase() === String(d.code || '').trim().toLowerCase());
+  const validFiles = (d) => filesFor(d).filter((f) => f.size <= d.maxFileMb * 1024 * 1024 && (d.allowedTypes || []).some((type) => String(type).toLowerCase().replace('jpeg', 'jpg') === ({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' })[f.mime]));
   const missing = requirements.filter((d) => d.mandatory && validFiles(d).length < d.minFiles);
   const add = async (files, category) => {
     if (!files?.length) return;
@@ -339,6 +369,27 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
       onChanged();
     }
   };
+  const remove = async (d) => {
+    try {
+      setError(null);
+      await applicationsApi.removeDocument(app.id, d.id);
+      onChanged();
+    } catch (err) {
+      setError(apiError(err).message);
+    }
+  };
+  /** "Add at least 1 file (up to 4)" before an upload; "1 file added ✓ (up to 4)" after. */
+  const slotStatus = (d) => {
+    const n = validFiles(d).length;
+    if (!n) return t(plural(d.minFiles || 1, 'Add at least {min} file (up to {max})', 'Add at least {min} files (up to {max})'), { min: d.minFiles || 1, max: d.maxFiles });
+    return t(plural(n, '{n} file added ✓ (up to {max})', '{n} files added ✓ (up to {max})'), { n, max: d.maxFiles });
+  };
+  // What is still needed, in one sentence: "Add Invoice and Photos of the car to continue."
+  const needed = missing.length ? t('Add {list} to continue.', { list: missing.map((d) => d.name).join(t(' and ')) }) : null;
+  const next = () => {
+    setTried(true);
+    if (!missing.length) onNext();
+  };
   return (
     <Card>
       <div style={{ padding: 24, borderBottom: '1px solid var(--line-2)' }}>
@@ -348,24 +399,32 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
       <div style={{ padding: 24 }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {requirements.map((d) => {
-          const uploaded = app.documents.filter((f) => String(f.documentCode || '').trim().toLowerCase() === String(d.code || '').trim().toLowerCase());
-          const valid = validFiles(d);
+          const uploaded = filesFor(d);
+          const short = tried && d.mandatory && validFiles(d).length < d.minFiles;
           return (
-            <div key={d.code} style={{ marginBottom: 20, padding: 16, border: '1px solid var(--line-2)', borderRadius: 8 }}>
+            <div key={d.code} style={{ marginBottom: 20, padding: 16, border: `1px solid ${short ? 'var(--bad)' : 'var(--line-2)'}`, borderRadius: 8 }}>
               <h4>{d.name} {d.mandatory ? '*' : ''}</h4>
               {d.description && <p className="small muted">{d.description}</p>}
-              <p className="xs">{valid.length} / {d.minFiles} {t('valid minimum files')} · {d.maxFiles} {t('maximum files')}</p>
-              <FileDrop accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} label={d.name} busy={busy || uploaded.length >= d.maxFiles} onFile={(file) => add([file], d)} />
-              {uploaded.map((f) => <div className="xs muted" key={f.id}>{f.originalName}</div>)}
-              {d.mandatory && valid.length < d.minFiles && <p className="xs" style={{ color: 'var(--bad)' }}>{t('Required document missing')}</p>}
+              <p className="xs" style={{ fontWeight: 600 }}>{slotStatus(d)}</p>
+              {uploaded.length < d.maxFiles && <FileDrop accept={(d.allowedTypes || []).map((x) => '.' + x).join(',')} label={d.name} busy={busy} onFile={(file) => add([file], d)} />}
+              <FileList files={uploaded} onRemove={remove} />
+              {short && <p className="xs" role="alert" style={{ color: 'var(--bad)', margin: '8px 0 0' }}>{t('Required document missing')}</p>}
             </div>
           );
         })}
-        {!requirements.length && <div><p className="small muted">{t('No additional supporting documents are configured for this product.')}</p><FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('Other supporting documents')} busy={busy} onFile={(file) => add([file])} /></div>}
-        <SupportingDocuments documents={app.documents} onRemove={async (d) => { try { setError(null); await applicationsApi.removeDocument(app.id, d.id); onChanged(); } catch (err) { setError(apiError(err).message); } }} />
-        <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
+        {!requirements.length && (
+          <div>
+            <p className="small muted">{t('No additional supporting documents are configured for this product.')}</p>
+            <FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('Other supporting documents')} busy={busy} onFile={(file) => add([file])} />
+            <FileList files={app.documents} onRemove={remove} />
+          </div>
+        )}
+        <div className="row" style={{ justifyContent: 'space-between', marginTop: 24, alignItems: 'flex-start' }}>
           <Button onClick={onBack}>{t('Back')}</Button>
-          <Button variant="contained" disabled={busy || missing.length > 0} onClick={onNext}>{t('Review application')}</Button>
+          <div style={{ textAlign: 'right' }}>
+            <Button variant="contained" disabled={busy} onClick={next}>{t('Review application')}</Button>
+            {needed && <p className="xs" style={{ margin: '6px 0 0', color: tried ? 'var(--bad)' : 'var(--ink-3)' }}>{needed}</p>}
+          </div>
         </div>
       </div>
     </Card>
@@ -420,11 +479,27 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
         </Card>
       </div>
       <Card className={s.sticky}>
-        <CalculatorPanel q={q} amount={form.amount} tenor={form.tenor} topUp={form.topUp.on} deductions={app.deductions && { ...app.deductions, topUpLine: topUpLineOf(app.deductions, form) }} />
+        {/* A short summary: the full estimate was on the details step and stays one click away. */}
+        <CardHeader title={t('Your loan estimate')} />
+        <div style={{ padding: 24 }}>
+          <FactList rows={[
+            [t('Monthly instalment'), formatTzs(q.instalment)],
+            [t('Total to repay'), formatTzs(q.totalRepayable)],
+            [t('Fees'), formatTzs((q.processingFee || 0) + (q.insuranceFee || 0))],
+            [t('First instalment'), q.firstDueDate ? formatDay(q.firstDueDate) : null],
+          ]}
+          />
+          <details style={{ marginTop: 12 }}>
+            <summary className="small" style={{ cursor: 'pointer', fontWeight: 600 }}>{t('How your limit is worked out')}</summary>
+            <div style={{ marginTop: 8 }}><Breakdown q={q} deductions={app.deductions && { ...app.deductions, topUpLine: topUpLineOf(app.deductions, form) }} topUp={form.topUp.on} /></div>
+          </details>
+        </div>
         <div style={{ padding: 24, borderTop: '1px solid var(--line-2)' }}>
           <p className="small muted" style={{ margin: '0 0 12px' }}>{t('Next you read the loan agreement for these terms and sign it. Signing submits the application.')}</p>
-          <Button variant="contained" fullWidth onClick={onNext}>{t('Continue to agreement')}</Button>
-          <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>{t('Back')}</Button>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <Button onClick={onBack}>{t('Back')}</Button>
+            <Button variant="contained" onClick={onNext}>{t('Continue to agreement')}</Button>
+          </div>
         </div>
       </Card>
     </div>
@@ -534,10 +609,12 @@ function SignStep({ app, onBack, onSigned }) {
               </label>
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !allTicked || busy}>
-              {resubmit ? t('Sign and resubmit') : t('Sign agreement and submit')}
-            </Button>
-            <Button fullWidth sx={{ mt: 1 }} onClick={onBack}>{t('Back')}</Button>
+            <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
+              <Button onClick={onBack}>{t('Back')}</Button>
+              <Button type="submit" variant="contained" disabled={!read || !allTicked || busy}>
+                {resubmit ? t('Sign and resubmit') : t('Sign agreement and submit')}
+              </Button>
+            </div>
             <p className="xs muted" style={{ marginTop: 12 }}>
               {t('Signing records your name, time, IP address and a fingerprint of this exact text. The agreement takes effect when the application gets final approval on these terms. If a reviewer changes the amount or tenor, you accept a revised agreement before the loan is paid. If the application is rejected or withdrawn it becomes void; if it is returned, you sign a new one when you resubmit.')}
             </p>
@@ -686,6 +763,9 @@ export default function ApplyWizardPage() {
   }
 
   const correcting = app.status === 'returned';
+  // What the reviewer asked for, shown where it is fixed rather than only on the status page.
+  const returnedBy = correcting ? [...(app.history || [])].reverse().find((h) => h.action === 'return') : null;
+  const returnStage = returnedBy?.stage && app.route?.stages ? app.route.stageLabels?.[app.route.stages.indexOf(returnedBy.stage)] : null;
   const title = correcting ? t('Correct {ref}', { ref: app.ref }) : t('Apply for a loan');
 
   return (
@@ -696,11 +776,17 @@ export default function ApplyWizardPage() {
       <div className="pagehead">
         <div>
           <h1>{title}</h1>
-          <p>{correcting ? t('Make the changes asked for, then resubmit. It goes back to the first review stage.') : `${app.ref}. ${t('Your details fill in from your profile. You only add the loan request.')}`}</p>
+          <p>{correcting ? t('Make the changes asked for, then resubmit. It goes back to the first review stage.') : t('Your details fill in from your profile. You only add the loan request.')}</p>
         </div>
         {!correcting && <Button variant="text" disabled={cancelling} onClick={cancelDraft}>{cancelling ? t('Cancelling…') : t('Cancel application')}</Button>}
       </div>
-      <Steps step={step} hasDocuments={needsDocuments(app.product)} />
+      <Steps step={step} hasDocuments={needsDocuments(app.product)} reference={correcting ? null : app.ref} />
+      {returnedBy?.comment && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <AlertTitle>{returnStage ? t('Returned by the {stage} on {date}', { stage: t(returnStage), date: formatDate(returnedBy.at) }) : t('Returned on {date}', { date: formatDate(returnedBy.at) })}</AlertTitle>
+          {returnedBy.comment}
+        </Alert>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>

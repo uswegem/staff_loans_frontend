@@ -4,14 +4,13 @@
 
 import { useEffect, useState } from 'react';
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, Link, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Link, Table, TableBody, TableCell, TableHead, TableRow, Menu, MenuItem } from '@mui/material';
 import { applicationsApi } from '../../api/applications';
 import { downloadFile } from '../../api/staff';
 import { apiError } from '../../api/client';
 import { formatDate, formatDateTime, formatNumber, formatTzs } from '../../lib/format';
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
-import { STATUS } from '../../lib/statuses';
 import SuccessScreen from '../../components/ux/SuccessScreen';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import s from '../apply/apply.module.css';
@@ -82,6 +81,7 @@ export default function ApplicationPage() {
   const [app, setApp] = useState(null);
   const [error, setError] = useState(null);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState(null);
 
   useEffect(() => {
     applicationsApi.get(id).then(setApp).catch((e) => setError(apiError(e).message));
@@ -91,6 +91,11 @@ export default function ApplicationPage() {
   if (!app) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={3} /></div>;
   const current = app.agreements.find((a) => a.status !== 'void') || app.agreements[0];
   const returned = [...app.history].reverse().find((h) => h.action === 'return');
+  const signedInstalment = current?.terms?.instalment ?? app.quote.instalment;
+  const revisedTerms = !!app.approved?.amount && (app.approved.amount !== app.amount || app.approved.tenor !== app.tenor);
+  const terms = revisedTerms
+    ? { amount: app.approved.amount, tenor: app.approved.tenor, instalment: app.approved.instalment ?? signedInstalment }
+    : { amount: app.amount, tenor: app.tenor, instalment: signedInstalment };
 
   return (
     <div className="page">
@@ -102,7 +107,15 @@ export default function ApplicationPage() {
         </div>
         <div className="row">
           {app.status === 'returned' && <Button variant="contained" component={RouterLink} to={`/apply/${app.id}`}>{t('Correct application')}</Button>}
-          {app.withdrawable && app.status !== 'draft' && <Button onClick={() => setWithdrawing(true)}>{t('Withdraw')}</Button>}
+          {/* Withdraw is kept out of the way: one step further, so it is never pressed by accident. */}
+          {app.withdrawable && app.status !== 'draft' && (
+            <>
+              <Button onClick={(e) => setMoreAnchor(e.currentTarget)} aria-haspopup="menu" aria-expanded={!!moreAnchor}>{t('More')}</Button>
+              <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                <MenuItem onClick={() => { setMoreAnchor(null); setWithdrawing(true); }}>{t('Withdraw application')}</MenuItem>
+              </Menu>
+            </>
+          )}
         </div>
       </div>
       <div className="stack">
@@ -110,12 +123,6 @@ export default function ApplicationPage() {
           <SuccessScreen
             title={t('Application submitted successfully')}
             message={t('Your agreement {number} is signed. It takes effect when the application gets final approval on these terms.', { number: current?.number })}
-            details={[
-              { label: t('Application reference'), value: app.ref },
-              { label: t('Loan product'), value: app.product.name },
-              { label: t('Requested amount'), value: formatTzs(app.amount) },
-              { label: t('Current status'), value: t(app.statusLabel || STATUS[app.status]?.[0] || app.status) },
-            ]}
           />
         )}
         {app.status === 'pending_reaccept' && (
@@ -150,11 +157,13 @@ export default function ApplicationPage() {
               <ul className={s.tl}>
                 {app.history.map((h, i) => {
                   const [label, tone] = ACTIONS[h.action] || [h.action, ''];
+                  // Which stage decided, by role (the applicant does not see reviewers' names).
+                  const stageLabel = h.stage && app.route?.stages ? app.route.stageLabels?.[app.route.stages.indexOf(h.stage)] : null;
                   return (
                     // eslint-disable-next-line react/no-array-index-key
                     <li key={i}>
                       <span className={`${s.mk} ${tone ? s[tone] : ''}`} />
-                      <div style={{ fontWeight: 600 }}>{t(label)}</div>
+                      <div style={{ fontWeight: 600 }}>{t(label)}{stageLabel && ['approve', 'return', 'reject'].includes(h.action) ? ` ${t('by {stage}', { stage: t(stageLabel) })}` : ''}</div>
                       <div className={s.when}>{formatDateTime(h.at)}</div>
                       {h.comment && <div className={s.cmt}>{h.comment}</div>}
                     </li>
@@ -167,10 +176,12 @@ export default function ApplicationPage() {
             <Card>
               <CardContent sx={{ p: 3 }}>
                 <h3 style={{ marginBottom: 12 }}>{t('Loan')}</h3>
+                {/* Approved terms when they differ from the request; what was signed for stays visible. */}
                 <dl className={s.kv}>
-                  <dt>{t('Amount')}</dt><dd>{formatTzs(app.amount)}</dd>
-                  <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: app.tenor })}</dd>
-                  <dt>{t('Instalment')}</dt><dd>{formatTzs(current?.terms?.instalment ?? app.quote.instalment)}</dd>
+                  <dt>{t('Amount')}</dt><dd>{formatTzs(terms.amount)}</dd>
+                  <dt>{t('Tenor')}</dt><dd>{t('{n} months', { n: terms.tenor })}</dd>
+                  <dt>{t('Instalment')}</dt><dd>{formatTzs(terms.instalment)}</dd>
+                  {revisedTerms && <><dt>{t('Signed for')}</dt><dd className="small muted" style={{ fontWeight: 400 }}>{t('{amount} over {n} months', { amount: formatTzs(app.amount), n: app.tenor })}</dd></>}
                   <dt>{t('Purpose')}</dt><dd>{app.purpose}</dd>
                   <dt>{t('Repayment')}</dt><dd>{t('Salary deduction')}</dd>
                   <dt>{t('Submitted')}</dt><dd>{formatDate(app.submittedAt)}</dd>
