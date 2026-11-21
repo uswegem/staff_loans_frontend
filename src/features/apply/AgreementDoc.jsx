@@ -3,6 +3,7 @@
 
 import { forwardRef } from 'react';
 import s from './apply.module.css';
+import { useT } from '../../i18n';
 
 function Parts({ parts }) {
   return parts.map((p, i) =>
@@ -17,8 +18,9 @@ function Parts({ parts }) {
 }
 
 const AgreementDoc = forwardRef(function AgreementDoc({ blocks, onScroll, open }, ref) {
+  const t = useT();
   return (
-    <div ref={ref} className={`${s.doc} ${open ? s.docOpen : ''}`} tabIndex={0} onScroll={onScroll} aria-label="Loan agreement text" lang="sw">
+    <div ref={ref} className={`${s.doc} ${open ? s.docOpen : ''}`} tabIndex={0} onScroll={onScroll} aria-label={t('Loan agreement text')} lang="sw">
       {blocks.map((b, i) => {
         const key = `${b.type}${i}`;
         if (b.type === 'h1') return <h3 key={key}><Parts parts={b.parts} /></h3>;

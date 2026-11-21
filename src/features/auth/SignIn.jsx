@@ -18,6 +18,8 @@ import { useT } from '../../i18n';
 import s from './SignIn.module.css';
 import { safePath } from '../../lib/safePath';
 
+// One support wording on every sign-in screen, until the business gives a number (B11).
+const SUPPORT = 'Forgot your password? Contact the IT Service Desk.';
 
 /**
  * Left panel (D-96): the Letshego logo (copied from the MMS frontend), the system name
@@ -31,7 +33,7 @@ function BrandPanel() {
       <div className={s.artbody}>
         <img className={s.brandLogo} src={brandLogo} alt="Letshego Faidika Bank" />
         <h1>{t('Staff Loan Application System')}</h1>
-        <p className={s.tagline}>{t('Internal use only | Contact IT for Support')}</p>
+        <p className={s.tagline}>{t('Internal use only.')} {t(SUPPORT)}</p>
       </div>
     </div>
   );
@@ -86,7 +88,6 @@ function CredentialsStep({ onResult }) {
         {t('Secure staff sign-in')}
       </span>
       <h2>{t('Karibu. Sign in to continue.')}</h2>
-      <p className={s.lead}>{t('Use your username and password.')}</p>
       {formError && (
         <Alert severity="error" sx={{ mt: 2 }} role="alert">
           <AlertTitle>{formError.title}</AlertTitle>
@@ -97,7 +98,7 @@ function CredentialsStep({ onResult }) {
         <TextField
           id="sn"
           label={t('Username')}
-          placeholder="Enter username"
+          placeholder={t('Enter username')}
           value={userName}
           onChange={(e) => {
             setUserName(e.target.value);
@@ -123,7 +124,7 @@ function CredentialsStep({ onResult }) {
         </Button>
       </form>
       <div className={s.help}>
-        <span>{t('Forgot your password?')}</span>{' '}{t('Contact your authorized IT support team for account recovery assistance.')}
+        {t(SUPPORT)}
       </div>
     </>
   );
@@ -254,6 +255,7 @@ function LockedStep({ onBack }) {
         <AlertTitle>{t('Too many failed sign-in attempts')}</AlertTitle>
         {t('For your security, Staff Loans locked this account after 5 failed attempts. The IT Service Desk can unlock it once they confirm who you are.')}
       </Alert>
+      <p className={s.help}>{t(SUPPORT)}</p>
       <div className={s.fields}>
         <Button fullWidth onClick={() => onBack()}>{t('Back to sign in')}</Button>
       </div>

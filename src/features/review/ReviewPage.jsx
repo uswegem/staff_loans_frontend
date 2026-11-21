@@ -22,6 +22,7 @@ import s from '../apply/apply.module.css';
 import { translate, useT } from '../../i18n';
 import CardHeader from '../../components/CardHeader';
 import { formatPhone } from '../../lib/formats';
+import { statusLabel } from '../../lib/statuses';
 
 const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', disburse: 'Disbursement confirmed' };
 const TONE = { approve: 'ok', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
@@ -51,7 +52,7 @@ function Side({ app, onDone }) {
     <div style={{ padding: 24 }}>
       <Alert severity="info">
         <AlertTitle>{app.currentStage ? t('With {stage}', { stage: t(app.route.stageLabels[app.route.stages.indexOf(app.currentStage)]) }) : t('No action for you')}</AlertTitle>
-        {app.currentStage ? t('This application is not in your queue.') : t(app.statusLabel)}
+        {app.currentStage ? t('This application is not in your queue.') : statusLabel(app.status, app.statusLabel)}
       </Alert>
     </div>
   );
@@ -185,7 +186,7 @@ function FullReview({ app, onDone, onError }) {
               ) : (
                 <p className="small" style={{ marginTop: 12, color: 'var(--ok)', fontWeight: 600 }}>{t('All rule checks pass: service, limits, tenor, retirement date and affordability.')}</p>
               )}
-              {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
+              {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{t(f)}</Alert>)}
             </Panel>
           )}
           {!q && app.affordability && (
@@ -193,7 +194,7 @@ function FullReview({ app, onDone, onError }) {
               <AffordabilitySummary a={app.affordability} />
               {app.payHidden && <p className="xs muted" style={{ margin: '8px 0 0' }}>{t('Payslip and salary details are not shown to Auditors.')}</p>}
               {app.checks.length > 0 && <Alert severity="error" sx={{ mt: 2 }}><AlertTitle>{t('Rule checks to note')}</AlertTitle><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{app.checks.map((c) => <li key={c}>{c}</li>)}</ul></Alert>}
-              {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{f}</Alert>)}
+              {app.ruleFlags.map((f) => <Alert key={f} severity="warning" sx={{ mt: 1 }}>{t(f)}</Alert>)}
             </Panel>
           )}
           <Panel title={t('Applicant')} collapsed>
@@ -228,7 +229,7 @@ function FullReview({ app, onDone, onError }) {
                 <dt>{t('Outcome')}</dt><dd>{app.crb ? `${t(app.crb.outcome)}, ${formatDate(app.crb.reportDate)}` : t('Not recorded')}</dd>
                 {app.appraisalNote && (<><dt>{t('Appraisal note')}</dt><dd style={{ fontWeight: 400 }}>{app.appraisalNote}</dd></>)}
               </dl>
-              {app.arrearsNote && <Alert severity="warning" sx={{ mt: 1.5 }}><AlertTitle>{t('Arrears recorded by Credit (BR-10)')}</AlertTitle>{app.arrearsNote}</Alert>}
+              {app.arrearsNote && <Alert severity="warning" sx={{ mt: 1.5 }}><AlertTitle>{t('Arrears recorded by Credit')}</AlertTitle>{app.arrearsNote}</Alert>}
             </Panel>
           )}
           {hasDocuments(app) && (

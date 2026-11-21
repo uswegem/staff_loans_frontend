@@ -17,6 +17,7 @@ import ApplyBlockers from '../../components/ApplyBlockers';
 import WithdrawDialog from '../../components/WithdrawDialog';
 import { useT } from '../../i18n';
 import { plural } from '../../lib/plural';
+import { statusLabel } from '../../lib/statuses';
 
 export default function ApplyChoosePage() {
   const t = useT();
@@ -127,7 +128,7 @@ export default function ApplyChoosePage() {
           }
         >
           <AlertTitle sx={{ mb: 0 }}>{t('Open {product} application {ref}', { product: a.product, ref: a.ref })}</AlertTitle>
-          {t(a.statusLabel)}. {a.withdrawable ? t('Finish it, or withdraw it to start a new one.') : t('It can no longer be withdrawn.')}
+          {statusLabel(a.status, a.statusLabel)}. {a.withdrawable ? t('Finish it, or withdraw it to start a new one.') : t('It can no longer be withdrawn.')}
         </Alert>
       ))}
       <div className={s.prods}>

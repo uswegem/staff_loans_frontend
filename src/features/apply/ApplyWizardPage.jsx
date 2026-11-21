@@ -26,6 +26,7 @@ import { useT } from '../../i18n';
 import { needsDocuments } from '../../lib/products';
 import { plural } from '../../lib/plural';
 import DateField from '../../components/fields/DateField';
+import { statusLabel } from '../../lib/statuses';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
@@ -759,7 +760,7 @@ export default function ApplyWizardPage() {
   if (!app.editable) {
     return (
       <div className="page">
-        <Alert severity="info" action={<Button component={RouterLink} to={`/applications/${app.id}`}>{t('View application')}</Button>}>{t('{ref} is {status}. It can no longer be changed.', { ref: app.ref, status: t(app.statusLabel).toLowerCase() })}</Alert>
+        <Alert severity="info" action={<Button component={RouterLink} to={`/applications/${app.id}`}>{t('View application')}</Button>}>{t('{ref} is {status}. It can no longer be changed.', { ref: app.ref, status: statusLabel(app.status, app.statusLabel).toLowerCase() })}</Alert>
       </div>
     );
   }
