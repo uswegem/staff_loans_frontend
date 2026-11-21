@@ -94,7 +94,7 @@ export default function ApplyChoosePage() {
   const openFor = (p) => openApps.find((a) => a.productId === p.id);
   const reasonFor = (p) => {
     const o = openFor(p);
-    if (o) return t('You already have an open {a} application ({b}). Finish or withdraw it first.', { a: p.name, b: o.ref });
+    if (o) return t('Open application {ref}', { ref: o.ref });
     return elig.products.find((x) => x.productId === p.id)?.reasons?.[0];
   };
   // Drafts and returned applications continue in the wizard; the rest open their status page.
@@ -108,7 +108,6 @@ export default function ApplyChoosePage() {
           <h1>{t('Apply for a loan')}</h1>
           <p>{t('Your details fill in from your profile. You only add the loan request.')}</p>
         </div>
-        <Button variant="text" component={RouterLink} to="/">{t('Cancel')}</Button>
       </div>
       <Steps step={0} />
       {elig.blockers?.length > 0 && <div style={{ marginBottom: 16 }}><ApplyBlockers blockers={elig.blockers} /></div>}
@@ -121,8 +120,8 @@ export default function ApplyChoosePage() {
           sx={{ mb: 2, alignItems: 'center' }}
           action={
             <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-              <Button size="small" variant="outlined" color="inherit" component={RouterLink} to={continuePath(a)}>{a.status === 'draft' || a.status === 'returned' ? t('Continue it') : t('View')}</Button>
-              {a.withdrawable && <Button size="small" variant="contained" color="warning" onClick={() => setWithdrawing(a)}>{t('Withdraw')}</Button>}
+              <Button size="small" variant="contained" component={RouterLink} to={continuePath(a)}>{a.status === 'draft' || a.status === 'returned' ? t('Continue it') : t('View')}</Button>
+              {a.withdrawable && <Button size="small" variant="text" onClick={() => setWithdrawing(a)}>{t('Withdraw')}</Button>}
             </div>
           }
         >
@@ -139,17 +138,19 @@ export default function ApplyChoosePage() {
               <h3>{p.name}</h3>
               <div className="muted small">{p.description}</div>
               <div className={s.lim}>
-                TZS {formatNumber(p.minAmount)} to TZS {formatNumber(p.maxAmount)}
+                {t('TZS {min} to TZS {max}', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) })}
                 <br />
-                {p.minTenor} to {p.maxTenor} months
+                {t('{min} to {max} months', { min: p.minTenor, max: p.maxTenor })}
               </div>
-              {reason && <div id={`why_${p.id}`} className={s.reason}>{reason}</div>}
+              {reason && (openFor(p)
+                ? <span id={`why_${p.id}`} className="tag" style={{ marginTop: 12, display: 'inline-block' }}>{reason}</span>
+                : <div id={`why_${p.id}`} className={s.reason}>{reason}</div>)}
             </button>
           );
         })}
       </div>
       {withdrawing && <WithdrawDialog app={withdrawing} onClose={() => setWithdrawing(null)} onConfirm={withdraw} />}
-      <p className="xs muted" style={{ marginTop: 16 }}>{t('Your own maximum is worked out from the payslip you attach on the next step: up to half of your Basic Pay after pension and PAYE, plus your LFB deductions, a month. Tenor ranges are sample values until confirmed from the Staff Loan Policy.')}</p>
+      <p className="xs muted" style={{ marginTop: 16 }}>{t('Your own maximum is worked out from the payslip you attach on the next step.')}</p>
     </div>
   );
 }

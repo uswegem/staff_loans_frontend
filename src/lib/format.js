@@ -63,3 +63,20 @@ export function parseDay(text) {
   if (date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return null;
   return `${y}-${pad(mo)}-${pad(d)}`;
 }
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTH_NAMES_SW = ['Januari', 'Februari', 'Machi', 'Aprili', 'Mei', 'Juni', 'Julai', 'Agosti', 'Septemba', 'Oktoba', 'Novemba', 'Desemba'];
+
+/**
+ * A payslip's date as staff should read it. A payslip that shows only its month ("November
+ * 2026") is read as the month's last day, which can still be ahead: then the month is shown
+ * ("Pay month: November 2026") rather than a date that has not come yet.
+ * Returns { month: true, text } or { month: false, text }.
+ */
+export function payslipDate(day, today = new Date().toISOString().slice(0, 10)) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(day || ''));
+  if (!m) return { month: false, text: formatDate(day) };
+  if (`${m[1]}-${m[2]}-${m[3]}` <= today) return { month: false, text: formatDay(day) };
+  const names = currentLanguage() === 'sw' ? MONTH_NAMES_SW : MONTH_NAMES;
+  return { month: true, text: `${names[Number(m[2]) - 1]} ${m[1]}` };
+}

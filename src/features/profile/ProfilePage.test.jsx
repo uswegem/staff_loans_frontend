@@ -102,6 +102,7 @@ describe('Home eligibility (NS-03)', () => {
     renderAt('/', '/', <Home />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('You can apply for a top-up in 35 days (from 3 Dec 2026).')).toBeInTheDocument();
     expect(screen.getByText('In 35 days')).toBeInTheDocument();
-    expect(screen.getByText('You can apply')).toBeInTheDocument();
+    // A product open to them offers Apply straight away (it starts the application).
+    expect(screen.getByRole('button', { name: 'Apply for Vehicle Loan' })).toBeInTheDocument();
   });
 });

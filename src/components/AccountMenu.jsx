@@ -9,6 +9,7 @@ import { Divider, ListItemText, Menu, MenuItem } from '@mui/material';
 import { authApi } from '../api/auth';
 import { sessionEnded } from '../store/authSlice';
 import PreferenceSwitches from './PreferenceSwitches';
+import { formatDateTime } from '../lib/format';
 import s from './AppShell.module.css';
 import { useT } from '../i18n';
 
@@ -25,6 +26,7 @@ export default function AccountMenu() {
   const t = useT();
   const [anchor, setAnchor] = useState(null);
   const user = useSelector((st) => st.auth.user);
+  const roles = useSelector((st) => st.auth.roles) || [];
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // The job title from the HR record, never a system role: roles are listed under My roles
@@ -56,7 +58,16 @@ export default function AccountMenu() {
       </button>
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <MenuItem disabled sx={{ opacity: '1 !important' }}>
-          <ListItemText primary={user.fullName} secondary={`${user.staffNo}${user.title ? `, ${user.title}` : ''}`} />
+          <ListItemText
+            primary={user.fullName}
+            secondary={
+              <>
+                {`${user.staffNo}${user.title ? `, ${user.title}` : ''}`}
+                {roles.length > 0 && <><br />{roles.map((r) => r.name).join(', ')}</>}
+                {user.lastLoginAt && <><br />{t('Last sign-in {when}.', { when: formatDateTime(user.lastLoginAt) })}</>}
+              </>
+            }
+          />
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => go('/account/access')}>{t('My roles and permissions')}</MenuItem>

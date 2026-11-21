@@ -1,14 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 import SvgIcon from '@mui/material/SvgIcon';
-import { useT } from '../../i18n';
 
 /**
  * Presentation only. Callers MUST verify success with the authoritative API
  * before rendering this component. No workflow or transaction state is changed.
  */
 export default function SuccessScreen({ title, message, details = [], primaryAction, secondaryAction, focusOnMount = true }) {
-  const t = useT();
   const heading = useRef(null);
   useEffect(() => {
     if (focusOnMount) heading.current?.focus();
@@ -38,7 +36,6 @@ export default function SuccessScreen({ title, message, details = [], primaryAct
           {primaryAction && <Button variant="contained" onClick={primaryAction.onClick} component={primaryAction.component} to={primaryAction.to}>{primaryAction.label}</Button>}
           {secondaryAction && <Button onClick={secondaryAction.onClick} component={secondaryAction.component} to={secondaryAction.to}>{secondaryAction.label}</Button>}
         </Box>
-        {!primaryAction && !secondaryAction && <Typography variant="caption" color="text.secondary">{t('Action completed')}</Typography>}
       </CardContent>
     </Card>
   );
