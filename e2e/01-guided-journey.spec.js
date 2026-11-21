@@ -23,12 +23,12 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
     await rehema.getByRole('option', { name: option, exact: true }).click();
   }
   await rehema.getByLabel(/^Street/).fill('Area D');
-  await rehema.getByRole('button', { name: 'Save personal details' }).click();
+  await rehema.getByRole('button', { name: 'Save and continue' }).click();
   await expect(rehema.getByText('Saved.', { exact: true })).toBeVisible();
 
   await rehema.getByRole('tab', { name: /Bank details/ }).click();
   await rehema.getByLabel(/Account number/).fill('0170345678');
-  await rehema.getByRole('button', { name: 'Save bank details' }).click();
+  await rehema.getByRole('button', { name: 'Save and continue' }).click();
   await expect(rehema.getByText('Saved.', { exact: true })).toBeVisible();
 
   await rehema.getByRole('tab', { name: /Next of kin/ }).click();
@@ -38,7 +38,7 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await rehema.getByRole('option', { name: 'Parent' }).click();
   await rehema.getByLabel(/^Phone/).fill('+255 754 330 112');
   await rehema.getByLabel(/Residential address/).fill('Kikuyu, Dodoma');
-  await rehema.getByRole('button', { name: 'Save next of kin' }).click();
+  await rehema.getByRole('button', { name: 'Save and continue' }).click();
   // Pay figures now come from the payslip attached when applying (D-80).
   // D-97: complete, but not "you can now apply" while her date of birth waits for People and Culture.
   await expect(rehema.getByText('Profile complete.', { exact: true })).toBeVisible();

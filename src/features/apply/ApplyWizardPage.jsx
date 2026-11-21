@@ -25,6 +25,7 @@ import s from './apply.module.css';
 import { useT } from '../../i18n';
 import { needsDocuments } from '../../lib/products';
 import { plural } from '../../lib/plural';
+import DateField from '../../components/fields/DateField';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
@@ -139,10 +140,11 @@ function FieldInput({ f, value, onChange, error }) {
       </TextField>
     );
   }
+  if (f.type === 'date') return <DateField {...common} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
   return (
     <TextField
       {...common}
-      type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+      type={f.type === 'number' ? 'number' : 'text'}
       multiline={f.type === 'textarea'}
       minRows={f.type === 'textarea' ? 3 : undefined}
       value={value ?? ''}

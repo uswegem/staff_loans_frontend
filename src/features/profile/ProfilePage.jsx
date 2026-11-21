@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, IconButton, MenuItem, Tab, Tabs, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Link } from '@mui/material';
 import { dobApi, profileApi } from '../../api/staff';
 import { productsApi } from '../../api/products';
 import { apiError } from '../../api/client';
@@ -17,6 +17,7 @@ import { formatDate } from '../../lib/format';
 import { RULES, checkValue, useValidatedForm } from '../../lib/validation';
 import { countryOf } from '../../lib/formats';
 import { useT } from '../../i18n';
+import { plural } from '../../lib/plural';
 import DobStatus from '../../components/DobStatus';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import MoneyInput from '../../components/MoneyInput';
@@ -58,7 +59,7 @@ function useFixed(left, onFixed) {
   }, [left]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
+function PersonalTab({ profile, requiredKeys, onSave, onFixed, onDirty }) {
   const t = useT();
   const p = profile.personal || {};
   const dob = profile.dateOfBirth || {};
@@ -90,6 +91,7 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
   );
   const { values: v, set, touch, errorOf } = form;
   useFixed(form.serverLeft, onFixed);
+  useEffect(() => onDirty?.(form.dirty), [form.dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => form.setServerErrors(flat(profile.errors)), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const msg = (k) => {
@@ -105,7 +107,7 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
+    <form id="profile-tab-form" onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.savePersonal({ ...v, dob: v.dob || null })); }} noValidate>
       <div className={s.grid}>
         <TextField label={t('First Name')} value={profile.firstName || ''} disabled helperText={t('From your staff record. Ask People and Culture to correct it.')} />
         <TextField label={t('Surname')} value={profile.lastName || ''} disabled />
@@ -121,7 +123,7 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
           error={!!errorOf('dob')}
           disabled={!!dob.pending}
           InputLabelProps={{ shrink: true }}
-          helperText={msg('dob') || (dob.pending ? t('Waiting for People and Culture. Withdraw it below to change it.') : t('A new date is checked by People and Culture before it is used for loans.'))}
+          helperText={msg('dob') || (dob.pending ? t('Waiting for People and Culture. Withdraw it below to change it.') : dob.verified ? t('A new date is checked by People and Culture before it is used for loans.') : undefined)}
         />
         <div className={s.full}>
           <DobStatus status={dob} canWithdraw={!!dob.pending && dob.pending.submittedById === myId} onWithdraw={() => onSave(() => dobApi.withdraw(dob.pending.id).then(() => profileApi.get()))} />
@@ -143,12 +145,12 @@ function PersonalTab({ profile, requiredKeys, onSave, onFixed }) {
           <AddressFields value={v.address} onChange={set('address')} errorOf={addressError} />
         </div>
       </div>
-      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save personal details')}</Button></div>
+      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save and continue')}</Button></div>
     </form>
   );
 }
 
-function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
+function EmploymentTab({ profile, roles, onSave }) {
   const t = useT();
   const e = profile.employment;
   const [editingDate, setEditingDate] = useState(false);
@@ -172,17 +174,21 @@ function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
           <DateField label={t('Date Joined')} value={dateJoined} onChange={(event) => setDateJoined(event.target.value)} InputLabelProps={{ shrink: true }} error={!!dateError} helperText={dateError} inputProps={{ max: new Date().toISOString().slice(0, 10) }} />
           <Button variant="contained" onClick={saveDate}>{t('Save')}</Button>
           <Button onClick={() => { setEditingDate(false); setDateError(''); }}>{t('Cancel')}</Button>
-        </div> : <Button variant="outlined" onClick={() => { setDateJoined(e.dateJoined || ''); setEditingDate(true); }}>{t('Update Date Joined')}</Button>}
+        </div> : !e.dateJoined && <Button variant="contained" onClick={() => { setDateJoined(''); setEditingDate(true); }}>{t('Enter your date joined')}</Button>}
       </div>
       <dl className={s.kv}>
         <dt>{t('Staff number')}</dt><dd>{profile.staffNo}</dd>
         <dt>{t('Job title')}</dt><dd>{e.title}</dd>
-        <dt>{t('Department')}</dt><dd>{e.department || '—'}</dd>
+        {e.department && (<><dt>{t('Department')}</dt><dd>{e.department}</dd></>)}
         <dt>{t('Work station')}</dt><dd>{e.station}</dd>
         {e.stationHead?.name && (<><dt>{t('Head of station')}</dt><dd>{e.stationHead.name}{e.stationHead.phone ? `, ${e.stationHead.phone}` : ''}</dd></>)}
         <dt>{t('Employment type')}</dt><dd>{t(e.employmentType || '—')}{e.probation?.onProbation ? `, ${t('on probation until {date}', { date: formatDate(e.probation.endsOn) })}` : ''}</dd>
         <dt>{t('Category')}</dt><dd>{t(e.category || '—')}</dd>
-        <dt>{t('Date joined')}</dt><dd>{formatDate(e.dateJoined)}</dd>
+        <dt>{t('Date joined')}</dt>
+        <dd>
+          {formatDate(e.dateJoined)}
+          {e.dateJoined && !editingDate && <> <Button size="small" variant="text" onClick={() => { setDateJoined(e.dateJoined); setEditingDate(true); }}>{t('Correct date joined')}</Button></>}
+        </dd>
         {e.contractEndDate && (<><dt>{t('Contract ends')}</dt><dd>{formatDate(e.contractEndDate)}</dd></>)}
         <dt>{t('Retirement date')}</dt><dd>{e.retirementDate ? formatDate(e.retirementDate) : <span className="muted">{t('Worked out once your date of birth is verified')}</span>}</dd>
         <dt>{t('Approval route')}</dt><dd>{t(profile.route.description)}</dd>
@@ -192,14 +198,12 @@ function EmploymentTab({ profile, roles, permissions, mfaRequired, onSave }) {
       <p className="small muted">{t('Roles are assigned by a system administrator.')}</p>
       <dl className={s.kv}>
         <dt>{t('Roles')}</dt><dd>{roles.map((r) => t(r.name)).join(', ')}</dd>
-        <dt>{t('Permissions')}</dt><dd>{permissions.length}</dd>
-        <dt>{t('Sign-in check')}</dt><dd>{mfaRequired ? t('Password and one-time code (MFA)') : t('Password')}</dd>
       </dl>
     </>
   );
 }
 
-function BankTab({ profile, requiredKeys, onSave, onFixed }) {
+function BankTab({ profile, requiredKeys, onSave, onFixed, onDirty }) {
   const t = useT();
   const b = profile.bank || {};
   const req = (k) => requiredKeys.has(`bank.${k}`);
@@ -207,29 +211,32 @@ function BankTab({ profile, requiredKeys, onSave, onFixed }) {
     () => ({ bank: ruleFor(req('bank')), branch: ruleFor(req('branch'), RULES.branch), accountName: ruleFor(req('accountName')), accountNo: ruleFor(req('accountNo'), RULES.accountNo) }),
     [requiredKeys] // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const form = useValidatedForm({ bank: b.bank || '', branch: b.branch || '', accountName: b.accountName || '', accountNo: b.accountNo || '' }, rules);
+  // Staff loans are paid into the LFB account: start from the bank and the staff member's name.
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+  const form = useValidatedForm({ bank: b.bank || 'Letshego Faidika Bank', branch: b.branch || '', accountName: b.accountName || fullName, accountNo: b.accountNo || '' }, rules);
   const { values: v, set, touch, errorOf } = form;
   useFixed(form.serverLeft, onFixed);
+  useEffect(() => onDirty?.(form.dirty), [form.dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => form.setServerErrors(flat(profile.errors)), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
   const field = (k, label, extra = {}) => {
     const m = errorOf(k);
     return <TextField label={t(label)} required={req(k)} value={v[k]} onChange={set(k)} onBlur={touch(k)} error={!!m} helperText={m ? t(m) : undefined} {...extra} />;
   };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveBank(v)); }} noValidate>
-      <p className="small muted">{t('Your LFB account is filled in for you. Check the branch and account number.')}</p>
+    <form id="profile-tab-form" onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveBank(v)); }} noValidate>
+      {b.accountNo && <p className="small muted">{t('Your LFB account is filled in for you. Check the branch and account number.')}</p>}
       <div className={s.grid}>
         {field('bank', 'Bank')}
         {field('branch', 'Branch')}
         {field('accountName', 'Account name')}
         {field('accountNo', 'Account number', { inputProps: { inputMode: 'numeric', className: 'num' } })}
       </div>
-      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save bank details')}</Button></div>
+      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save and continue')}</Button></div>
     </form>
   );
 }
 
-function KinTab({ profile, requiredKeys, onSave, onFixed }) {
+function KinTab({ profile, requiredKeys, onSave, onFixed, onDirty }) {
   const t = useT();
   const k = profile.nextOfKin?.[0] || {};
   const req = (f) => requiredKeys.has(`nextOfKin.0.${f}`);
@@ -240,13 +247,14 @@ function KinTab({ profile, requiredKeys, onSave, onFixed }) {
   const form = useValidatedForm({ firstName: k.firstName || '', lastName: k.lastName || '', relationship: k.relationship || '', phone: k.phone || '', employer: k.employer || '', address: k.address || '' }, rules);
   const { values: v, set, touch, errorOf } = form;
   useFixed(form.serverLeft, onFixed);
+  useEffect(() => onDirty?.(form.dirty), [form.dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => form.setServerErrors(Object.fromEntries(Object.entries(flat(profile.errors)).map(([key, m]) => [key.replace(/^nextOfKin\.0\./, ''), m]))), [profile.errors]); // eslint-disable-line react-hooks/exhaustive-deps
   const msg = (f) => {
     const m = errorOf(f);
     return m ? t(m) : undefined;
   };
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveKin([v, ...(profile.nextOfKin || []).slice(1)])); }} noValidate>
+    <form id="profile-tab-form" onSubmit={(e) => { e.preventDefault(); form.attempt(); onSave(() => profileApi.saveKin([v, ...(profile.nextOfKin || []).slice(1)])); }} noValidate>
       <p className="small muted">{t('At least one next of kin is required.')}</p>
       <div className={s.grid}>
         <TextField label={t('First Name')} required={req('firstName')} value={v.firstName} onChange={set('firstName')} onBlur={touch('firstName')} error={!!msg('firstName')} helperText={msg('firstName')} />
@@ -258,7 +266,7 @@ function KinTab({ profile, requiredKeys, onSave, onFixed }) {
         <TextField label={t('Employer')} value={v.employer} onChange={set('employer')} helperText={t('Optional.')} />
         <TextField label={t('Residential address')} required={req('address')} value={v.address} onChange={set('address')} onBlur={touch('address')} error={!!msg('address')} helperText={msg('address')} className={s.full} />
       </div>
-      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save next of kin')}</Button></div>
+      <div className="row" style={{ marginTop: 24 }}><Button type="submit" variant="contained">{t('Save and continue')}</Button></div>
     </form>
   );
 }
@@ -268,7 +276,7 @@ function KinTab({ profile, requiredKeys, onSave, onFixed }) {
  * running loans per product (BR-07) and start the reapply wait (NS-02). The limit itself
  * is worked out from the payslip attached to each application (D-78, D-80).
  */
-function PayTab({ profile, onSave }) {
+function PayTab({ profile, onSave, onDirty }) {
   const t = useT();
   const [lfb, setLfb] = useState(profile.existingLfbLoans || []);
   const [products, setProducts] = useState([]);
@@ -276,6 +284,9 @@ function PayTab({ profile, onSave }) {
     productsApi.live().then(setProducts).catch(() => setProducts([]));
   }, []);
   const setL = (i, patch) => setLfb(lfb.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const startLfb = useRef(JSON.stringify(profile.existingLfbLoans || []));
+  const changed = JSON.stringify(lfb) !== startLfb.current;
+  useEffect(() => onDirty?.(changed), [changed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = (e) => {
     e.preventDefault();
@@ -287,9 +298,9 @@ function PayTab({ profile, onSave }) {
   };
 
   return (
-    <form onSubmit={submit} noValidate>
+    <form id="profile-tab-form" onSubmit={submit} noValidate>
       <h4>{t('Your pay')}</h4>
-      <p className="small muted">{t('When you apply, you attach your latest payslip. Your limit is worked out from its Basic Pay: pension (10%) and PAYE come off Basic Pay to give your Net Pay, and all your staff loan instalments together may take up to half of it a month.')}</p>
+      <p className="small muted">{t('Your limit is worked out from the payslip you attach to each application.')}</p>
 
       <h4 style={{ marginTop: 24 }}>{t('Existing LFB staff loans from before Staff Loans')}</h4>
       <p className="small muted">{t('Loans taken on paper are not in this system. If you know the product and the date it was paid out, add them; they count towards the loans you may have per product, and you can apply for the same product again six months after that date.')}</p>
@@ -307,14 +318,14 @@ function PayTab({ profile, onSave }) {
         </div>
       ))}
       <Button size="small" onClick={() => setLfb([...lfb, { description: t('Staff loan (paper)'), instalment: null }])}>{t('Add a staff loan')}</Button>
-      <div className="row" style={{ marginTop: 16 }}><Button type="submit" variant="contained">{t('Save existing staff loans')}</Button></div>
+      {changed && <div className="row" style={{ marginTop: 16 }}><Button type="submit" variant="contained">{t('Save existing staff loans')}</Button></div>}
     </form>
   );
 }
 
 export default function ProfilePage() {
   const t = useT();
-  const { roles, permissions, mfaRequired } = useSelector((st) => st.auth);
+  const { roles } = useSelector((st) => st.auth);
   const [profile, setProfile] = useState(null);
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(() => searchParams.get('tab') === 'employment' ? 'employment' : 'personal');
@@ -327,6 +338,21 @@ export default function ProfilePage() {
     if (errorCode === 'VALIDATION_FAILED') setError(null);
   };
   const [version, setVersion] = useState(0);
+  // Unsaved input in the open tab, and the tab asked for while it was there.
+  const [dirty, setDirty] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+  const askedFor = useRef(null);
+
+  // Leaving the page (reload, close, typed address) with unsaved input asks the browser to confirm.
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   useEffect(() => {
     profileApi.get().then(setProfile).catch((e) => setError(apiError(e).message));
@@ -339,6 +365,15 @@ export default function ProfilePage() {
 
   const c = profile.completeness;
   const missIn = (tb) => c.missing.filter((m) => m.tab === tb).length;
+  // A nationality shown pre-filled but not yet saved is "check and save", not "missing".
+  const onlyDefaults = (tb) => tb === 'personal' && !profile.personal?.nationality && c.missing.filter((m) => m.tab === tb).every((m) => m.key === 'personal.nationality');
+  const order = TABS.map((x) => x[0]);
+  const firstGap = order.find((x) => missIn(x));
+  const goTo = (next) => {
+    if (next === tab) return;
+    if (dirty) setPendingTab(next);
+    else setTab(next);
+  };
 
   /** Saves a tab; on success moves to the next tab with missing details (prototype). */
   const save = async (fn) => {
@@ -349,18 +384,22 @@ export default function ProfilePage() {
       const next = await fn();
       setProfile(next);
       setVersion((n) => n + 1);
-      const order = TABS.map((x) => x[0]);
       const nextMissing = order.find((x) => next.completeness.missing.some((m) => m.tab === x));
       // D-97: complete is not enough while People and Culture still have something to do.
       const ready = next.completeness.complete && !next.applyBlockers?.length;
       setToast(ready ? t('Profile complete. You can now apply for a loan.') : next.completeness.complete ? t('Profile complete.') : t('Saved.'));
-      if (nextMissing) setTab(nextMissing);
+      setDirty(false);
+      // Saved from the unsaved-changes dialog: go where they were heading; otherwise to the next gap.
+      if (askedFor.current) setTab(askedFor.current);
+      else if (nextMissing) setTab(nextMissing);
+      askedFor.current = null;
       return true;
     } catch (err) {
       const x = apiError(err);
       setFieldErrors(x.details || {});
       setError(x.message);
       setErrorCode(x.code);
+      askedFor.current = null;
       return false;
     }
   };
@@ -379,10 +418,11 @@ export default function ProfilePage() {
         </div>
       </div>
       <div className="stack">
-        {!c.complete && (
+        {!c.complete && firstGap && (
           <Alert severity="warning">
-            <AlertTitle>{t('You can apply once your profile is complete')}</AlertTitle>
-            {t('Missing: {list}.', { list: c.missing.map((m) => (m.invalid ? t('{label} (check the format)', { label: t(m.label) }) : t(m.label))).join(', ') })}
+            {t(plural(c.missing.length, '{n} detail left.', '{n} details left.'), { n: c.missing.length })}{' '}
+            {t('Start with')}{' '}
+            <Link component="button" type="button" onClick={() => goTo(firstGap)} sx={{ verticalAlign: 'baseline' }}>{t(TABS.find((x) => x[0] === firstGap)[1])}</Link>.
           </Alert>
         )}
         <ActionFeedback open={Boolean(toast)} message={toast} onClose={() => setToast(null)} />
@@ -390,19 +430,32 @@ export default function ProfilePage() {
         {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
         <Card>
           <CardContent sx={{ p: 3 }}>
-            <Tabs value={tab} onChange={(_, val) => setTab(val)} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 3 }} aria-label={t('Profile sections')}>
+            <Tabs value={tab} onChange={(_, val) => goTo(val)} variant="scrollable" allowScrollButtonsMobile sx={{ mb: 3 }} aria-label={t('Profile sections')}>
               {TABS.map(([k, l]) => (
-                <Tab key={k} value={k} label={<span>{t(l)}{missIn(k) ? <span className={s.count}>{missIn(k)}</span> : null}</span>} />
+                <Tab key={k} value={k} label={<span>{t(l)}{missIn(k) ? <span className={s.count}>{onlyDefaults(k) ? t('Check and save') : missIn(k)}</span> : null}</span>} />
               ))}
             </Tabs>
-            {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
-            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} permissions={permissions} mfaRequired={mfaRequired} onSave={save} />}
-            {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
-            {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} />}
-            {tab === 'pay' && <PayTab key={`pay${version}`} profile={shown} onSave={save} />}
+            {tab === 'personal' && <PersonalTab key={`personal${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} onDirty={setDirty} />}
+            {tab === 'employment' && <EmploymentTab profile={profile} roles={roles} onSave={save} />}
+            {tab === 'bank' && <BankTab key={`bank${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} onDirty={setDirty} />}
+            {tab === 'kin' && <KinTab key={`kin${version}`} profile={shown} requiredKeys={requiredKeys} onSave={save} onFixed={fixed} onDirty={setDirty} />}
+            {tab === 'pay' && <PayTab key={`pay${version}`} profile={shown} onSave={save} onDirty={setDirty} />}
           </CardContent>
         </Card>
       </div>
+      {pendingTab && (
+        <Dialog open onClose={() => setPendingTab(null)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Unsaved changes')}</DialogTitle>
+          <DialogContent>
+            <p style={{ margin: 0 }}>{t('You have unsaved changes in {tab}. Save them first?', { tab: t(TABS.find((x) => x[0] === tab)[1]) })}</p>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPendingTab(null)}>{t('Stay')}</Button>
+            <Button onClick={() => { setDirty(false); setTab(pendingTab); setPendingTab(null); }}>{t('Discard')}</Button>
+            <Button variant="contained" onClick={() => { askedFor.current = pendingTab; setPendingTab(null); document.getElementById('profile-tab-form')?.requestSubmit(); }}>{t('Save')}</Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </div>
   );
 }
