@@ -1285,7 +1285,6 @@ const SW = {
   'Your payslip shows more than one deduction for this product. The others count as other deductions.': 'Hati yako ya mshahara inaonyesha makato zaidi ya moja ya bidhaa hii. Mengine yanahesabiwa kama makato mengine.',
   '{ref} in Staff Loans is settled from this loan.': '{ref} katika Mikopo ya Wafanyakazi inalipwa kutoka kwenye mkopo huu.',
   'Payslip deduction label': 'Jina la makato kwenye hati ya mshahara',
-  'As printed on the payslip, for example Staff Loan - Car. Each line is matched to its product by it; case, spacing and punctuation do not matter.': 'Kama lilivyochapishwa kwenye hati ya mshahara, kwa mfano Staff Loan - Car. Kila mstari unalinganishwa na bidhaa yake kwa jina hili; herufi kubwa au ndogo, nafasi na alama hazijalishi.',
   'Application submitted successfully': 'Maombi ya mkopo yamewasilishwa kwa mafanikio',
   'Application reference': 'Namba ya kumbukumbu ya maombi',
   'Loan product': 'Aina ya mkopo',
@@ -1563,6 +1562,7 @@ const SW = {
   "Enter username": "Weka jina la mtumiaji",
   "Loan agreement": "Mkataba wa mkopo",
   "Loan agreement text": "Maandishi ya mkataba wa mkopo",
+  "As printed on the payslip, for example STAFF LOAN or CAR LOAN. Each product needs its own label: each payslip line is matched to one product by it. Case, spacing and punctuation do not matter.": "Kama ilivyoandikwa kwenye hati ya mshahara, kwa mfano STAFF LOAN au CAR LOAN. Kila bidhaa inahitaji lebo yake: kila mstari wa hati ya mshahara unalinganishwa na bidhaa moja kwa lebo hii. Herufi kubwa au ndogo, nafasi na alama hazijalishi.",
 };
 
 export default SW;
