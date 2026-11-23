@@ -167,7 +167,7 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
           value={values.payslipLabel || ''}
           onChange={(e) => set('payslipLabel')(e.target.value)}
           error={!!errors.payslipLabel}
-          helperText={err('payslipLabel') || t('As printed on the payslip, for example Staff Loan - Car. Each line is matched to its product by it; case, spacing and punctuation do not matter.')}
+          helperText={err('payslipLabel') || t('As printed on the payslip, for example STAFF LOAN or CAR LOAN. Each product needs its own label: each payslip line is matched to one product by it. Case, spacing and punctuation do not matter.')}
           disabled={readOnly}
           inputProps={{ maxLength: 80 }}
         />
