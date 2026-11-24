@@ -114,8 +114,12 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   await expect(daniel.getByText('Enter the amount you want to borrow.')).toHaveCount(0);
   await expect(daniel.getByRole('alert')).toHaveCount(0);
   await expect(daniel.getByLabel('Amount')).toHaveAttribute('aria-invalid', 'false');
+  await expect(daniel.getByLabel('Amount')).toHaveValue('300,000,000');
   await shot(daniel, 'apply-details-open');
 
+  // Explicitly clear the defaults to exercise mandatory-field validation.
+  await daniel.getByLabel('Amount').fill('');
+  await daniel.getByLabel('Tenor (months)').fill('');
   await continueButton(daniel).click();
   await expect(daniel.getByText('Fill in the required fields.')).toBeVisible();
   await expect(daniel.getByText('Enter the amount you want to borrow.')).toBeVisible();
