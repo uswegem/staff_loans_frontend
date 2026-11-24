@@ -74,7 +74,7 @@ function formOf(app, withDefault = true) {
   const chosen = !!app.topUp?.chosen;
   return {
     amount: app.amount,
-    tenor: app.tenor || Math.min(app.product.maxTenor, Math.max(app.product.minTenor, 12)),
+    tenor: app.tenor,
     purpose: app.purpose || '',
     productFields: app.productFields || {},
     topUp: { on: chosen ? !!app.topUp.on : !!app.topUp?.on || (withDefault && canDefaultTopUp(app)), chosen, payslipLine: app.topUp?.payslipLine?.label ? app.topUp.payslipLine : null },
@@ -112,10 +112,12 @@ function roomFor(app, form) {
 }
 
 /** The same calculation as the API, for instant feedback while typing. */
-function useLiveQuote(app, form) {
-  return useMemo(
-    () =>
-      calcQuote({
+function eligibleTenor(app) {
+  return Math.max(0, Math.min(app.product.maxTenor, app.retirement?.maxTenor ?? app.product.maxTenor, app.quote?.maxTenor ?? app.product.maxTenor));
+}
+
+function liveQuote(app, form) {
+  return calcQuote({
         amount: form.amount || 0,
         tenor: form.tenor || 0,
         topUp: form.topUp.on,
@@ -124,11 +126,23 @@ function useLiveQuote(app, form) {
         pricing: app.pricing,
         startDay: todayEat(),
         dueDay: app.firstDueDay,
-        maxTenor: app.quote.maxTenor,
+        maxTenor: eligibleTenor(app),
         maxAmountCap: app.product.maxAmount,
-      }),
-    [app, form]
-  );
+      });
+}
+
+function useLiveQuote(app, form) {
+  return useMemo(() => liveQuote(app, form), [app, form]);
+}
+
+// Preserve saved requests and manual edits; only untouched fields follow the available maximum.
+function applyDefaults(app, form, manual) {
+  const maxTenor = eligibleTenor(app);
+  const tenor = manual.tenor ? form.tenor : maxTenor >= app.product.minTenor ? maxTenor : null;
+  const next = { ...form, tenor };
+  const maximum = app.payslip ? liveQuote(app, next).maxAmountAtTenor : app.product.maxAmount;
+  const amount = manual.amount ? form.amount : maximum >= app.product.minAmount ? Math.min(app.product.maxAmount, maximum) : null;
+  return { ...next, amount };
 }
 
 function FieldInput({ f, value, onChange, error }) {
@@ -178,7 +192,7 @@ function useShownErrors(app, form, errors, attempted) {
   return { shown, touch, touched };
 }
 
-function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure, onRetry, onBack, onNext, busy, onAppChanged, attempt }) {
+function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure, onRetry, onBack, onNext, busy, onAppChanged, attempt, onManual }) {
   const t = useT();
   const p = app.product;
   const q = useLiveQuote(app, form);
@@ -190,7 +204,9 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
   const ownLines = ded.ownLines.map((i) => ded.lines[i]);
   // D-82: the longest tenor that ends on or before the retirement cutoff (backend figure).
   const r = app.retirement || {};
-  const maxTenor = r.maxTenor ? Math.min(p.maxTenor, r.maxTenor) : p.maxTenor;
+  const maxTenor = eligibleTenor(app);
+  const maxAmount = app.payslip ? Math.min(p.maxAmount, q.maxAmountAtTenor) : p.maxAmount;
+  const amountRange = maxAmount < p.minAmount ? t('Your eligible amount is below the product minimum of TZS {min}.', { min: formatNumber(p.minAmount) }) : form.amount != null && (form.amount > maxAmount || form.amount < p.minAmount) ? t('Choose an amount between TZS {min} and TZS {max}.', { min: formatNumber(p.minAmount), max: formatNumber(maxAmount) }) : null;
   // The maximum for the tenor chosen (the figure that matters now); the longest-tenor one until then.
   const hint = !app.payslip
     ? t('TZS {min} to TZS {max}; attach your payslip to see your maximum', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) })
@@ -201,7 +217,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
   const tenorRange = (touched.tenor || attempted) && form.tenor
     ? form.tenor > maxTenor ? t('The longest tenor you can take is {n} months.', { n: maxTenor }) : form.tenor < p.minTenor ? t('Choose a tenor between {min} and {max} months.', { min: p.minTenor, max: maxTenor }) : null
     : null;
-  const tenorError = shown('tenor') || tenorRange;
+  const tenorError = shown('tenor') || (maxTenor < p.minTenor ? t('Your eligible tenor is below the product minimum.') : tenorRange);
   const continueLabel = needsDocuments(p) ? t('Continue to documents') : t('Continue');
   const phone = useMediaQuery('(max-width:600px)');
   // A problem with an attached payslip (too old, unreadable) shows at once; a missing one only on Continue.
@@ -235,10 +251,10 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
             </div>
           )}
           <div className={s.grid}>
-            <MoneyInput label={t('Amount')} required placeholder={t('Enter amount')} value={form.amount ?? null} onChange={(v) => set({ amount: v })} onBlur={touch('amount')} error={!!shown('amount')} helperText={shown('amount') || hint} />
+            <MoneyInput label={t('Amount')} required placeholder={t('Enter amount')} value={form.amount ?? null} onChange={(v) => { onManual('amount'); set({ amount: v }); }} onBlur={touch('amount')} error={!!(shown('amount') || amountRange)} helperText={shown('amount') || amountRange || hint} />
             <div>
-              <TextField label={t('Tenor (months)')} required type="number" value={form.tenor ?? ''} onChange={(e) => set({ tenor: e.target.value === '' ? null : Number(e.target.value) })} onBlur={touch('tenor')} error={!!tenorError} helperText={tenorError || t('{min} to {max} months', { min: p.minTenor, max: maxTenor })} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
-              <Slider aria-label={t('Tenor slider')} min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} value={Math.min(maxTenor, Math.max(p.minTenor, form.tenor || p.minTenor))} onChange={(_, v) => set({ tenor: v })} onChangeCommitted={touch('tenor')} sx={{ color: 'var(--strong)' }} />
+              <TextField label={t('Tenor (months)')} required type="number" value={form.tenor ?? ''} onChange={(e) => { onManual('tenor'); set({ tenor: e.target.value === '' ? null : Number(e.target.value) }); }} onBlur={touch('tenor')} error={!!tenorError} helperText={tenorError || t('{min} to {max} months', { min: p.minTenor, max: maxTenor })} inputProps={{ min: p.minTenor, max: maxTenor, inputMode: 'numeric' }} />
+              <Slider aria-label={t('Tenor slider')} min={p.minTenor} max={Math.max(p.minTenor, maxTenor)} disabled={maxTenor < p.minTenor} value={Math.max(p.minTenor, Math.min(maxTenor, form.tenor || p.minTenor))} onChange={(_, v) => { onManual('tenor'); set({ tenor: v }); }} onChangeCommitted={touch('tenor')} sx={{ color: 'var(--strong)' }} />
             </div>
             <TextField label={t('Purpose of the loan')} required className={s.full} placeholder={t('What will you use the loan for?')} value={form.purpose} onChange={(e) => set({ purpose: e.target.value })} onBlur={touch('purpose')} error={!!shown('purpose')} helperText={shown('purpose')} />
             {p.fields.map((f) => (
@@ -641,6 +657,8 @@ export default function ApplyWizardPage() {
   const [attempt, setAttempt] = useState(0);
   // The body the API last checked: its checks describe exactly these values.
   const saved = useRef(null);
+  const manual = useRef({ amount: false, tenor: false });
+  const loadedId = useRef(null);
   // Every request that returns the application takes a number; only the latest one is applied,
   // so a slow older answer never replaces the checks for newer values.
   const seq = useRef(0);
@@ -655,7 +673,12 @@ export default function ApplyWizardPage() {
       const a = await applicationsApi.get(id);
       if (n !== seq.current) return;
       setApp(a);
-      setForm((f) => f || formOf(a));
+      if (loadedId.current !== id) {
+        loadedId.current = id;
+        manual.current = { amount: a.amount != null, tenor: a.tenor != null };
+        setForm(applyDefaults(a, formOf(a), manual.current));
+        setStep(1);
+      }
       // What the API holds, without the top-up default, so a default tick is still sent and checked.
       saved.current = JSON.stringify(bodyOf(formOf(a, false), a));
       sent.current = saved.current;
@@ -691,6 +714,13 @@ export default function ApplyWizardPage() {
     return () => clearTimeout(timer);
   }, [form, app, retry]);
 
+  // Recalculate untouched amount when tenor or top-up changes, using the existing calculator.
+  useEffect(() => {
+    if (!app || !form || step !== 1) return;
+    const next = applyDefaults(app, form, manual.current);
+    if (next.amount !== form.amount || next.tenor !== form.tenor) setForm(next);
+  }, [app, form, step]);
+
   // A Continue message describes the form as it was; editing makes it out of date.
   useEffect(() => setError(null), [form]);
 
@@ -721,7 +751,7 @@ export default function ApplyWizardPage() {
     setApp(a);
     // A new payslip can show, or stop showing, this product's deduction: apply the top-up
     // default again, but never over the staff member's own choice.
-    setForm((f) => (f && !f.topUp.chosen ? { ...f, topUp: { ...f.topUp, on: canDefaultTopUp(a) } } : f));
+    setForm((f) => f ? applyDefaults(a, !f.topUp.chosen ? { ...f, topUp: { ...f.topUp, on: canDefaultTopUp(a) } } : f, manual.current) : f);
   };
 
   const next = async () => {
@@ -793,7 +823,7 @@ export default function ApplyWizardPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {!app.product.available && <Alert severity="error" sx={{ mb: 2 }}>{t('This product is no longer available for new applications.')}</Alert>}
       <StepTransition stepKey={step}>
-      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} />}
+      {step === 1 && <DetailsStep app={app} form={form} setForm={setForm} errors={app.checks.fieldErrors} checks={[...new Set([...app.checks.eligibility, ...app.checks.checks])]} checked={JSON.stringify(bodyOf(form, app)) === saved.current} saveFailure={saveFailure} onRetry={() => setRetry((n) => n + 1)} busy={busy} attempt={attempt} onBack={() => navigate(correcting ? `/applications/${app.id}` : '/apply')} onNext={next} onAppChanged={payslipRead} onManual={(field) => { manual.current[field] = true; }} />}
       {step === 2 && <DocumentsStep app={app} onChanged={load} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
       {step === 3 && <ReviewStep app={app} form={form} onBack={() => setStep(needsDocuments(app.product) ? 2 : 1)} onNext={() => setStep(4)} onEdit={setStep} />}
       {step === 4 && <SignStep app={app} onBack={() => setStep(3)} onSigned={(a) => navigate(`/applications/${a.id}?submitted=1`)} />}
