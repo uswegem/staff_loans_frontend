@@ -107,7 +107,7 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   // The earlier tests leave the account in another language and theme; this one reads English.
   await choose(daniel, { lang: 'en', theme: 'light' });
   await daniel.goto('/apply');
-  await daniel.getByRole('button', { name: /^Personal Loan/ }).click();
+  await daniel.getByRole('radio', { name: /^Personal Loan/ }).click();
   await expect(daniel).toHaveURL(/\/apply\/[0-9a-f]{24}/);
   await expect(daniel.getByText('Upload your latest payslip to calculate your eligible loan amount.')).toBeVisible();
   await expect(daniel.getByText(/will appear here once you enter your loan amount/)).toBeVisible();
@@ -215,7 +215,7 @@ test('Room from the payslip on apply and review, in both languages and themes (D
     const daniel = await as(browser, 'LFB0067');
     await choose(daniel, { lang: 'en', theme: 'light' });
     await daniel.goto('/apply');
-    await daniel.getByRole('button', { name: /^Personal Loan/ }).click();
+    await daniel.getByRole('radio', { name: /^Personal Loan/ }).click();
     await expect(daniel).toHaveURL(/\/apply\/[0-9a-f]{24}/);
     await attachPayslip(daniel, 'LFB0067', { lfbLines: LINES });
     await daniel.getByLabel('Amount').fill('5000000');

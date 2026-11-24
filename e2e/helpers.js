@@ -114,7 +114,7 @@ export async function signIn(page, staffNo, password = PASSWORD) {
 /** From Apply: chooses a product, attaches the payslip and fills the loan details. */
 export async function startApplication(page, { staffNo, product, amount, tenor, purpose, reason }) {
   await page.goto('/apply');
-  await page.getByRole('button', { name: new RegExp(`^${product}`) }).click();
+  await page.getByRole('radio', { name: new RegExp(`^${product}`) }).click();
   await expect(page).toHaveURL(/\/apply\/[0-9a-f]{24}/);
   await attachPayslip(page, staffNo);
   await page.getByLabel('Amount').fill(String(amount));

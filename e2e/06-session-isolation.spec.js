@@ -6,7 +6,7 @@ test('switching staff accounts in the same browser denies the previous draft', a
   // Fictional seeded staff accounts, not production employee records.
   await signIn(page, 'LFB0067');
   await page.goto('/apply');
-  await page.getByRole('button', { name: /^Personal Loan/ }).click();
+  await page.getByRole('radio', { name: /^Personal Loan/ }).click();
   await expect(page).toHaveURL(/\/apply\/[0-9a-f]{24}/);
   const previousDraftUrl = page.url();
 

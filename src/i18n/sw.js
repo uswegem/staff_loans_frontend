@@ -1563,6 +1563,13 @@ const SW = {
   "Loan agreement": "Mkataba wa mkopo",
   "Loan agreement text": "Maandishi ya mkataba wa mkopo",
   "As printed on the payslip, for example STAFF LOAN or CAR LOAN. Each product needs its own label: each payslip line is matched to one product by it. Case, spacing and punctuation do not matter.": "Kama ilivyoandikwa kwenye hati ya mshahara, kwa mfano STAFF LOAN au CAR LOAN. Kila bidhaa inahitaji lebo yake: kila mstari wa hati ya mshahara unalinganishwa na bidhaa moja kwa lebo hii. Herufi kubwa au ndogo, nafasi na alama hazijalishi.",
+  "{rate} p.a. • Reducing balance": "{rate} kwa mwaka • Salio linalopungua",
+  "Loan Range": "Kiwango cha mkopo",
+  "Tenure": "Muda",
+  "TZS {min} – {max}": "TZS {min} – {max}",
+  "{min} – {max} months": "Miezi {min} – {max}",
+  "Select loan →": "Chagua mkopo →",
+  "Starting…": "Inaanza…",
 };
 
 export default SW;

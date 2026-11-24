@@ -18,16 +18,35 @@
 .steps li.done { color: var(--accent-600); }
 .steps li.done::before { content: "✓"; border-color: var(--accent-600); background: var(--accent-100); color: var(--accent-600); }
 
-/* product cards */
-.prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
-.prod { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; text-align: left; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
-.prod:hover { border-color: var(--strong); }
-.prod:disabled { cursor: not-allowed; opacity: .85; }
-.prod:disabled:hover { border-color: var(--line); }
-.prod h3 { margin-bottom: 4px; padding-right: 36px; }
-.lim { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.mark { position: absolute; top: 0; right: 0; width: 44px; height: 44px; clip-path: polygon(100% 0, 0 0, 100% 100%); background: var(--line-2); border-top-right-radius: var(--r-lg); }
-.reason { margin-top: 10px; font-size: var(--fs-sm); color: var(--bad); font-weight: 600; }
+/* product cards: a radio group of selectable loan cards */
+.prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); align-items: stretch; }
+.prod { position: relative; display: flex; flex-direction: column; text-align: left; padding: 24px; border: 1px solid var(--card-line); border-radius: 12px; background: var(--surface); cursor: pointer; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease, background-color .15s ease; }
+.prod:hover:not([aria-disabled="true"]) { border-color: var(--card-line-hover); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .06); }
+.prod:focus-visible { outline: 3px solid var(--strong); outline-offset: 2px; box-shadow: 0 0 0 6px var(--y); }
+.prod[aria-disabled="true"] { cursor: not-allowed; }
+.prod[aria-disabled="true"]:not(.prodOn) .prodHead, .prod[aria-disabled="true"]:not(.prodOn) h3, .prod[aria-disabled="true"]:not(.prodOn) .sub, .prod[aria-disabled="true"]:not(.prodOn) .meta { opacity: .6; }
+.prodOn { border: 2px solid var(--strong); padding: 23px; background: color-mix(in srgb, var(--y) 5%, var(--surface)); }
+.prodHead { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--s3); }
+.badge { width: 36px; height: 36px; border-radius: 8px; display: inline-grid; place-items: center; background: color-mix(in srgb, var(--y) 18%, var(--surface)); color: var(--accent-600); }
+.pick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-line); display: inline-grid; place-items: center; background: var(--surface); color: var(--y); transition: border-color .15s ease; }
+.prod:hover:not([aria-disabled="true"]) .pick { border-color: var(--card-line-hover); }
+.prodOn .pick { border-color: var(--strong); background: var(--strong); }
+.prod h3 { margin: 0 0 4px; }
+.sub { font-size: var(--fs-sm); color: var(--ink-3); }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); margin: var(--s4) 0 0; padding-top: var(--s4); border-top: 1px solid var(--card-divider); }
+.meta dt { font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: 2px; }
+.meta dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.prodFoot { margin-top: auto; padding-top: var(--s4); display: flex; justify-content: flex-end; }
+.cue { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-3); transition: color .15s ease; }
+.prod:hover:not([aria-disabled="true"]) .cue, .prod:focus-visible .cue, .prodOn .cue { color: var(--strong); }
+.reason { font-size: var(--fs-sm); color: var(--bad); font-weight: 600; margin-right: auto; }
+.prodFoot :global(.tag) { margin-right: auto; }
+.helper { display: flex; align-items: center; gap: 8px; margin: var(--s4) 0 0; font-size: var(--fs-sm); color: var(--ink-3); }
+.helper svg { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .prod, .pick, .cue { transition: none; }
+  .prod:hover:not([aria-disabled="true"]) { transform: none; }
+}
 
 /* calculator */
 .big { font-size: 34px; font-weight: 700; color: var(--brand-900); font-variant-numeric: tabular-nums; line-height: 1.1; }
