@@ -1570,6 +1570,11 @@ const SW = {
   "{min} – {max} months": "Miezi {min} – {max}",
   "Select loan →": "Chagua mkopo →",
   "Starting…": "Inaanza…",
+  "Swahili": "Kiswahili",
+  "English": "Kiingereza",
+  "Filled-in values, dates and the schedule are written in this language.": "Thamani zinazojazwa, tarehe na jedwali huandikwa kwa lugha hii.",
+  "# title, ## heading, 1. clause, - item, ~ note, [ ] declaration to tick at signing; values in {{double braces}}; {{schedule}} on its own line for the Jedwali.": "# kichwa, ## kichwa kidogo, 1. kifungu, - kipengele, ~ dokezo, [ ] tamko la kuweka alama wakati wa kusaini; thamani ndani ya {{mabano mawili}}; {{schedule}} peke yake kwenye mstari kwa Jedwali.",
+  "Staff tick {n} declarations from this text when they sign.": "Wafanyakazi wataweka alama kwenye matamko {n} ya maandishi haya wanaposaini.",
 };
 
 export default SW;
