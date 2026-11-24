@@ -135,9 +135,11 @@ describe('product-aware loan defaults', () => {
     await userEvent.clear(tenor());
     await userEvent.type(tenor(), '24');
     expect(slider()).toHaveAttribute('aria-valuenow', '24');
-    slider().focus();
-    await userEvent.keyboard('{ArrowRight}');
+    // jsdom does not implement native range-input keyboard stepping; dispatch the
+    // resulting input change here, and exercise real keyboard/mouse in Playwright.
+    fireEvent.change(slider(), { target: { value: '25' } });
     expect(tenor()).toHaveValue(25);
+    expect(slider()).toHaveAttribute('aria-valuenow', '25');
     expect(amount().value.replace(/,/g, '')).toBe('4500000');
   });
   it('does not invent borrowing capacity below the product minimum', async () => {
