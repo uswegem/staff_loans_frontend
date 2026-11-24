@@ -2,13 +2,13 @@
 // with the reason, the revised Swahili agreement with the scroll gate, tick and
 // password; or decline with a reason.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
 import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
 import { formatDate, formatTzs } from '../../lib/format';
-import AgreementDoc from '../apply/AgreementDoc';
+import AgreementDoc, { DeclarationChecks, declarationsOf } from '../apply/AgreementDoc';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import PasswordField from '../../components/PasswordField';
@@ -27,6 +27,11 @@ export default function AcceptRevisedPage() {
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  // The revised agreement's own declarations, ticked again before accepting.
+  const declared = useMemo(() => declarationsOf(r?.blocks), [r]);
+  const [ticks, setTicks] = useState([]);
+  useEffect(() => setTicks(declared.map(() => false)), [declared]);
+  const declaredAll = ticks.length === declared.length && ticks.every(Boolean);
 
   useEffect(() => {
     reviewApi.revised(id).then(setR).catch((e) => setError(apiError(e).message));
@@ -51,7 +56,7 @@ export default function AcceptRevisedPage() {
     setBusy(true);
     setError(null);
     try {
-      await reviewApi.acceptRevised(id, { accepted: agree, scrolledToEnd: read, password, textSha256: r.textSha256 });
+      await reviewApi.acceptRevised(id, { accepted: agree, scrolledToEnd: read, password, textSha256: r.textSha256, ...(declared.length ? { declarations: ticks } : {}) });
       navigate(`/applications/${id}`);
     } catch (err) {
       const x = apiError(err);
@@ -105,7 +110,7 @@ export default function AcceptRevisedPage() {
       </Card>
       <div className={s.split}>
         <div>
-          <AgreementDoc ref={docRef} blocks={r.blocks} onScroll={onScroll} />
+          <AgreementDoc ref={docRef} blocks={r.blocks} onScroll={onScroll} lang={r.template?.language || 'sw'} />
           <div className={s.readbar} aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
           <p className="xs muted" role="status">{read ? t('You have reached the end of the agreement.') : t('Scroll to the end of the revised agreement to accept it.')}</p>
         </div>
@@ -113,6 +118,7 @@ export default function AcceptRevisedPage() {
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--line-2)' }}><h3>{t('Accept the revised agreement')}</h3></div>
           <CardContent sx={{ p: 3 }}>
             <fieldset className={s.consents} disabled={!read}>
+              {declared.length > 0 && <DeclarationChecks items={declared} ticks={ticks} onChange={setTicks} lang={r.template?.language || 'sw'} />}
               <label className={s.check}>
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                 <span><b lang="sw">{t('Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.')}</b><br /><span className="xs muted">{t('I have read, understood and accept all the terms of this agreement.')}</span></span>
@@ -120,7 +126,7 @@ export default function AcceptRevisedPage() {
               <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !agree || !password || busy}>{t('Accept and sign')}</Button>
+            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !agree || !declaredAll || !password || busy}>{t('Accept and sign')}</Button>
             <Button fullWidth sx={{ mt: 1 }} onClick={() => setDeclining(true)}>{t('Decline the revised terms')}</Button>
             <p className="xs muted" style={{ marginTop: 12 }}>{t('Accepting replaces the agreement you signed when you applied. Declining closes the application and voids the agreement.')}</p>
           </CardContent>

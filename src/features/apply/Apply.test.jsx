@@ -388,6 +388,42 @@ describe('apply wizard', () => {
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
   });
 
+  it('an agreement with its own declarations is signed by ticking exactly those', async () => {
+    const english = {
+      ...preview,
+      template: { version: '2026.12', sample: false, language: 'en' },
+      blocks: [
+        { type: 'h1', parts: [{ text: 'STAFF LOAN AGREEMENT' }] },
+        { type: 'h2', parts: [{ text: 'DECLARATIONS' }] },
+        { type: 'declaration', parts: [{ text: 'I have read this Staff Loan Agreement in full.' }] },
+        { type: 'declaration', parts: [{ text: 'I agree to sign this Agreement electronically.' }] },
+      ],
+    };
+    const calls = stubHttp({
+      'GET /applications/a1': () => [200, { data: app }],
+      'PATCH /applications/a1': () => [200, { data: app }],
+      'GET /applications/a1/agreement/preview': () => [200, { data: english }],
+      'POST /applications/a1/sign-and-submit': () => [200, { data: { ...app, status: 'pending_credit' } }],
+    });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+    await toSignStep();
+    expect(screen.getByLabelText('Loan agreement text')).toHaveAttribute('lang', 'en');
+    // The two declarations and the acceptance; the four standard statements are not shown.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.getByRole('checkbox', { name: 'I have read this Staff Loan Agreement in full.' })).toBeInTheDocument();
+    expect(screen.queryByText(/receive SMS/)).toBeNull();
+    const sign = screen.getByRole('button', { name: 'Sign agreement and submit' });
+    await userEvent.click(screen.getByRole('checkbox', { name: 'I have read this Staff Loan Agreement in full.' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /I have read, understood and accept/ }));
+    expect(sign).toBeDisabled();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'I agree to sign this Agreement electronically.' }));
+    expect(sign).toBeEnabled();
+    await userEvent.click(sign);
+    const body = JSON.parse(calls.find((c) => c.key === 'POST /applications/a1/sign-and-submit').config.data);
+    expect(body).toMatchObject({ declarations: [true, true], accepted: true, textSha256: 'f'.repeat(64) });
+    expect(body).not.toHaveProperty('consents');
+  });
+
   it('keeps the consents locked while the agreement is not read', async () => {
     stubHttp({
       'GET /applications/a1': () => [200, { data: app }],

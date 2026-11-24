@@ -83,6 +83,7 @@
 .doc ol, .doc ul { padding-left: 22px; }
 .doc li { margin-bottom: 6px; }
 .doc .note { text-align: center; font-size: var(--fs-sm); color: var(--ink-3); }
+.doc .decl { padding-left: 4px; }
 .doc .fill { background: var(--brand-100); padding: 0 4px; border-radius: 3px; font-weight: 600; }
 .doc table { border-collapse: collapse; width: 100%; font-size: 13px; margin: var(--s3) 0; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; font-variant-numeric: tabular-nums; }

@@ -27,7 +27,7 @@ export const settingsApi = {
 export const templatesApi = {
   list: () => data(api.get('/admin/templates')),
   get: (id) => data(api.get(`/admin/templates/${id}`)),
-  preview: (body) => data(api.post('/admin/templates/preview', { body })),
+  preview: (body, language = 'sw') => data(api.post('/admin/templates/preview', { body, language })),
   upload: (body) => api.post('/admin/templates', body).then((r) => r.data),
   edit: (id, body) => api.put(`/admin/templates/${id}`, body).then((r) => r.data),
   approve: (id) => api.post(`/admin/templates/${id}/approve`).then((r) => r.data),

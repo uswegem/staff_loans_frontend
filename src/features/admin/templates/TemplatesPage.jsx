@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { templatesApi } from '../../../api/reports';
 import { apiError } from '../../../api/client';
 import { formatDate } from '../../../lib/format';
@@ -31,6 +31,7 @@ function EditDialog({ editing, onClose, onSaved }) {
   const approved = editing?.status === 'approved';
   const [form, setForm] = useState({
     version: editing && !approved ? editing.version : '',
+    language: editing?.language || 'sw',
     effectiveFrom: editing?.effectiveFrom && editing.effectiveFrom >= todayEat() ? editing.effectiveFrom : todayEat(),
     body: editing?.body || '',
     note: editing && !approved ? editing.note : '',
@@ -40,7 +41,7 @@ function EditDialog({ editing, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });
-    if (k === 'body') setPreview(null);
+    if (k === 'body' || k === 'language') setPreview(null);
   };
 
   const readFile = async (file) => {
@@ -52,13 +53,13 @@ function EditDialog({ editing, onClose, onSaved }) {
 
   // The preview is for the text as sent: an answer for text that has changed since is dropped,
   // so Send never goes out with a preview of different text.
-  const bodyNow = useRef(form.body);
-  bodyNow.current = form.body;
+  const bodyNow = useRef('');
+  bodyNow.current = `${form.language}\n${form.body}`;
   const check = async () => {
     setError(null);
-    const sent = form.body;
+    const sent = `${form.language}\n${form.body}`;
     try {
-      const p = await templatesApi.preview(sent);
+      const p = await templatesApi.preview(form.body, form.language);
       if (bodyNow.current === sent) setPreview(p);
     } catch (err) {
       if (bodyNow.current === sent) setError(apiError(err).message);
@@ -89,6 +90,10 @@ function EditDialog({ editing, onClose, onSaved }) {
           {approved && <Alert severity="info">{t('Version {n} is approved, so it is not changed. Your edit is saved as a new version and waits for the Head of Legal; {n} stays in use until then.', { n: editing.version })}</Alert>}
           <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <TextField label={t('Version')} required value={form.version} onChange={set('version')} placeholder="2027.01" disabled={!!editing && !approved} />
+            <TextField select label={t('Language')} required value={form.language} onChange={set('language')} helperText={t('Filled-in values, dates and the schedule are written in this language.')}>
+              <MenuItem value="sw">{t('Swahili')}</MenuItem>
+              <MenuItem value="en">{t('English')}</MenuItem>
+            </TextField>
             <DateField label={t('Use from')} required value={form.effectiveFrom} onChange={set('effectiveFrom')} InputLabelProps={{ shrink: true }} inputProps={{ min: todayEat() }} />
           </div>
           <FileDrop accept=".txt,.md" label={t('The template text file')} inputLabel={t('Choose template text file')} hint={t('A .txt or .md file in the SLAS markup. Or paste the text below.')} onFile={readFile} />
@@ -100,15 +105,16 @@ function EditDialog({ editing, onClose, onSaved }) {
             maxRows={16}
             value={form.body}
             onChange={set('body')}
-            inputProps={{ lang: 'sw', style: { fontFamily: 'monospace', fontSize: 13 } }}
-            helperText={t('# title, ## heading, 1. clause, - item, ~ note; values in {{double braces}}; {{schedule}} on its own line for the Jedwali.')}
+            inputProps={{ lang: form.language, style: { fontFamily: 'monospace', fontSize: 13 } }}
+            helperText={t('# title, ## heading, 1. clause, - item, ~ note, [ ] declaration to tick at signing; values in {{double braces}}; {{schedule}} on its own line for the Jedwali.')}
           />
           <TextField label={t('What changed')} multiline minRows={2} value={form.note} onChange={set('note')} />
           <div className="row">
             <Button onClick={check} disabled={!form.body.trim()}>{t('Check and preview')}</Button>
             {preview && <span className="small" style={{ color: 'var(--ok)' }}>{t('Renders correctly with a sample applicant.')}</span>}
           </div>
-          {preview && <AgreementDoc blocks={preview.blocks} />}
+          {preview && preview.declarations?.length > 0 && <p className="small muted" style={{ margin: 0 }}>{t('Staff tick {n} declarations from this text when they sign.', { n: preview.declarations.length })}</p>}
+          {preview && <AgreementDoc blocks={preview.blocks} lang={form.language} />}
           {error && <Alert severity="error" role="alert">{error}</Alert>}
         </DialogContent>
         <DialogActions>
@@ -164,7 +170,7 @@ function ViewDialog({ id, canEdit, canApprove, myId, onClose, onEdit, onApprove,
         {error && <Alert severity="error">{error}</Alert>}
         {tpl?.rejectionReason && tpl.status === 'rejected' && <Alert severity="warning" sx={{ mb: 2 }}>{t('Rejected:')} {tpl.rejectionReason}</Alert>}
         {pending && canApprove && own && <Alert severity="info" sx={{ mb: 2 }}>{t('You uploaded or edited this version, so another Head of Legal must approve it.')}</Alert>}
-        {tpl && <><p className="small muted">{t('Rendered with a fictional applicant.')}</p><AgreementDoc blocks={tpl.blocks} open /></>}
+        {tpl && <><p className="small muted">{t('Rendered with a fictional applicant.')}</p><AgreementDoc blocks={tpl.blocks} open lang={tpl.language || 'sw'} /></>}
       </DialogContent>
       <DialogActions>
         {tpl && canEdit && <Button onClick={() => onEdit(tpl)}>{tpl.status === 'approved' ? t('Edit as new version') : t('Edit')}</Button>}
@@ -252,7 +258,7 @@ export default function TemplatesPage() {
                 const [label, color] = STATE[v.state] || [v.statusLabel, 'default'];
                 return (
                   <TableRow key={v.id}>
-                    <TableCell sx={{ fontWeight: 600 }}>{v.version}{v.sample && <span className="tag" style={{ marginLeft: 6 }}>{t('Sample')}</span>}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{v.version}<span className="tag" style={{ marginLeft: 6 }}>{v.language === 'en' ? t('English') : t('Swahili')}</span>{v.sample && <span className="tag" style={{ marginLeft: 6 }}>{t('Sample')}</span>}</TableCell>
                     <TableCell><Chip size="small" color={color} label={t(label)} /></TableCell>
                     <TableCell>{formatDate(v.effectiveFrom)}</TableCell>
                     <TableCell>{formatDate(v.loadedAt)}{v.loadedBy ? `, ${v.loadedBy}` : ''}</TableCell>
