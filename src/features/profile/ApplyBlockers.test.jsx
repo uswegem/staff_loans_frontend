@@ -72,6 +72,6 @@ describe('apply blockers (D-97)', () => {
 
     renderAt('/apply', '/apply', <ApplyChoosePage />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('You cannot apply for a loan yet')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Personal Loan/ })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /Personal Loan/ })).toHaveAttribute('aria-disabled', 'true');
   });
 });

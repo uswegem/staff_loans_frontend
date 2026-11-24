@@ -30,6 +30,9 @@
   --line: #DDDCD6;
   --line-2: #ECEBE6;
   --surface: #FFFFFF;
+  --card-line: #E2E2DF;       /* selectable card border */
+  --card-line-hover: #1A1A1A; /* selectable card border on hover */
+  --card-divider: #F0F0EE;    /* divider inside a card */
   --canvas: #F5F4F0;
 
   /* status */
@@ -76,6 +79,9 @@
     --line: #3D3D39;
     --line-2: #2C2C29;
     --surface: #1C1C1B;
+    --card-line: #3D3D39;
+    --card-line-hover: #F2F2EE;
+    --card-divider: #2C2C29;
     --canvas: #121211;
     --ok: #7BCF9C;     --ok-bg: #173322;
     --warn: #F2A65A;   --warn-bg: #3A2614;
