@@ -93,6 +93,60 @@ async function toSignStep() {
   await screen.findByLabelText('Loan agreement text');
 }
 
+describe('product-aware loan defaults', () => {
+  const fresh = (maxAmount, maxTenor, overrides = {}) => ({
+    ...app, amount: null, tenor: null, payslip: null, payInputs: { basic: 0 },
+    product: { ...app.product, maxAmount, maxTenor }, quote: { maxTenor }, ...overrides,
+  });
+  const open = (a, uploaded = a) => {
+    stubHttp({
+      'GET /applications/a1': () => [200, { data: a }],
+      'PATCH /applications/a1': (config) => [200, { data: { ...a, ...JSON.parse(config.data) } }],
+      'POST /applications/a1/payslip': () => [201, { data: uploaded }],
+    });
+    renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
+  };
+  const amount = () => screen.getByRole('textbox', { name: /Amount/ });
+  const tenor = () => screen.getByRole('spinbutton', { name: /Tenor/ });
+  const slider = () => screen.getByRole('slider', { name: 'Tenor slider' });
+  it.each([[200000000, 60], [300000000, 120]])('defaults to product cap %s and %s months', async (cap, months) => {
+    open(fresh(cap, months));
+    await screen.findByRole('textbox', { name: /Amount/ });
+    expect(amount().value.replace(/,/g, '')).toBe(String(cap));
+    expect(tenor()).toHaveValue(months);
+    expect(slider()).toHaveAttribute('aria-valuenow', String(months));
+  });
+  it('updates untouched fields after payslip upload', async () => {
+    const a = fresh(200000000, 60);
+    const uploaded = { ...a, payslip: app.payslip, payInputs: app.payInputs, quote: { maxTenor: 36 } };
+    open(a, uploaded);
+    await screen.findByRole('textbox', { name: /Amount/ });
+    await userEvent.upload(screen.getByLabelText('Choose payslip PDF'), new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(tenor()).toHaveValue(36));
+    expect(slider()).toHaveAttribute('aria-valuenow', '36');
+    expect(Number(amount().value.replace(/,/g, ''))).toBeLessThan(200000000);
+    expect(Number(amount().value.replace(/,/g, ''))).toBeGreaterThan(500000);
+  });
+  it('preserves manual amount and synchronizes tenor controls', async () => {
+    open(fresh(300000000, 120));
+    await screen.findByRole('textbox', { name: /Amount/ });
+    await userEvent.clear(amount());
+    await userEvent.type(amount(), '4500000');
+    await userEvent.clear(tenor());
+    await userEvent.type(tenor(), '24');
+    expect(slider()).toHaveAttribute('aria-valuenow', '24');
+    slider().focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(tenor()).toHaveValue(25);
+    expect(amount().value.replace(/,/g, '')).toBe('4500000');
+  });
+  it('does not invent borrowing capacity below the product minimum', async () => {
+    open(fresh(200000000, 60, { payslip: app.payslip, payInputs: { basic: 0 } }));
+    expect(await screen.findByText('Your eligible amount is below the product minimum of TZS 500,000.')).toBeInTheDocument();
+    expect(amount()).toHaveValue('');
+  });
+});
+
 describe('apply wizard', () => {
   it('shows the retirement cutoff and the longest tenor allowed (D-82)', async () => {
     stubHttp({ 'GET /applications/a1': () => [200, { data: { ...app, retirement: { dateOfBirth: '1969-01-29', cutoff: '2028-11-30', maxTenor: 24, age: 60, bufferDays: 60 } } }] });
@@ -164,7 +218,9 @@ describe('apply wizard', () => {
     it('on Continue shows every missing field, says so once, and focuses the first problem', async () => {
       stubHttp({ 'GET /applications/a1': () => [200, { data: blank }], 'PATCH /applications/a1': () => [200, { data: blank }] });
       renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
-      await userEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+      await userEvent.clear(await screen.findByRole('textbox', { name: /Amount/ }));
+      await userEvent.clear(screen.getByRole('spinbutton', { name: /Tenor/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
       expect(await screen.findByText('Fill in the required fields.')).toBeInTheDocument();
       for (const m of ['Enter the amount you want to borrow.', 'Say what the loan is for.']) expect(screen.getByText(m)).toBeInTheDocument();
       expect(screen.getAllByText(blankErrors.payslip).length).toBeGreaterThan(0);
