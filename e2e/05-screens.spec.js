@@ -129,6 +129,18 @@ test('loan details step: calm on open, errors after Continue, estimate once fill
   await attachPayslip(daniel, 'LFB0067');
   await daniel.getByLabel('Amount').fill('5000000');
   await daniel.getByLabel('Tenor (months)').fill('24');
+  const tenorSlider = daniel.getByRole('slider', { name: 'Tenor slider' });
+  await expect(tenorSlider).toHaveAttribute('aria-valuenow', '24');
+  await tenorSlider.press('ArrowRight');
+  await expect(daniel.getByLabel('Tenor (months)')).toHaveValue('25');
+  const rail = tenorSlider.locator('xpath=ancestor::*[contains(@class,"MuiSlider-root")]').locator('.MuiSlider-rail');
+  const bounds = await rail.boundingBox();
+  if (!bounds) throw new Error('Tenor slider rail is not visible');
+  await daniel.mouse.click(bounds.x + bounds.width * 0.65, bounds.y + bounds.height / 2);
+  const mouseTenor = await tenorSlider.getAttribute('aria-valuenow');
+  expect(Number(mouseTenor)).toBeGreaterThan(25);
+  await expect(daniel.getByLabel('Tenor (months)')).toHaveValue(mouseTenor);
+  await daniel.getByLabel('Tenor (months)').fill('24');
   await daniel.getByLabel('Purpose of the loan').fill('Solar installation at home');
   await expect(daniel.getByText('Say what the loan is for.')).toHaveCount(0);
   await expect(daniel.getByText('Total to repay')).toBeVisible();
