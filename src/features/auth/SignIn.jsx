@@ -281,7 +281,7 @@ export default function SignIn() {
   const finish = (session) => {
     setAccessToken(session.accessToken);
     dispatch(sessionStarted(session));
-    navigate(session.user.mustChangePassword ? '/change-password' : safePath(location.state?.from), { replace: true });
+    navigate(postLoginDestination(session.user), { replace: true });
   };
   const back = (message) => {
     setNotice(message || null);
