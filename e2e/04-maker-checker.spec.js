@@ -43,7 +43,7 @@ test('a product change needs the Head of Credit, then the Head of Risk and Compl
   // Not live yet: staff still see 60 months.
   const aisha = await as(browser, 'LFB0451');
   await aisha.goto('/apply');
-  await expect(aisha.getByRole('radio', { name: /^Vehicle Loan/ })).not.toContainText('– 96 months');
+  await expect(aisha.getByRole('radio', { name: /^Vehicle Loan/ })).not.toContainText('12–96');
 
   const daniel = await as(browser, 'LFB0067');
   await daniel.goto(versionUrl);
@@ -58,5 +58,5 @@ test('a product change needs the Head of Credit, then the Head of Risk and Compl
 
   // Live from today: new applications see the longer tenor.
   await aisha.goto('/apply');
-  await expect(aisha.getByRole('radio', { name: /^Vehicle Loan/ })).toContainText('– 96 months');
+  await expect(aisha.getByRole('radio', { name: /^Vehicle Loan/ })).toContainText('12–96');
 });

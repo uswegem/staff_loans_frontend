@@ -1580,6 +1580,15 @@ const SW = {
   "People and Culture (Head of P&C)": "Rasilimali Watu (Mkuu wa Rasilimali Watu)",
   "People and Culture stage": "Hatua ya Rasilimali Watu",
   "The People and Culture Manager or the Head of People and Culture decides this stage, whoever acts first. Once one of you decides, it leaves the other's queue.": "Meneja wa Rasilimali Watu au Mkuu wa Rasilimali Watu ndiye anayeamua hatua hii, yeyote atakayeanza. Mmoja wenu akishaamua, maombi yanaondoka kwenye foleni ya mwingine.",
+  "Rate": "Riba",
+  "{rate} p.a.": "{rate} kwa mwaka",
+  "Reducing Balance": "Salio Linalopungua",
+  "Maximum Amount": "Kiwango cha Juu",
+  "Minimum Amount": "Kiwango cha Chini",
+  "Term (Months)": "Muda (Miezi)",
+  "Processing Fee": "Ada ya Uchakataji",
+  "{rate} (top-up {topUp})": "{rate} (nyongeza {topUp})",
+  "Your maximum eligibility is calculated after payslip upload.": "Kiwango chako cha juu kinakokotolewa baada ya kupakia hati ya mshahara.",
 };
 
 export default SW;
