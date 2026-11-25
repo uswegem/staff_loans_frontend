@@ -6,15 +6,17 @@ import s from './apply.module.css';
 import { useT } from '../../i18n';
 
 function Parts({ parts }) {
-  return parts.map((p, i) =>
-    p.fill ? (
+  return parts.map((p, i) => {
+    // A strong part (the Employee's name in the parties) is bold, as in the signed PDF.
+    const text = p.strong ? <b>{p.text}</b> : p.text;
+    return p.fill ? (
       // eslint-disable-next-line react/no-array-index-key
-      <span key={i} className={s.fill}>{p.text}</span>
+      <span key={i} className={s.fill}>{text}</span>
     ) : (
       // eslint-disable-next-line react/no-array-index-key
-      <span key={i}>{p.text}</span>
-    )
-  );
+      <span key={i}>{text}</span>
+    );
+  });
 }
 
 const AgreementDoc = forwardRef(function AgreementDoc({ blocks, onScroll, open, lang = 'sw' }, ref) {
