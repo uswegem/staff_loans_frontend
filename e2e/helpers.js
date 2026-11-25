@@ -174,6 +174,11 @@ export async function decide(page, { action = 'approve', comment, crb, hrChecks 
     await page.getByRole('combobox', { name: /Outcome/ }).click();
     await page.getByRole('option', { name: 'Low Risk' }).click();
     await page.getByLabel(/Report date/).fill(new Date().toISOString().slice(0, 10));
+    // D-105: at least one bureau report file is needed to approve; each upload adds one.
+    if (action === 'approve') {
+      await page.getByLabel('Choose bureau report').setInputFiles({ name: 'creditinfo-report.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n') });
+      await expect(page.getByRole('list', { name: 'Bureau reports attached' }).getByText('creditinfo-report.pdf')).toBeVisible();
+    }
   }
 
   if (hrChecks) {
@@ -202,7 +207,24 @@ export async function approveAll(browser, ref, people) {
 
 // ---------- OPS ----------
 
+/** D-107: People and Culture (default the P&C Manager) book the finally approved loan. */
+export async function book(browser, ref, { staffNo = 'LFB0129', loanAccount = 'LN2026000123' } = {}) {
+  const page = await as(browser, staffNo);
+  await page.goto('/disburse');
+  await page.getByRole('tab', { name: /^To book/ }).click();
+  const row = page.getByRole('row').filter({ hasText: ref });
+  await row.getByRole('button', { name: 'Book loan' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText(ref)).toBeVisible();
+  await dialog.getByLabel('Loan account number').fill(loanAccount);
+  await dialog.getByRole('button', { name: 'Book loan' }).click();
+  await expect(page.getByText(`${ref} booked. OPS can now disburse it.`)).toBeVisible();
+  await page.context().close();
+}
+
+/** Books the loan (People and Culture), then OPS confirm the disbursement. */
 export async function disburse(browser, ref, transactionRef) {
+  await book(browser, ref);
   const page = await as(browser, 'LFB0318');
   await page.goto('/disburse');
   const row = page.getByRole('row').filter({ hasText: ref });

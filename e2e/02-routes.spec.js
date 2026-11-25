@@ -41,7 +41,7 @@ test('management staff: Credit Analyst (limited), People and Culture (here the P
     { staffNo: 'LFB0002', comment: 'Approved.' },
   ]);
   await daniel.goto(url);
-  await expect(daniel.getByText('Pending Disbursement').first()).toBeVisible();
+  await expect(daniel.getByText('Pending Booking').first()).toBeVisible();
 });
 
 test("CEO's own application: Credit Analyst (limited), then the Head of HR gives final approval", async ({ browser }) => {
@@ -56,7 +56,7 @@ test("CEO's own application: Credit Analyst (limited), then the Head of HR gives
   await expect(grace.getByText(/final approval/i).first()).toBeVisible();
   await decide(grace, { action: 'approve', hrChecks: true, comment: 'Approved on behalf of the Board policy.' });
   await joseph.goto(url);
-  await expect(joseph.getByText('Pending Disbursement').first()).toBeVisible();
+  await expect(joseph.getByText('Pending Booking').first()).toBeVisible();
 });
 
 test('Head of People and Culture: Credit Analyst (limited), People and Culture (the P&C Manager), CEO', async ({ browser }) => {
@@ -70,5 +70,5 @@ test('Head of People and Culture: Credit Analyst (limited), People and Culture (
     { staffNo: 'LFB0002', comment: 'Approved.' },
   ]);
   await grace.goto(url);
-  await expect(grace.getByText('Pending Disbursement').first()).toBeVisible();
+  await expect(grace.getByText('Pending Booking').first()).toBeVisible();
 });

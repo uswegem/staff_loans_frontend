@@ -24,8 +24,8 @@ import CardHeader from '../../components/CardHeader';
 import { formatPhone } from '../../lib/formats';
 import { statusLabel } from '../../lib/statuses';
 
-const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', disburse: 'Disbursement confirmed' };
-const TONE = { approve: 'ok', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
+const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', book: 'Booked in core banking', disburse: 'Disbursement confirmed' };
+const TONE = { book: 'ok', approve: 'ok', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
 
 /** A titled card; collapsed starts it closed with a one-click "Show" (detail most decisions do not need). */
 function Panel({ title, action, children, collapsed = false }) {
@@ -43,7 +43,7 @@ function Panel({ title, action, children, collapsed = false }) {
 }
 
 /** Whether a documents card has anything to show: required documents, files, or the bureau report. */
-const hasDocuments = (app) => (app.documentChecklist || []).length > 0 || (app.documents || []).length > 0 || !!app.crbReport;
+const hasDocuments = (app) => (app.documentChecklist || []).length > 0 || (app.documents || []).length > 0 || (app.crbReports || []).length > 0;
 
 function Side({ app, onDone }) {
   const t = useT();
@@ -235,7 +235,15 @@ function FullReview({ app, onDone, onError }) {
           {hasDocuments(app) && (
             <Panel title={t('Documents')}>
               {((app.documentChecklist || []).length > 0 || (app.documents || []).length > 0) && <SupportingDocuments documents={app.documents} documentChecklist={app.documentChecklist} />}
-              {app.crbReport && <p className="small" style={{ margin: '12px 0 0' }}>{t('Credit bureau report:')}{' '}<Link component="button" type="button" onClick={() => dl(`/files/${app.crbReport.id}`, app.crbReport.originalName)}>{app.crbReport.originalName}</Link></p>}
+              {(app.crbReports || []).length > 0 && (
+                <div className="small" style={{ margin: '12px 0 0' }}>
+                  {t('Credit bureau reports:')}
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                    {app.crbReports.map((f) => <li key={f.id}><Link component="button" type="button" onClick={() => dl(`/files/${f.id}`, f.originalName)}>{f.originalName}</Link>{f.uploadedBy ? <span className="muted">{`, ${f.uploadedBy}`}</span> : null}</li>)}
+                  </ul>
+                </div>
+              )}
+              {app.dataProtection && <p className="small" style={{ margin: '12px 0 0' }}>{t('Data protection notice {version} accepted on {date}.', { version: app.dataProtection.version, date: formatDateTime(app.dataProtection.at) })}</p>}
             </Panel>
           )}
           <Panel title={t('History')}>
@@ -243,7 +251,12 @@ function FullReview({ app, onDone, onError }) {
               {app.history.map((h) => (
                 <li key={`${h.action}${h.at}`}>
                   <span className={`${s.mk} ${TONE[h.action] ? s[TONE[h.action]] : ''}`} />
-                  <div style={{ fontWeight: 600 }}>{t(ACTION[h.action])}{h.stageLabel ? ` ${t('by {stage}', { stage: t(h.stageLabel) })}` : ''}</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {h.action === 'return' && h.returnTo && h.returnTo !== 'applicant'
+                      ? t('Returned by {stage} to {to}', { stage: t(h.stageLabel), to: t(h.returnToLabel) })
+                      : <>{t(ACTION[h.action])}{h.stageLabel ? ` ${t('by {stage}', { stage: t(h.stageLabel) })}` : ''}</>}
+                    {h.superseded && <span className="tag" style={{ marginLeft: 6 }}>{t('Cancelled by a later return')}</span>}
+                  </div>
                   <div className={s.when}>{h.by}{h.onBehalfOf ? ` ${t('on behalf of {name}', { name: h.onBehalfOf })}` : ''}, {formatDateTime(h.at)}</div>
                   {h.comment && <div className={s.cmt}>{h.comment}</div>}
                 </li>
@@ -259,9 +272,10 @@ function FullReview({ app, onDone, onError }) {
 
 const DONE = {
   moved: (ref) => translate('{ref} approved and sent to the next stage.', { ref }),
-  approved: (ref) => translate('{ref} approved. The signed agreement is in force and OPS has been notified to disburse.', { ref }),
+  approved: (ref) => translate('{ref} approved. The signed agreement is in force and People and Culture have been notified to book the loan.', { ref }),
   revised: (ref) => translate('{ref} approved at revised terms. The applicant has been asked to accept the revised agreement.', { ref }),
   returned: (ref) => translate('{ref} returned to the applicant.', { ref }),
+  returned_to_stage: (ref) => translate('{ref} returned to an earlier stage.', { ref }),
   rejected: (ref) => translate('{ref} rejected.', { ref }),
 };
 

@@ -13,6 +13,7 @@ describe('loan route with the People and Culture stage', () => {
       ['Credit Analyst', 'done'],
       ['People and Culture', 'now'],
       ['CEO', ''],
+      ['Booked', ''],
       ['Disbursed', ''],
     ]);
   });

@@ -91,7 +91,7 @@ export function DeductionLines({ deductions, topUp }) {
       ))}
       {(d.slas || []).map((l) => (
         <div key={l.ref} className={s.line}>
-          <span>{l.ref}{l.product ? `, ${l.product}` : ''} <span className="xs muted">({l.status === 'pending_disbursement' ? t('not paid out yet') : t('first instalment {date}', { date: l.firstDue })})</span></span>
+          <span>{l.ref}{l.product ? `, ${l.product}` : ''} <span className="xs muted">({['pending_booking', 'pending_disbursement'].includes(l.status) ? t('not paid out yet') : t('first instalment {date}', { date: l.firstDue })})</span></span>
           <b>{formatNumber(l.instalment)}</b>
         </div>
       ))}

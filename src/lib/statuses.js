@@ -15,12 +15,13 @@ export const STATUS = {
   rejected: ['Rejected', 'error'],
   pending_reaccept: ['Approved – Revised Terms to Accept', 'warning'],
   declined: ['Declined by Applicant', 'error'],
+  pending_booking: ['Pending Booking', 'info'],
   pending_disbursement: ['Pending Disbursement', 'info'],
   disbursed: ['Disbursed', 'success'],
   withdrawn: ['Withdrawn', 'default'],
 };
 
-export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_pc', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_disbursement'];
+export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_pc', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_booking', 'pending_disbursement'];
 
 /** The label for a status key in the chosen language; the API's own label is the fallback. */
 export const statusLabel = (s, fallback) => translate(STATUS[s]?.[0] || fallback || s);

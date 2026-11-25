@@ -132,6 +132,7 @@ describe('review screen', () => {
     const calls = stubHttp({
       'GET /review/r1': () => [200, { data: limited }],
       'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
+      'POST /review/r1/crb-report': () => [201, { data: { id: 'c9', originalName: 'creditinfo.pdf' } }],
     });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
@@ -143,6 +144,12 @@ describe('review screen', () => {
     expect(screen.getByText('Record the credit bureau outcome before approving.')).toHaveAttribute('role', 'alert');
     await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
+    // D-105: at least one bureau report file is needed to approve.
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
+    expect(screen.getByText('Attach at least one credit bureau report before approving.')).toHaveAttribute('role', 'alert');
+    await userEvent.upload(screen.getByLabelText('Choose bureau report'), new File(['%PDF-1.4'], 'creditinfo.pdf', { type: 'application/pdf' }));
+    expect(await screen.findByText('creditinfo.pdf')).toBeInTheDocument();
+    expect(screen.queryByText('Attach at least one credit bureau report before approving.')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
@@ -169,14 +176,15 @@ describe('review screen', () => {
 
   it('offers exactly the four outcomes and no appraisal or arrears note, and sends neither (D-99)', async () => {
     const calls = stubHttp({
-      'GET /review/r1': () => [200, { data: { ...limited, crb: { outcome: 'Clear', reportDate: '2026-10-20' } } }],
+      'GET /review/r1': () => [200, { data: { ...limited, crb: { outcome: 'Clear', reportDate: '2026-10-20' }, crbReports: [{ id: 'c1', originalName: 'creditinfo.pdf', uploadedBy: 'Juma Kassim', uploadedById: 'u-juma' }] } }],
       'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
     });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
     expect(screen.queryByLabelText(/Appraisal note/)).toBeNull();
     expect(screen.queryByLabelText(/Arrears/)).toBeNull();
-    expect(screen.getByText('Report (optional)')).toBeInTheDocument();
+    expect(screen.getByText('Bureau reports (at least one)')).toBeInTheDocument();
+    expect(screen.getByText('creditinfo.pdf')).toBeInTheDocument();
     expect(screen.getByLabelText(/Report date/)).toBeInTheDocument();
     // An outcome recorded before D-99 is not offered again.
     expect(screen.getByRole('combobox', { name: /Outcome/ })).not.toHaveTextContent('Clear');
@@ -275,7 +283,7 @@ describe('review queue', () => {
 describe('review flow and reviewer wording', () => {
   it('after a decision, the next application waiting opens with what was done', async () => {
     stubHttp({
-      'GET /review/r1': () => [200, { data: limited }],
+      'GET /review/r1': () => [200, { data: { ...limited, crbReports: [{ id: 'c1', originalName: 'creditinfo.pdf', uploadedBy: 'Juma Kassim', uploadedById: 'u-juma' }] } }],
       'GET /review/r9': () => [200, { data: { ...limited, id: 'r9', ref: 'SL-2026-00041' } }],
       'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
       'GET /queue': () => [200, { data: { counts: { waiting: 2, overdue: 0 }, items: [{ id: 'r1' }, { id: 'r9' }] } }],
@@ -306,5 +314,26 @@ describe('review flow and reviewer wording', () => {
     expect(screen.getByText('Staff loans in this system')).toBeInTheDocument();
     expect(screen.getByText('+255 713 448 902')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Documents' })).toBeNull();
+  });
+
+  it('a return goes to the stage just before by default, or to any stage passed or the applicant (D-106)', async () => {
+    const atCeo = { ...full, panel: { ...full.panel, stage: 'ceo', needsCrb: false, needsHrChecks: false, isFinal: true, returnTargets: [{ key: 'pc', label: 'People and Culture' }, { key: 'credit', label: 'Credit Analyst' }, { key: 'applicant', label: 'Applicant (for correction)' }] } };
+    const calls = stubHttp({
+      'GET /review/r2': () => [200, { data: atCeo }],
+      'POST /review/r2/decision': () => [200, { data: { outcome: 'returned_to_stage' } }],
+      'GET /queue': () => [200, { data: { counts: { waiting: 0, overdue: 0 }, items: [] } }],
+    });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.ceo'] });
+    await screen.findByText('Your decision');
+    await userEvent.click(screen.getByRole('radio', { name: /^Return/ }));
+    expect(screen.getByRole('combobox', { name: /Return to/ })).toHaveTextContent('People and Culture');
+    await userEvent.click(screen.getByRole('combobox', { name: /Return to/ }));
+    expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['People and Culture', 'Credit Analyst', 'Applicant (for correction)']);
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('Credit Analyst'));
+    await userEvent.type(screen.getByLabelText(/Comment/), 'Attach the second bureau report.');
+    await userEvent.click(screen.getByRole('button', { name: 'Return to Credit Analyst' }));
+    await screen.findByText('Elsewhere');
+    const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r2/decision').config.data);
+    expect(body).toMatchObject({ action: 'return', returnTo: 'credit', comment: 'Attach the second bureau report.' });
   });
 });

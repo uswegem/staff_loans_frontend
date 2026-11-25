@@ -8,7 +8,7 @@ import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent,
 import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
 import { formatDate, formatTzs } from '../../lib/format';
-import AgreementDoc, { DeclarationChecks, declarationsOf } from '../apply/AgreementDoc';
+import AgreementDoc, { ACCEPT_LINE, DeclarationChecks, declarationsOf } from '../apply/AgreementDoc';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import PasswordField from '../../components/PasswordField';
@@ -121,7 +121,7 @@ export default function AcceptRevisedPage() {
               {declared.length > 0 && <DeclarationChecks items={declared} ticks={ticks} onChange={setTicks} lang={r.template?.language || 'sw'} />}
               <label className={s.check}>
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                <span><b lang="sw">{t('Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.')}</b><br /><span className="xs muted">{t('I have read, understood and accept all the terms of this agreement.')}</span></span>
+                <span lang={r.template?.language || 'sw'}><b>{ACCEPT_LINE[r.template?.language === 'en' ? 'en' : 'sw']}</b></span>
               </label>
               <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </fieldset>

@@ -35,17 +35,19 @@ describe('loan route', () => {
   const route = { stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] };
   const cls = (status) => routeSteps({ route, status }).map((s) => s.cls);
   it.each([
-    ['draft', ['now', '', '', '', '']],
-    ['pending_credit', ['done', 'now', '', '', '']],
-    ['pending_ceo', ['done', 'done', 'done', 'now', '']],
-    ['returned', ['back', '', '', '', '']],
-    ['pending_disbursement', ['done', 'done', 'done', 'done', 'now']],
-    ['disbursed', ['done', 'done', 'done', 'done', 'done']],
+    ['draft', ['now', '', '', '', '', '']],
+    ['pending_credit', ['done', 'now', '', '', '', '']],
+    ['pending_ceo', ['done', 'done', 'done', 'now', '', '']],
+    ['returned', ['back', '', '', '', '', '']],
+    // D-107: booked by People and Culture, then disbursed by OPS.
+    ['pending_booking', ['done', 'done', 'done', 'done', 'now', '']],
+    ['pending_disbursement', ['done', 'done', 'done', 'done', 'done', 'now']],
+    ['disbursed', ['done', 'done', 'done', 'done', 'done', 'done']],
   ])('%s', (status, expected) => {
     expect(cls(status)).toEqual(expected);
   });
   it('adds the revised-terms step when terms changed', () => {
-    expect(routeSteps({ route, status: 'pending_reaccept' }).map((s) => s.key)).toEqual(['submit', 'credit', 'hr', 'ceo', 'reaccept', 'disburse']);
+    expect(routeSteps({ route, status: 'pending_reaccept' }).map((s) => s.key)).toEqual(['submit', 'credit', 'hr', 'ceo', 'reaccept', 'book', 'disburse']);
   });
 });
 
@@ -83,8 +85,12 @@ const preview = {
     { type: 'p', parts: [{ text: 'Mwajiriwa ameomba kukopeshwa ' }, { text: 'Tshs 4,500,000', fill: true }] },
   ],
   textSha256: 'f'.repeat(64),
-  template: { version: '2026.11', sample: false },
+  template: { version: '2026.11', sample: false, language: 'sw' },
+  language: 'sw',
+  languageNotice: null,
   terms: { amount: 4500000, tenor: 36, instalment: 136900, fees: 126000, totalRepayable: 4928351 },
+  // D-108: the data protection notice with its own box.
+  dataProtection: { version: 'DP-2026-1', language: 'sw', title: 'Ulinzi wa taarifa binafsi', body: 'Ninaridhia Letshego Faidika Bank kukusanya taarifa zangu.', checkbox: 'Nimesoma na ninakubali tamko la ulinzi wa taarifa binafsi.', fallbackNotice: null },
 };
 
 async function toSignStep() {
@@ -384,7 +390,7 @@ describe('apply wizard', () => {
     await userEvent.click(sign);
     const body = JSON.parse(calls.find((c) => c.key === 'POST /applications/a1/sign-and-submit').config.data);
     expect(body).not.toHaveProperty('password');
-    expect(body).toMatchObject({ consents: { truth: true, deduct: true, crb: true, sms: true }, accepted: true, scrolledToEnd: true, textSha256: 'f'.repeat(64) });
+    expect(body).toMatchObject({ consents: { truth: true, deduct: true, crb: true, sms: true }, accepted: true, dataProtection: true, dataProtectionVersion: 'DP-2026-1', scrolledToEnd: true, textSha256: 'f'.repeat(64) });
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
   });
 
@@ -392,6 +398,8 @@ describe('apply wizard', () => {
     const english = {
       ...preview,
       template: { version: '2026.12', sample: false, language: 'en' },
+      language: 'en',
+      dataProtection: { version: 'DP-2026-1', language: 'en', title: 'Data protection', body: 'I consent to Letshego Faidika Bank collecting my data.', checkbox: 'I have read and accept the data protection notice.', fallbackNotice: null },
       blocks: [
         { type: 'h1', parts: [{ text: 'STAFF LOAN AGREEMENT' }] },
         { type: 'h2', parts: [{ text: 'DECLARATIONS' }] },
@@ -408,8 +416,8 @@ describe('apply wizard', () => {
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
     await toSignStep();
     expect(screen.getByLabelText('Loan agreement text')).toHaveAttribute('lang', 'en');
-    // The two declarations and the acceptance; the four standard statements are not shown.
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    // The two declarations, the acceptance and the data protection notice; the four standard statements are not shown.
+    expect(screen.getAllByRole('checkbox')).toHaveLength(4);
     expect(screen.getByRole('checkbox', { name: 'I have read this Staff Loan Agreement in full.' })).toBeInTheDocument();
     expect(screen.queryByText(/receive SMS/)).toBeNull();
     const sign = screen.getByRole('button', { name: 'Sign agreement and submit' });
@@ -417,10 +425,15 @@ describe('apply wizard', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /I have read, understood and accept/ }));
     expect(sign).toBeDisabled();
     await userEvent.click(screen.getByRole('checkbox', { name: 'I agree to sign this Agreement electronically.' }));
+    // D-108: signing waits for the data protection notice's own box.
+    expect(sign).toBeDisabled();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'I have read and accept the data protection notice.' }));
     expect(sign).toBeEnabled();
+    // D-109: an English agreement shows its statements in English only.
+    expect(screen.queryByText(/Nimesoma/)).toBeNull();
     await userEvent.click(sign);
     const body = JSON.parse(calls.find((c) => c.key === 'POST /applications/a1/sign-and-submit').config.data);
-    expect(body).toMatchObject({ declarations: [true, true], accepted: true, textSha256: 'f'.repeat(64) });
+    expect(body).toMatchObject({ declarations: [true, true], accepted: true, dataProtection: true, textSha256: 'f'.repeat(64) });
     expect(body).not.toHaveProperty('consents');
   });
 

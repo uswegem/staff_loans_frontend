@@ -18,7 +18,7 @@ import CalculatorPanel, { Breakdown } from './CalculatorPanel';
 import CardHeader from '../../components/CardHeader';
 import FactList from '../../components/FactList';
 import PayslipCard from './PayslipCard';
-import AgreementDoc, { DeclarationChecks, declarationsOf } from './AgreementDoc';
+import AgreementDoc, { ACCEPT_LINE, DeclarationChecks, declarationsOf } from './AgreementDoc';
 import { FileList } from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
@@ -537,6 +537,8 @@ function SignStep({ app, onBack, onSigned }) {
   const [ticks, setTicks] = useState([]);
   useEffect(() => setTicks(declared.map(() => false)), [declared]);
   const [agree, setAgree] = useState(false);
+  // D-108: the data protection notice has its own box, unticked until the applicant ticks it.
+  const [dataProtection, setDataProtection] = useState(false);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const resubmit = app.status === 'returned';
@@ -569,7 +571,7 @@ function SignStep({ app, onBack, onSigned }) {
   }, [preview]);
 
   const statementsTicked = declared.length ? ticks.length === declared.length && ticks.every(Boolean) : Object.values(consents).every(Boolean);
-  const allTicked = statementsTicked && agree;
+  const allTicked = statementsTicked && agree && dataProtection;
   const sign = async (e) => {
     e.preventDefault();
     if (!allTicked) return setError(t('Tick every statement and the agreement to sign.'));
@@ -577,11 +579,12 @@ function SignStep({ app, onBack, onSigned }) {
     setError(null);
     try {
       const statements = declared.length ? { declarations: ticks } : { consents };
-      const done = await applicationsApi.signAndSubmit(app.id, { ...statements, accepted: agree, scrolledToEnd: read, textSha256: preview.textSha256 });
+      const done = await applicationsApi.signAndSubmit(app.id, { ...statements, accepted: agree, dataProtection, dataProtectionVersion: preview.dataProtection?.version, scrolledToEnd: read, textSha256: preview.textSha256 });
       onSigned(done);
     } catch (err) {
       const x = apiError(err);
-      if (x.code === 'AGREEMENT_CHANGED') {
+      if (x.code === 'AGREEMENT_CHANGED' || x.code === 'DATA_PROTECTION_CHANGED') {
+        setDataProtection(false);
         setRead(false);
         setProgress(0);
         await load();
@@ -594,6 +597,9 @@ function SignStep({ app, onBack, onSigned }) {
 
   if (!preview) return error ? <Alert severity="error">{error}</Alert> : <p className="muted" role="status">{t('Preparing your agreement…')}</p>;
   const terms = preview.terms;
+  // D-109: the agreement, its statements and the notice are in one language, never mixed.
+  const lang = preview.language || preview.template.language || 'sw';
+  const dp = preview.dataProtection;
 
   return (
     <div className={s.split}>
@@ -605,7 +611,8 @@ function SignStep({ app, onBack, onSigned }) {
           </Alert>
         )}
         {preview.template.sample && <Alert severity="warning" sx={{ mb: 2 }}>{t('Sample agreement text: Legal loads the approved version before go-live.')}</Alert>}
-        <AgreementDoc ref={docRef} blocks={preview.blocks} onScroll={onScroll} lang={preview.template.language || 'sw'} />
+        {preview.languageNotice && <Alert severity="info" sx={{ mb: 2 }}>{preview.languageNotice}</Alert>}
+        <AgreementDoc ref={docRef} blocks={preview.blocks} onScroll={onScroll} lang={lang} />
         <div className={s.readbar} aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
         <p className="xs muted" role="status">{read ? t('You have reached the end of the agreement.') : t('Scroll to the end of the agreement to sign it.')}</p>
       </div>
@@ -623,17 +630,28 @@ function SignStep({ app, onBack, onSigned }) {
             <fieldset className={s.consents} disabled={!read}>
               <legend className="small" style={{ fontWeight: 700, margin: '14px 0 4px' }}>{t('Declaration and consents')}</legend>
               {declared.length
-                ? <DeclarationChecks items={declared} ticks={ticks} onChange={setTicks} lang={preview.template.language || 'sw'} />
+                ? <DeclarationChecks items={declared} ticks={ticks} onChange={setTicks} lang={lang} />
                 : CONSENTS.map(([k, sw, en]) => (
                   <label key={k} className={s.check}>
                     <input type="checkbox" checked={consents[k]} onChange={(e) => setConsents((c) => ({ ...c, [k]: e.target.checked }))} />
-                    <span><b lang="sw">{sw}</b><br /><span className="xs muted" lang="en">{en}</span></span>
+                    <span lang={lang}><b>{lang === 'en' ? en : sw}</b></span>
                   </label>
                 ))}
               <label className={s.check}>
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted" lang="en">I have read, understood and accept all the terms of this agreement.</span></span>
+                <span lang={lang}><b>{ACCEPT_LINE[lang === 'en' ? 'en' : 'sw']}</b></span>
               </label>
+              {dp && (
+                <div className={s.dataProtection} lang={dp.language} data-testid="data-protection">
+                  <p className="small" style={{ fontWeight: 700, margin: '12px 0 4px' }}>{dp.title}</p>
+                  {dp.fallbackNotice && <p className="xs muted" style={{ margin: '0 0 4px' }}>{dp.fallbackNotice}</p>}
+                  <p className="xs" style={{ margin: '0 0 6px', maxHeight: 160, overflowY: 'auto' }}>{dp.body}</p>
+                  <label className={s.check}>
+                    <input type="checkbox" checked={dataProtection} onChange={(e) => setDataProtection(e.target.checked)} />
+                    <span><b>{dp.checkbox}</b></span>
+                  </label>
+                </div>
+              )}
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
             <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>

@@ -2,7 +2,9 @@
 // enforces every check; the panel shows the same messages before sending.
 
 import { useState } from 'react';
-import { Alert, AlertTitle, Button, Checkbox, FormControlLabel, MenuItem, TextField } from '@mui/material';
+import { useSelector } from 'react-redux';
+import { Alert, AlertTitle, Button, Checkbox, FormControlLabel, Link, MenuItem, TextField } from '@mui/material';
+import { downloadFile } from '../../api/staff';
 import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
 import { formatTzs } from '../../lib/format';
@@ -19,8 +21,14 @@ export default function DecisionPanel({ app, onDone }) {
   const [action, setAction] = useState('');
   const [comment, setComment] = useState('');
   // An outcome recorded before D-99 (Clear, Adverse: …) is shown on the review, not offered again.
-  const [crb, setCrb] = useState({ outcome: p?.crbOutcomes?.includes(app.crb?.outcome) ? app.crb.outcome : '', reportDate: app.crb?.reportDate || todayEat(), fileId: app.crb?.fileId || null });
-  const [crbFile, setCrbFile] = useState(null);
+  const [crb, setCrb] = useState({ outcome: p?.crbOutcomes?.includes(app.crb?.outcome) ? app.crb.outcome : '', reportDate: app.crb?.reportDate || todayEat() });
+  // D-105: every bureau report file attached so far; each upload adds one.
+  const [crbFiles, setCrbFiles] = useState(app.crbReports || []);
+  const [uploading, setUploading] = useState(false);
+  const me = useSelector((st) => st.auth.user?.id);
+  // D-106: where a return goes; the stage just before this one is proposed first.
+  const targets = p.returnTargets?.length ? p.returnTargets : [{ key: 'applicant', label: 'Applicant (for correction)' }];
+  const [returnTo, setReturnTo] = useState(targets[0].key);
   const [checks, setChecks] = useState({ employment: false, category: false, salary: false, probationReasonVerified: false });
   // error: what the API said about the last submit; the checks below follow the current choices.
   const [error, setError] = useState(null);
@@ -29,14 +37,15 @@ export default function DecisionPanel({ app, onDone }) {
 
   const finalText = p.isFinal
     ? app.recommended
-      ? t('Final approval at the recommended terms. The applicant accepts the revised agreement, then OPS disburses.')
-      : t('Final approval. The signed agreement takes effect and OPS disburses.')
+      ? t('Final approval at the recommended terms. The applicant accepts the revised agreement, then People and Culture book the loan and OPS disburse it.')
+      : t('Final approval. The signed agreement takes effect, People and Culture book the loan and OPS disburse it.')
     : t('Moves to {stage}.', { stage: t(p.nextStageLabel) });
 
   // The button says what will happen: where an approval goes, whom a return goes to.
   const applicantFirst = app.applicant?.firstName || (app.applicant?.fullName || '').split(' ')[0];
   const buttonLabel = action === 'approve'
     ? p.isFinal ? t('Approve (final approval)') : t('Approve and send to {stage}', { stage: t(p.nextStageLabel) })
+    : action === 'return' && returnTo !== 'applicant' ? t('Return to {stage}', { stage: t(targets.find((x) => x.key === returnTo)?.label) })
     : action === 'return' ? (applicantFirst ? t('Return to {name}', { name: applicantFirst }) : t('Return to applicant'))
       : action === 'reject' ? t('Reject application') : t('Choose a decision');
 
@@ -45,6 +54,8 @@ export default function DecisionPanel({ app, onDone }) {
     if (!action) return t('Choose approve, return or reject.');
     if (action !== 'approve' && !comment.trim()) return t('Add a comment so the applicant knows what to do.');
     if (p.needsCrb && action === 'approve' && !crb.outcome) return t('Record the credit bureau outcome before approving.');
+    if (p.needsCrb && action === 'approve' && !crb.reportDate) return t('Enter the credit bureau report date before approving.');
+    if (p.needsCrb && action === 'approve' && !crbFiles.length) return t('Attach at least one credit bureau report before approving.');
     if (p.needsHrChecks && action === 'approve' && !(checks.employment && checks.category && checks.salary)) return t('Confirm all three staff record checks before approving.');
     if (p.needsProbationCheck && action === 'approve' && !checks.probationReasonVerified) return t('Verify the probation reason before approving.');
     return null;
@@ -61,11 +72,8 @@ export default function DecisionPanel({ app, onDone }) {
     setBusy(true);
     try {
       const body = { action, comment };
-      if (p.needsCrb) {
-        let fileId = crb.fileId;
-        if (crbFile) fileId = (await reviewApi.crbReport(app.id, crbFile)).id;
-        if (crb.outcome) body.crb = { outcome: crb.outcome, reportDate: crb.reportDate, ...(fileId ? { fileId } : {}) };
-      }
+      if (action === 'return') body.returnTo = returnTo;
+      if (p.needsCrb && crb.outcome) body.crb = { outcome: crb.outcome, reportDate: crb.reportDate };
       if (p.needsHrChecks) body.hrChecks = checks;
       const res = await reviewApi.decide(app.id, body);
       onDone(res);
@@ -74,6 +82,28 @@ export default function DecisionPanel({ app, onDone }) {
       setBusy(false);
     }
     return undefined;
+  };
+
+  const addCrbFile = async (file) => {
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const f = await reviewApi.crbReport(app.id, file);
+      setCrbFiles((list) => [...list, { ...f, uploadedById: me }]);
+    } catch (err) {
+      setError(apiError(err).message);
+    }
+    setUploading(false);
+  };
+  const removeCrbFile = async (f) => {
+    setError(null);
+    try {
+      await reviewApi.removeCrbReport(app.id, f.id);
+      setCrbFiles((list) => list.filter((x) => x.id !== f.id));
+    } catch (err) {
+      setError(apiError(err).message);
+    }
   };
 
   return (
@@ -105,8 +135,20 @@ export default function DecisionPanel({ app, onDone }) {
               <DateField label={t('Report date')} required value={crb.reportDate} onChange={(e) => setCrb({ ...crb, reportDate: e.target.value })} />
             </div>
             <div>
-              <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>{t('Report (optional)')}</div>
-              <FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('The bureau report')} inputLabel={t('Choose bureau report')} buttonLabel={t('Choose file')} hint={crbFile ? t('Attached: {name}', { name: crbFile.name }) : t('PDF, JPG or PNG.')} onFile={setCrbFile} />
+              <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>{t('Bureau reports (at least one)')}</div>
+              {crbFiles.length > 0 && (
+                <ul className="small" style={{ margin: '0 0 8px', paddingLeft: 18 }} aria-label={t('Bureau reports attached')}>
+                  {crbFiles.map((f) => (
+                    <li key={f.id}>
+                      <Link component="button" type="button" onClick={() => downloadFile(`/files/${f.id}`, f.originalName)}>{f.originalName}</Link>
+                      {String(f.uploadedById) === String(me) && <>{' '}<Link component="button" type="button" color="error" onClick={() => removeCrbFile(f)}>{t('Remove')}</Link></>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {crbFiles.length < 10 && (
+                <FileDrop accept=".pdf,.jpg,.jpeg,.png" label={t('The bureau report')} inputLabel={t('Choose bureau report')} buttonLabel={uploading ? t('Uploading…') : t('Add file')} hint={t('PDF, JPG or PNG, up to 10 MB each, at most 10 files.')} onFile={addCrbFile} />
+              )}
             </div>
             <hr style={{ border: 0, borderTop: '1px solid var(--line-2)', width: '100%' }} />
           </>
@@ -145,7 +187,7 @@ export default function DecisionPanel({ app, onDone }) {
         <div className={s.radios} role="radiogroup" aria-label={t('Decision')}>
           {[
             ['approve', t('Approve'), finalText],
-            ['return', t('Return for correction'), t('Goes back to the applicant, then restarts at the first stage.')],
+            ['return', targets.length > 1 ? t('Return') : t('Return for correction'), targets.length > 1 ? t('Back to an earlier stage, or to the applicant for correction.') : t('Goes back to the applicant, then restarts at the first stage.')],
             ['reject', t('Reject'), t('Closes the application.')],
           ].map(([k, label, hint]) => (
             <label key={k} className={s.radioCard}>
@@ -154,6 +196,11 @@ export default function DecisionPanel({ app, onDone }) {
             </label>
           ))}
         </div>
+        {action === 'return' && targets.length > 1 && (
+          <TextField select label={t('Return to')} value={returnTo} onChange={(e) => setReturnTo(e.target.value)} helperText={returnTo === 'applicant' ? t('Goes back to the applicant, then restarts at the first stage.') : t('Approvals from that stage on are cancelled and given again.')}>
+            {targets.map((x) => <MenuItem key={x.key} value={x.key}>{t(x.label)}</MenuItem>)}
+          </TextField>
+        )}
         <TextField label={t('Comment')} required={!!action && action !== 'approve'} multiline minRows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('Visible to the applicant and later approvers')} helperText={t('Required to return or reject.')} />
       </div>
       <div className={s.decisionFoot}>

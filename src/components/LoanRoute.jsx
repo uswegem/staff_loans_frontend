@@ -21,12 +21,14 @@ export function routeSteps({ route, status, closedAtStage }) {
     { key: 'submit', label: translate('Signed and submitted') },
     ...route.stages.map((k, i) => ({ key: k, label: translate(route.stageLabels[i]) })),
     ...(revised ? [{ key: 'reaccept', label: translate('Accept revised terms') }] : []),
+    { key: 'book', label: translate('Booked') },
     { key: 'disburse', label: translate('Disbursed') },
   ];
   const idxOf = (k) => steps.findIndex((x) => x.key === k);
   const nowIdx = {
     pending_reaccept: idxOf('reaccept'),
-    pending_disbursement: steps.length - 1,
+    pending_booking: idxOf('book'),
+    pending_disbursement: idxOf('disburse'),
     disbursed: steps.length,
     ...Object.fromEntries(Object.entries(STAGE_STATUS).map(([k, st]) => [st, idxOf(k)])),
   }[status];

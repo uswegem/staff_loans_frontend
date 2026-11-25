@@ -12,6 +12,8 @@ export const reviewApi = {
     form.append('file', file);
     return data(api.post(`/review/${id}/crb-report`, form, { headers: { 'Content-Type': 'multipart/form-data' } }));
   },
+  // D-105: each upload adds a file; the analyst removes their own before deciding.
+  removeCrbReport: (id, fileId) => api.delete(`/review/${id}/crb-report/${fileId}`),
   revised: (id) => data(api.get(`/applications/${id}/revised`)),
   acceptRevised: (id, body) => data(api.post(`/applications/${id}/accept-revised`, body)),
   declineRevised: (id, reason) => data(api.post(`/applications/${id}/decline-revised`, { reason })),

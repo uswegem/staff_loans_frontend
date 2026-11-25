@@ -28,6 +28,7 @@ const ACTIONS = {
   withdraw: ['Withdrawn', ''],
   accept_revised: ['Accepted revised terms', 'ok'],
   decline_revised: ['Declined revised terms', 'bad'],
+  book: ['Booked in core banking', 'ok'],
   disburse: ['Disbursement confirmed', 'ok'],
 };
 
@@ -163,7 +164,11 @@ export default function ApplicationPage() {
                     // eslint-disable-next-line react/no-array-index-key
                     <li key={i}>
                       <span className={`${s.mk} ${tone ? s[tone] : ''}`} />
-                      <div style={{ fontWeight: 600 }}>{t(label)}{stageLabel && ['approve', 'return', 'reject'].includes(h.action) ? ` ${t('by {stage}', { stage: t(stageLabel) })}` : ''}</div>
+                      <div style={{ fontWeight: 600 }}>
+                        {h.action === 'return' && h.returnTo && h.returnTo !== 'applicant'
+                          ? t('Returned by {stage} to {to}', { stage: t(stageLabel), to: t(app.route?.stageLabels?.[app.route.stages.indexOf(h.returnTo)]) })
+                          : <>{t(label)}{stageLabel && ['approve', 'return', 'reject'].includes(h.action) ? ` ${t('by {stage}', { stage: t(stageLabel) })}` : ''}</>}
+                      </div>
                       <div className={s.when}>{formatDateTime(h.at)}</div>
                       {h.comment && <div className={s.cmt}>{h.comment}</div>}
                     </li>
