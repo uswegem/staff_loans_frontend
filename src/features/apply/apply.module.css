@@ -97,6 +97,24 @@
 .doc table { border-collapse: collapse; width: 100%; font-size: 13px; margin: var(--s3) 0; }
 .doc th, .doc td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; font-variant-numeric: tabular-nums; }
 .doc th:first-child, .doc td:first-child, .doc th:nth-child(2), .doc td:nth-child(2) { text-align: center; }
+/* D-110: the same layout as the PDF. */
+.letterhead { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s4); padding-bottom: var(--s3); margin-bottom: var(--s4); border-bottom: 2px solid var(--y); }
+.letterhead img { height: 34px; width: auto; }
+.letterhead div { display: flex; flex-direction: column; text-align: right; font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+.letterhead b { color: var(--ink); }
+.doc h4 { color: #7A5A00; }
+.doc .numbered { display: grid; grid-template-columns: 2.6em 1fr; column-gap: 0; }
+.doc .numbered .num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.doc .sub { grid-template-columns: 2.6em 2.2em 1fr; }
+.doc .sub .num { grid-column: 2; font-weight: 400; }
+.doc .sub > span:last-child { grid-column: 3; }
+.doc .underClause { padding-left: calc(2.6em + 18px); }
+.doc table.details { margin: var(--s3) 0 var(--s4); font-size: 14px; }
+.doc table.details th, .doc table.details td { text-align: left; border: 0; border-bottom: 1px solid var(--line); padding: 6px 10px; vertical-align: top; }
+.doc table.details th { width: 32%; font-weight: 600; }
+.doc table.details tr:nth-child(odd) { background: var(--doc-shade, #F9F6EC); }
+:root[data-theme="dark"] .doc table.details tr:nth-child(odd) { background: rgba(255, 194, 14, 0.08); }
+:root[data-theme="dark"] .doc h4 { color: var(--y); }
 .readbar { height: 4px; background: var(--line-2); border-radius: 2px; overflow: hidden; margin-top: var(--s2); }
 .readbar i { display: block; height: 100%; background: var(--y); width: 0; }
 .check { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) 0; cursor: pointer; }

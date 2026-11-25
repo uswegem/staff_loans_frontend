@@ -15,6 +15,7 @@ import { formatDate, formatDateTime, formatNumber, formatTzs, payslipDate } from
 import LoanRoute from '../../components/LoanRoute';
 import AppStatusChip from '../../components/AppStatusChip';
 import DueClock from '../../components/DueClock';
+import ScheduleDownload from '../../components/ScheduleDownload';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { Breakdown, Meter } from '../apply/CalculatorPanel';
 import DecisionPanel from './DecisionPanel';
@@ -85,7 +86,7 @@ function LimitedReview({ app, onDone }) {
           <h1>{app.applicant.firstName} {app.applicant.lastName}</h1>
           <p>{t('{ref}, submitted {date}', { ref: app.ref, date: formatDate(app.submittedAt) })}</p>
         </div>
-        <div className="row"><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
+        <div className="row"><ScheduleDownload id={app.id} reference={app.ref} status={app.status} /><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
       </div>
       <div className={s.split}>
         <div className="stack">
@@ -144,7 +145,7 @@ function FullReview({ app, onDone, onError }) {
           <h1>{a.fullName}, {app.product.name}</h1>
           <p>{t('{ref}, submitted {date}', { ref: app.ref, date: formatDate(app.submittedAt) })}{app.cycle > 1 ? `, ${t('resubmitted after correction')}` : ''}</p>
         </div>
-        <div className="row"><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
+        <div className="row"><ScheduleDownload id={app.id} reference={app.ref} status={app.status} onError={onError} /><AppStatusChip status={app.status} /><DueClock due={app.due} /></div>
       </div>
       <div className={s.split}>
         <div className="stack">

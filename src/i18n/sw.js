@@ -1639,6 +1639,16 @@ const SW = {
   "Cancelled by a later return": "Imefutwa na urejeshaji uliofuata",
   "{ref} approved. The signed agreement is in force and People and Culture have been notified to book the loan.": "{ref} imeidhinishwa. Mkataba uliosainiwa unatumika na Rasilimali Watu wamearifiwa kusajili mkopo.",
   "{ref} returned to an earlier stage.": "{ref} imerudishwa kwenye hatua ya awali.",
+  // ---------- D-110: agreement layout, logo, repayment schedule on request ----------
+  "Download repayment schedule": "Pakua jedwali la marejesho",
+  "Agreement logo": "Nembo ya mkataba",
+  "Printed on every loan agreement and repayment schedule. PNG or JPG, up to 1 MB. Changes are recorded in the audit log.": "Huchapishwa kwenye kila mkataba wa mkopo na jedwali la marejesho. PNG au JPG, hadi MB 1. Mabadiliko yanarekodiwa kwenye kumbukumbu za ukaguzi.",
+  "Agreement logo in use": "Nembo ya mkataba inayotumika",
+  "Replaced: {name}": "Imebadilishwa: {name}",
+  "The default Letshego Faidika Bank logo.": "Nembo ya kawaida ya Letshego Faidika Bank.",
+  "Replace logo": "Badilisha nembo",
+  "Choose logo image": "Chagua picha ya nembo",
+  "Use the default logo": "Tumia nembo ya kawaida",
 };
 
 export default SW;
