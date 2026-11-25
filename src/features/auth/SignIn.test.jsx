@@ -11,15 +11,17 @@ import { stubHttp } from '../../test/http';
 
 const session = { accessToken: 't', user: { fullName: 'Juma Kassim', userName: 'juma.kassim', mustChangePassword: false }, roles: [], permissions: ['review.credit'] };
 
-function renderSignIn() {
-  const store = makeStore({ auth: { status: 'signedOut', user: null, roles: [], permissions: [], mfaRequired: false, inactivityTimeoutMin: 15, endedReason: null } });
+function renderSignIn(from, authenticatedUser = null) {
+  const store = makeStore({ auth: { status: authenticatedUser ? 'signedIn' : 'signedOut', user: authenticatedUser, roles: [], permissions: [], mfaRequired: false, inactivityTimeoutMin: 15, endedReason: null } });
   render(
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <MemoryRouter initialEntries={['/login']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[{ pathname: '/login', state: { from } }]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/login" element={<SignIn />} />
             <Route path="/" element={<p>Home page</p>} />
+            <Route path="/change-password" element={<p>Mandatory password change</p>} />
+            <Route path="/admin/users" element={<p>Administrative page</p>} />
           </Routes>
         </MemoryRouter>
       </ThemeProvider>
@@ -92,7 +94,7 @@ describe('Sign in (FR-53)', () => {
       'POST /auth/login': () => [200, { data: { mfaRequired: true, mfaToken: 'm1' } }],
       'POST /auth/mfa/verify': () => [200, { data: session }],
     });
-    const store = renderSignIn();
+    const store = renderSignIn('/admin/users');
     await fill('juma.kassim', 'Sample#2026');
     expect(await screen.findByRole('heading', { name: 'Enter your one-time code' })).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Digit 1'));
@@ -110,6 +112,25 @@ describe('Sign in (FR-53)', () => {
     await screen.findByRole('heading', { name: 'Enter your one-time code' });
     await userEvent.click(screen.getByRole('button', { name: 'Verify and continue' }));
     expect(screen.getByText('Enter all 6 digits.')).toBeInTheDocument();
+  });
+});
+
+describe('post-login dashboard navigation', () => {
+  it.each(['/admin/users', '/applications', 'https://example.com', '//example.com', undefined])('ignores previous destination %s', async (from) => {
+    stubHttp({ 'POST /auth/login': () => [200, { data: session }] });
+    renderSignIn(from);
+    await fill('juma.kassim', 'Sample#2026');
+    expect(await screen.findByText('Home page')).toBeInTheDocument();
+  });
+  it('prioritizes mandatory password change', async () => {
+    stubHttp({ 'POST /auth/login': () => [200, { data: { ...session, user: { ...session.user, mustChangePassword: true } } }] });
+    renderSignIn('/admin/users');
+    await fill('juma.kassim', 'Sample#2026');
+    expect(await screen.findByText('Mandatory password change')).toBeInTheDocument();
+  });
+  it.each([false, true])('redirects already signed-in users (mandatory change: %s)', async (mustChangePassword) => {
+    renderSignIn('/admin/users', { ...session.user, mustChangePassword });
+    expect(await screen.findByText(mustChangePassword ? 'Mandatory password change' : 'Home page')).toBeInTheDocument();
   });
 });
 

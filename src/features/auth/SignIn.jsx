@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Alert, AlertTitle, Button, TextField } from '@mui/material';
 import PasswordField from '../../components/PasswordField';
 import { authApi } from '../../api/auth';
@@ -16,7 +16,7 @@ import brandLogo from '../../assets/letshego-faidika-logo.jpg';
 import PreferenceSwitches from '../../components/PreferenceSwitches';
 import { useT } from '../../i18n';
 import s from './SignIn.module.css';
-import { safePath } from '../../lib/safePath';
+const postLoginDestination = (user) => user?.mustChangePassword ? '/change-password' : '/';
 
 // One support wording on every sign-in screen, until the business gives a number (B11).
 const SUPPORT = 'Forgot your password? Contact the IT Service Desk.';
@@ -272,17 +272,16 @@ export default function SignIn() {
   const t = useT();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { status, endedReason, inactivityTimeoutMin } = useSelector((st) => st.auth);
+  const { status, user, endedReason, inactivityTimeoutMin } = useSelector((st) => st.auth);
   const [step, setStep] = useState({ name: 'creds' });
   const [notice, setNotice] = useState(endedReason ? { text: ENDED[endedReason], vars: { n: inactivityTimeoutMin } } : null);
 
-  if (status === 'signedIn') return <Navigate to={safePath(location.state?.from)} replace />;
+  if (status === 'signedIn') return <Navigate to={postLoginDestination(user)} replace />;
 
   const finish = (session) => {
     setAccessToken(session.accessToken);
     dispatch(sessionStarted(session));
-    navigate(session.user.mustChangePassword ? '/change-password' : safePath(location.state?.from), { replace: true });
+    navigate(postLoginDestination(session.user), { replace: true });
   };
   const back = (message) => {
     setNotice(message || null);

@@ -9,7 +9,7 @@ export function RequireAuth() {
   const { status, user, sessionGeneration } = useSelector((st) => st.auth);
   const location = useLocation();
   if (status === 'checking') return <p className="muted" style={{ padding: 32 }} role="status">{t('Loading Staff Loans…')}</p>;
-  if (status !== 'signedIn') return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (status !== 'signedIn') return <Navigate to="/login" replace />;
   if (user.mustChangePassword && location.pathname !== '/change-password') return <Navigate to="/change-password" replace />;
   return <Outlet key={`${user?.id || user?._id || 'unknown'}:${sessionGeneration}`} />;
 }
