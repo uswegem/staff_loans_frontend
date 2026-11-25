@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Divider, ListItemText, Menu, MenuItem } from '@mui/material';
+import { Alert, Divider, ListItemText, Menu, MenuItem, Snackbar } from '@mui/material';
 import { authApi } from '../api/auth';
 import { sessionEnded } from '../store/authSlice';
 import PreferenceSwitches from './PreferenceSwitches';
@@ -37,14 +37,19 @@ export default function AccountMenu() {
     setAnchor(null);
     navigate(path);
   };
+  const [signOutError, setSignOutError] = useState(null);
+  // Only once the server has ended the session: otherwise a reload would sign the person back in.
   const signOut = async () => {
     setAnchor(null);
+    setSignOutError(null);
     try {
       await authApi.logout();
-    } finally {
-      dispatch(sessionEnded(null));
-      navigate('/login', { replace: true });
+    } catch {
+      setSignOutError(t("We couldn't sign you out. Check your connection and try again."));
+      return;
     }
+    dispatch(sessionEnded(null));
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -79,6 +84,9 @@ export default function AccountMenu() {
         </div>
         <MenuItem onClick={signOut}>{t('Sign out')}</MenuItem>
       </Menu>
+      <Snackbar open={!!signOutError} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} onClose={() => setSignOutError(null)}>
+        <Alert severity="error" role="alert" onClose={() => setSignOutError(null)}>{signOutError}</Alert>
+      </Snackbar>
     </>
   );
 }
