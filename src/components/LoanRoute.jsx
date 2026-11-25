@@ -5,7 +5,7 @@ import s from '../features/apply/apply.module.css';
 import { translate, useT } from '../i18n';
 import { statusLabel } from '../lib/statuses';
 
-const STAGE_STATUS = { credit: 'pending_credit', pcm: 'pending_pcm', hr: 'pending_hr', ceo: 'pending_ceo' };
+const STAGE_STATUS = { credit: 'pending_credit', pcm: 'pending_pcm', hr: 'pending_hr', pc: 'pending_pc', ceo: 'pending_ceo' };
 
 function hoursLeft(due) {
   if (!due) return null;

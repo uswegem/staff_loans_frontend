@@ -83,7 +83,8 @@ export default function DecisionPanel({ app, onDone }) {
         {p.onBehalfOf && <span className="tag">{t('On behalf of {name}', { name: p.onBehalfOf })}</span>}
       </div>
       <div className={s.decisionBody} style={{ padding: 24, display: 'grid', gap: 12, alignContent: 'start' }}>
-        {p.stage === 'pcm' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('You review in place of the Head of HR. After you approve, the CEO gives final approval.')}</Alert>}
+        {p.stage === 'pc' && app.route?.key !== 'hrhead' && <Alert severity="info"><AlertTitle>{t('People and Culture stage')}</AlertTitle>{t('The People and Culture Manager or the Head of People and Culture decides this stage, whoever acts first. Once one of you decides, it leaves the other\'s queue.')}</Alert>}
+        {(p.stage === 'pcm' || (p.stage === 'pc' && app.route?.key === 'hrhead')) && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('You review in place of the Head of HR. After you approve, the CEO gives final approval.')}</Alert>}
         {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then OPS disburses.')}</Alert>}
         {p.stage === 'ceo' && app.route?.key === 'hrhead' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('The People and Culture Manager reviewed in place of the Head of HR. You give final approval.')}</Alert>}
         {app.recommended && !p.needsCrb && (
