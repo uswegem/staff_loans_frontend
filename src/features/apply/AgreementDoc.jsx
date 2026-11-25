@@ -110,3 +110,9 @@ export function DeclarationChecks({ items, ticks, onChange, lang }) {
     </label>
   ));
 }
+
+// The agreement's own acceptance line, in the agreement's language (D-109).
+export const ACCEPT_LINE = {
+  sw: 'Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.',
+  en: 'I have read, understood and accept all the terms of this agreement.',
+};

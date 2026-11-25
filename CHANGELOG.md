@@ -1,5 +1,13 @@
 # Changelog
 
+
+## Unreleased – December 2026 release (needs the API release first)
+
+- Review: the Credit Analyst attaches several bureau report files, sees and removes their own before deciding; approving needs at least one. Later reviewers see every file (D-105).
+- Review: a return goes to the applicant or to any earlier stage passed in this cycle, the stage just before proposed first; history shows "Returned by X to Y" and marks cancelled approvals (D-106).
+- Final approval queue (was Disbursements): People and Culture book each loan (loan account number, booking date, note), then OPS disburse it. Both see every step and act on their own; the loan route and statuses show Booked / Pending Booking (D-107).
+- Signing: the data protection notice with its own unticked box; signing waits for it (D-108).
+- One language at a time: the agreement, its statements and the acceptance line are shown in the agreement's language only, with the API's one-line note when the Swahili agreement is not yet approved; products choose a Swahili agreement; a CI check fails when interface text lacks Swahili (D-109).
 ## Unreleased – UAT readiness (7 Nov 2026)
 
 - Every password field (sign-in, change password, signing an application, accepting revised terms) has an eye button to show or hide what was typed. Hidden by default, each field on its own, the value is kept, keyboard-accessible with a "Show password" / "Hide password" label.

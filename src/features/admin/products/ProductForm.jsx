@@ -36,6 +36,7 @@ export const EMPTY_PRODUCT = {
   fields: [],
   requiredDocuments: [],
   agreementTemplateId: null,
+  agreementTemplateSwId: null,
 };
 
 function Section({ title, hint, children }) {
@@ -210,6 +211,14 @@ export default function ProductForm({ values, onChange, errors = {}, readOnly })
             <MenuItem value={values.agreementTemplateId}>{t('Previously assigned agreement (not available for selection)')}</MenuItem>
           )}
           {agreementOptions.map((a) => <MenuItem key={a.id} value={a.id}>{a.version}{a.note ? ` — ${a.note}` : ''}</MenuItem>)}
+        </TextField>
+        {/* D-109: the same agreement in Swahili; applicants sign in their language. Until one is set and approved, Swahili readers get the English one with a note. */}
+        <TextField select fullWidth label={t('Swahili loan agreement')} value={values.agreementTemplateSwId || ''} disabled={readOnly || !!agreementError} onChange={(e) => set('agreementTemplateSwId')(e.target.value || null)} helperText={err('agreementTemplateSwId') || t('Applicants who use Swahili sign this version. Until it is approved, they see the English agreement with a note.')} error={!!errors.agreementTemplateSwId}>
+          <MenuItem value="">{t('None yet')}</MenuItem>
+          {values.agreementTemplateSwId && !agreementOptions.some((a) => a.id === values.agreementTemplateSwId) && (
+            <MenuItem value={values.agreementTemplateSwId}>{t('Previously assigned agreement (not available for selection)')}</MenuItem>
+          )}
+          {agreementOptions.filter((a) => a.language === 'sw').map((a) => <MenuItem key={a.id} value={a.id}>{a.version}{a.note ? ` — ${a.note}` : ''}</MenuItem>)}
         </TextField>
         {!agreementError && !agreementOptions.length && (
           <p className="small" style={{ margin: 0 }}>{t('No agreement is approved yet.')} <Link component={RouterLink} to="/admin/templates">{t('Go to Agreement templates')}</Link></p>

@@ -101,6 +101,7 @@
 .readbar i { display: block; height: 100%; background: var(--y); width: 0; }
 .check { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) 0; cursor: pointer; }
 .check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--strong); flex: none; }
+.dataProtection { border-top: 1px solid var(--line-2); margin-top: var(--s3); padding-top: var(--s2); }
 .consents { border: 0; padding: 0; margin: 0; min-width: 0; }
 .consents:disabled { opacity: .55; }
 
