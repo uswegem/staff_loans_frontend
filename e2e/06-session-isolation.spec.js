@@ -19,3 +19,21 @@ test('switching staff accounts in the same browser denies the previous draft', a
   await expect(page.getByRole('heading', { name: /Page not found|Application not found/i }).or(page.getByRole('alert'))).toBeVisible();
   await expect(page.getByText('LFB0067')).toHaveCount(0);
 });
+
+// Regression: sign-out sent a JSON null body, the API refused it (400) and the session kept
+// running, so reloading the page signed the person straight back in.
+test('after signing out, reloading the page does not sign back in', async ({ page }) => {
+  await signIn(page, 'LFB0412');
+  const logout = page.waitForResponse((r) => r.url().endsWith('/api/v1/auth/logout'));
+  await page.getByRole('button', { name: /Account menu for/ }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  expect((await logout).status()).toBe(200);
+  await expect(page).toHaveURL(/\/login/);
+  // The refresh cookie is gone, and a reload stays on the sign-in page.
+  expect((await page.context().cookies()).map((c) => c.name)).not.toContain('slas_rt');
+  await page.reload();
+  await expect(page.getByLabel('Username')).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+  await page.goto('/applications');
+  await expect(page).toHaveURL(/\/login/);
+});

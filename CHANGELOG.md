@@ -2,6 +2,10 @@
 
 
 
+
+## Unreleased – sign-out fix
+
+- Sign-out now really ends the session: the request body was the JSON `null`, which the API refused (400), so the session kept running and reloading the page signed the person back in. The body is now `{}`; a server error is retried once; if sign-out still fails the person stays signed in and is told so, instead of seeing the sign-in page while the session runs on.
 ## Unreleased – the agreement as a numbered contract (needs the API change D-110)
 
 - The agreement on screen matches the PDF: LFB letterhead, section and clause numbers in their own column, lettered sub-clauses, the Loan Details as a table; no repayment schedule in new agreements (earlier ones keep theirs). The signed agreement page shows the blocks as signed.
