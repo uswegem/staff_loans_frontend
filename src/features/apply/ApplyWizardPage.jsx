@@ -18,7 +18,7 @@ import CalculatorPanel, { Breakdown } from './CalculatorPanel';
 import CardHeader from '../../components/CardHeader';
 import FactList from '../../components/FactList';
 import PayslipCard from './PayslipCard';
-import AgreementDoc from './AgreementDoc';
+import AgreementDoc, { DeclarationChecks, declarationsOf } from './AgreementDoc';
 import { FileList } from '../../components/SupportingDocuments';
 import FileDrop from '../../components/FileDrop';
 import s from './apply.module.css';
@@ -532,6 +532,10 @@ function SignStep({ app, onBack, onSigned }) {
   const [read, setRead] = useState(false);
   const [progress, setProgress] = useState(0);
   const [consents, setConsents] = useState({ truth: false, deduct: false, crb: false, sms: false });
+  // An agreement with its own declarations is signed by ticking those; otherwise the four standard statements.
+  const declared = useMemo(() => declarationsOf(preview?.blocks), [preview]);
+  const [ticks, setTicks] = useState([]);
+  useEffect(() => setTicks(declared.map(() => false)), [declared]);
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -564,14 +568,16 @@ function SignStep({ app, onBack, onSigned }) {
     }
   }, [preview]);
 
-  const allTicked = Object.values(consents).every(Boolean) && agree;
+  const statementsTicked = declared.length ? ticks.length === declared.length && ticks.every(Boolean) : Object.values(consents).every(Boolean);
+  const allTicked = statementsTicked && agree;
   const sign = async (e) => {
     e.preventDefault();
     if (!allTicked) return setError(t('Tick every statement and the agreement to sign.'));
     setBusy(true);
     setError(null);
     try {
-      const done = await applicationsApi.signAndSubmit(app.id, { consents, accepted: agree, scrolledToEnd: read, textSha256: preview.textSha256 });
+      const statements = declared.length ? { declarations: ticks } : { consents };
+      const done = await applicationsApi.signAndSubmit(app.id, { ...statements, accepted: agree, scrolledToEnd: read, textSha256: preview.textSha256 });
       onSigned(done);
     } catch (err) {
       const x = apiError(err);
@@ -599,7 +605,7 @@ function SignStep({ app, onBack, onSigned }) {
           </Alert>
         )}
         {preview.template.sample && <Alert severity="warning" sx={{ mb: 2 }}>{t('Sample agreement text: Legal loads the approved version before go-live.')}</Alert>}
-        <AgreementDoc ref={docRef} blocks={preview.blocks} onScroll={onScroll} />
+        <AgreementDoc ref={docRef} blocks={preview.blocks} onScroll={onScroll} lang={preview.template.language || 'sw'} />
         <div className={s.readbar} aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
         <p className="xs muted" role="status">{read ? t('You have reached the end of the agreement.') : t('Scroll to the end of the agreement to sign it.')}</p>
       </div>
@@ -616,12 +622,14 @@ function SignStep({ app, onBack, onSigned }) {
             </dl>
             <fieldset className={s.consents} disabled={!read}>
               <legend className="small" style={{ fontWeight: 700, margin: '14px 0 4px' }}>{t('Declaration and consents')}</legend>
-              {CONSENTS.map(([k, sw, en]) => (
-                <label key={k} className={s.check}>
-                  <input type="checkbox" checked={consents[k]} onChange={(e) => setConsents((c) => ({ ...c, [k]: e.target.checked }))} />
-                  <span><b lang="sw">{sw}</b><br /><span className="xs muted" lang="en">{en}</span></span>
-                </label>
-              ))}
+              {declared.length
+                ? <DeclarationChecks items={declared} ticks={ticks} onChange={setTicks} lang={preview.template.language || 'sw'} />
+                : CONSENTS.map(([k, sw, en]) => (
+                  <label key={k} className={s.check}>
+                    <input type="checkbox" checked={consents[k]} onChange={(e) => setConsents((c) => ({ ...c, [k]: e.target.checked }))} />
+                    <span><b lang="sw">{sw}</b><br /><span className="xs muted" lang="en">{en}</span></span>
+                  </label>
+                ))}
               <label className={s.check}>
                 <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                 <span><b lang="sw">Nimesoma, nimeelewa na kukubali vifungu vyote vya mkataba huu.</b><br /><span className="xs muted" lang="en">I have read, understood and accept all the terms of this agreement.</span></span>

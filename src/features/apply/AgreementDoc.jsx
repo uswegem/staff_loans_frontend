@@ -17,16 +17,18 @@ function Parts({ parts }) {
   );
 }
 
-const AgreementDoc = forwardRef(function AgreementDoc({ blocks, onScroll, open }, ref) {
+const AgreementDoc = forwardRef(function AgreementDoc({ blocks, onScroll, open, lang = 'sw' }, ref) {
   const t = useT();
   return (
-    <div ref={ref} className={`${s.doc} ${open ? s.docOpen : ''}`} tabIndex={0} onScroll={onScroll} aria-label={t('Loan agreement text')} lang="sw">
+    <div ref={ref} className={`${s.doc} ${open ? s.docOpen : ''}`} tabIndex={0} onScroll={onScroll} aria-label={t('Loan agreement text')} lang={lang}>
       {blocks.map((b, i) => {
         const key = `${b.type}${i}`;
         if (b.type === 'h1') return <h3 key={key}><Parts parts={b.parts} /></h3>;
         if (b.type === 'h2') return <h4 key={key}><Parts parts={b.parts} /></h4>;
         if (b.type === 'note') return <p key={key} className={s.note}><Parts parts={b.parts} /></p>;
         if (b.type === 'p') return <p key={key}><Parts parts={b.parts} /></p>;
+        // Ticked in the signing panel; shown here as the statements the agreement contains.
+        if (b.type === 'declaration') return <p key={key} className={s.decl}><span aria-hidden="true">☐ </span><Parts parts={b.parts} /></p>;
         if (b.type === 'ol' || b.type === 'ul') {
           const List = b.type;
           return (
@@ -86,8 +88,23 @@ export function textToBlocks(text) {
       const item = [{ text: line.slice(2) }];
       if (prev?.type === 'ul') prev.items.push(item);
       else blocks.push({ type: 'ul', items: [item] });
-    } else if (i === 0) blocks.push({ type: 'h1', parts: [{ text: line }] });
+    } else if (line.startsWith('[ ] ')) blocks.push({ type: 'declaration', parts: [{ text: line.slice(4) }] });
+    else if (i === 0) blocks.push({ type: 'h1', parts: [{ text: line }] });
     else blocks.push({ type: 'p', parts: [{ text: line }] });
   }
   return blocks;
+}
+
+/** The statements the agreement asks the staff member to tick, in order. */
+export const declarationsOf = (blocks) => (blocks || []).filter((b) => b.type === 'declaration').map((b) => b.parts.map((p) => p.text).join(''));
+
+/** One tick box per declaration of the agreement, worded exactly as in it. */
+export function DeclarationChecks({ items, ticks, onChange, lang }) {
+  return items.map((text, i) => (
+    // eslint-disable-next-line react/no-array-index-key
+    <label key={i} className={s.check}>
+      <input type="checkbox" checked={!!ticks[i]} onChange={(e) => onChange(ticks.map((v, j) => (j === i ? e.target.checked : v)))} />
+      <span lang={lang}>{text}</span>
+    </label>
+  ));
 }
