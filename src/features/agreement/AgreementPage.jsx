@@ -38,7 +38,8 @@ export default function AgreementPage() {
         <Button variant="contained" onClick={() => downloadFile(`/agreements/${ag.id}/pdf`, `${ag.number}.pdf`).catch((e) => setError(apiError(e).message))}>{t('Download PDF')}</Button>
       </div>
       <div className={s.split}>
-        <AgreementDoc blocks={textToBlocks(ag.text)} open />
+        {/* D-110: the blocks as signed; earlier agreements from their text. */}
+        <AgreementDoc blocks={ag.blocks?.length ? ag.blocks : textToBlocks(ag.text, ag.format)} open lang={ag.language || 'sw'} />
         <Card className={s.sticky}>
           <CardContent sx={{ p: 3 }}>
             <h3 style={{ marginBottom: 12 }}>{t('Acceptance evidence')}</h3>

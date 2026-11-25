@@ -3,7 +3,7 @@
 // (loan account number, booking date, note), then disbursed by OPS and confirmed here.
 // Both teams see every step; each acts only on its own (the API says what each may do).
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, AlertTitle, Button, Card, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField } from '@mui/material';
 import { disbursementsApi } from '../../api/disbursements';
@@ -16,6 +16,7 @@ import { todayEat } from '../../lib/dates';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
+import ScheduleDownload from '../../components/ScheduleDownload';
 
 const DEFAULT_COMMENT = 'Loan disbursed to staff account.';
 
@@ -235,6 +236,7 @@ function ViewDialog({ id, onClose }) {
         )}
       </DialogContent>
       <DialogActions>
+        {d && <ScheduleDownload id={d.id} reference={d.ref} status={d.status} onError={setError} />}
         {d?.agreement && <Button component={RouterLink} to={`/agreement/${d.agreement.id}`}>{t('View agreement')}</Button>}
         <Button variant="contained" onClick={onClose}>{t('Close')}</Button>
       </DialogActions>
@@ -280,8 +282,16 @@ export default function DisbursementsPage() {
   const [booking, setBooking] = useState(null);
   const [viewing, setViewing] = useState(null);
 
+  // Only the answer for the tab now chosen is shown: a slower answer for an earlier tab is dropped.
+  const asked = useRef(0);
   const load = useCallback(() => {
-    disbursementsApi.list(tab || undefined).then((x) => { setData(x); if (!tab) setTab(x.tab); }).catch((e) => setError(apiError(e).message));
+    asked.current += 1;
+    const mine = asked.current;
+    disbursementsApi.list(tab || undefined).then((x) => {
+      if (mine !== asked.current) return;
+      setData(x);
+      setTab((cur) => cur || x.tab);
+    }).catch((e) => setError(apiError(e).message));
   }, [tab]);
   const shown = tab || data?.tab;
   useEffect(load, [load]);

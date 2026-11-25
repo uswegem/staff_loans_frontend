@@ -94,4 +94,22 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await expect(rehema.getByRole('table', { name: 'Repayment schedule' })).toBeVisible();
   await rehema.goto('/notifications');
   await expect(rehema.getByText(`${ref}: your loan of TZS 3,000,000 has been disbursed`, { exact: false })).toBeVisible();
+
+  // 5. D-110: the signed agreement on screen is the numbered contract on the letterhead, without a
+  //    schedule; Operations give the repayment schedule on request.
+  await rehema.goto(url);
+  await rehema.getByRole('link', { name: /^MKT-/ }).first().click();
+  const doc = rehema.getByLabel('Loan agreement text');
+  await expect(doc.getByTestId('agreement-letterhead')).toBeVisible();
+  await expect(doc.getByText('1.1', { exact: true })).toBeVisible();
+  await expect(doc.locator('thead')).toHaveCount(0);
+  if (process.env.E2E_SHOTS) await doc.screenshot({ path: `${process.env.E2E_SHOTS}/agreement-screen.png` });
+  const ops = await as(browser, 'LFB0318');
+  await ops.goto('/disburse');
+  await ops.getByRole('tab', { name: /^Disbursed/ }).click();
+  await ops.getByRole('row').filter({ hasText: ref }).getByRole('button', { name: 'View' }).click();
+  const download = ops.waitForEvent('download');
+  await ops.getByRole('dialog').getByRole('button', { name: 'Download repayment schedule' }).click();
+  expect((await download).suggestedFilename()).toBe(`repayment-schedule-${ref}.pdf`);
+  await ops.context().close();
 });

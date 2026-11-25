@@ -126,6 +126,58 @@ function PayslipRulesCard({ rules, onSaved, onError }) {
   );
 }
 
+/** D-110: the logo on agreements and repayment schedules; a System Administrator may replace it. */
+function AgreementLogoCard({ onSaved, onError }) {
+  const t = useT();
+  const [info, setInfo] = useState(null);
+  const [src, setSrc] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = async () => {
+    try {
+      setInfo(await settingsApi.logo());
+      const blob = await settingsApi.logoImage();
+      const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(blob) : null;
+      setSrc((old) => {
+        if (old && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(old);
+        return url;
+      });
+    } catch (err) {
+      onError(apiError(err).message);
+    }
+  };
+  useEffect(() => {
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const run = async (action, file) => {
+    setBusy(true);
+    try {
+      const res = action === 'reset' ? await settingsApi.resetLogo() : await settingsApi.replaceLogo(file);
+      onSaved(res.message);
+      await load();
+    } catch (err) {
+      onError(apiError(err).message);
+    }
+    setBusy(false);
+  };
+  return (
+    <Card component="section" aria-labelledby="wf-logo" sx={{ mt: 3 }}>
+      <CardContent sx={{ p: 3 }}>
+        <h2 id="wf-logo" style={{ marginTop: 0, marginBottom: 4 }}>{t('Agreement logo')}</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>{t('Printed on every loan agreement and repayment schedule. PNG or JPG, up to 1 MB. Changes are recorded in the audit log.')}</p>
+        {src && <img src={src} alt={t('Agreement logo in use')} style={{ height: 40, width: 'auto', display: 'block', margin: '8px 0 12px' }} />}
+        {info && <p className="small" style={{ margin: '0 0 12px' }}>{info.custom ? t('Replaced: {name}', { name: info.originalName }) : t('The default Letshego Faidika Bank logo.')}</p>}
+        <div className="row">
+          <Button component="label" variant="contained" disabled={busy}>
+            {t('Replace logo')}
+            <input hidden type="file" accept="image/png,image/jpeg" aria-label={t('Choose logo image')} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) run('replace', f); }} />
+          </Button>
+          {info?.custom && <Button disabled={busy} onClick={() => run('reset')}>{t('Use the default logo')}</Button>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function WorkflowPage() {
   const t = useT();
   const [data, setData] = useState(null);
@@ -236,6 +288,7 @@ export default function WorkflowPage() {
         </CardContent>
       </Card>
       <PayslipRulesCard key={st.version} rules={st.payslipRules} onSaved={(m) => { setToast(m); setError(null); load(); }} onError={setError} />
+      <AgreementLogoCard onSaved={(m) => { setToast(m); setError(null); }} onError={setError} />
       {editing && (
         <EditDialog
           settings={st}

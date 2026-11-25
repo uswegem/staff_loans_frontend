@@ -22,6 +22,15 @@ export const settingsApi = {
   update: (body) => data(api.put('/admin/settings', body)),
   addHoliday: (body) => data(api.post('/admin/holidays', body)),
   removeHoliday: (id) => api.delete(`/admin/holidays/${id}`),
+  // D-110: the logo printed on agreements and repayment schedules.
+  logo: () => data(api.get('/admin/settings/agreement-logo')),
+  logoImage: () => api.get('/admin/settings/agreement-logo/image', { responseType: 'blob' }).then((r) => r.data),
+  replaceLogo: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.put('/admin/settings/agreement-logo', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data);
+  },
+  resetLogo: () => api.delete('/admin/settings/agreement-logo').then((r) => r.data),
 };
 
 export const templatesApi = {

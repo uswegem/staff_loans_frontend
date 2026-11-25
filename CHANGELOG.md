@@ -1,6 +1,13 @@
 # Changelog
 
 
+
+## Unreleased – the agreement as a numbered contract (needs the API change D-110)
+
+- The agreement on screen matches the PDF: LFB letterhead, section and clause numbers in their own column, lettered sub-clauses, the Loan Details as a table; no repayment schedule in new agreements (earlier ones keep theirs). The signed agreement page shows the blocks as signed.
+- Operations and Credit get "Download repayment schedule" for approved and disbursed loans (review page, final approval queue); the applicant does not.
+- Settings: a System Administrator can replace the agreement logo or go back to the default.
+- Final approval queue: a slow answer for an earlier tab no longer switches the tab back.
 ## Unreleased – December 2026 release (needs the API release first)
 
 - Review: the Credit Analyst attaches several bureau report files, sees and removes their own before deciding; approving needs at least one. Later reviewers see every file (D-105).
