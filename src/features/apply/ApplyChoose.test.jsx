@@ -81,31 +81,122 @@ describe('Apply: open application of the same product', () => {
 
 describe('Apply: loan cards', () => {
   const personal = { id: 'p-pl', name: 'Staff Personal Loan', description: 'Personal loan', minAmount: 500000, maxAmount: 300000000, minTenor: 6, maxTenor: 120 };
-  const two = () => {
+  const two = (pricing = { interestBps: 600 }, { hold = false } = {}) => {
     const calls = stubHttp({
       'GET /products': () => [200, { data: [car, personal] }],
       'GET /me/eligibility': () => [200, { data: { ...elig, products: [{ productId: 'p-car', reasons: [] }, { productId: 'p-pl', reasons: [] }] } }],
       'GET /applications': () => [200, { data: [] }],
-      'GET /pricing': () => [200, { data: { interestBps: 600 } }],
-      'POST /applications': () => [201, { data: { id: 'a99' } }],
+      'GET /pricing': () => [200, { data: pricing }],
+      // hold: the request stays open, so the selected card can be checked before navigating.
+      'POST /applications': () => (hold ? new Promise(() => {}) : [201, { data: { id: 'a99' } }]),
     });
     page();
     return calls;
   };
 
-  it('are radios in a group, with the rate, range, tenure and a Select cue', async () => {
-    two();
+  it('show the compact facility card: icon, name, rate pill, five rows and the eligibility note', async () => {
+    two({ interestBps: 600, processingFeeBps: 100, processingFeeTopUpBps: 50, insuranceBps: 60 });
     const group = await screen.findByRole('radiogroup', { name: 'Choose a loan' });
     const cards = within(group).getAllByRole('radio');
     expect(cards).toHaveLength(2);
     cards.forEach((c) => expect(c).toHaveAttribute('aria-checked', 'false'));
     const pl = within(group).getByRole('radio', { name: /Staff Personal Loan/ });
-    expect(await within(pl).findByText('6% p.a. • Reducing balance')).toBeInTheDocument();
-    expect(within(pl).getByText('Loan Range')).toBeInTheDocument();
-    expect(within(pl).getByText('TZS 500,000 – 300,000,000')).toBeInTheDocument();
-    expect(within(pl).getByText('6 – 120 months')).toBeInTheDocument();
-    expect(within(pl).getByText('Select loan →')).toBeInTheDocument();
+    // Name from the product (shown in capitals by style), the right icon, decorative.
+    expect(within(pl).getByRole('heading', { name: 'Staff Personal Loan' })).toBeInTheDocument();
+    expect(pl.querySelector('svg[data-icon="wallet"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(group).getByRole('radio', { name: /Car Loan/ }).querySelector('svg[data-icon="car"]')).not.toBeNull();
+    // The rate pill under the name, with the method.
+    expect(await within(pl).findByText('6% p.a.')).toBeInTheDocument();
+    expect(within(pl).getByText('(Reducing Balance)')).toBeInTheDocument();
+    // Five rows, in order.
+    const rows = [...pl.querySelectorAll('dl > div')].map((d) => [d.querySelector('dt').textContent, d.querySelector('dd').textContent]);
+    expect(rows).toEqual([
+      ['Maximum Amount', 'TZS 300,000,000'],
+      ['Minimum Amount', 'TZS 500,000'],
+      ['Term (Months)', '6–120'],
+      ['Processing Fee', '1%'],
+      ['Insurance', '0.6% p.a.'],
+    ]);
+    expect(within(pl).getByText('Your maximum eligibility is calculated after payslip upload.')).toBeInTheDocument();
+    // Nothing old or duplicated: no description, subheading, separate rate or tenure rows, cue.
     expect(within(pl).queryByText('Personal loan')).toBeNull();
+    expect(within(pl).queryByText(/financing facility/i)).toBeNull();
+    expect(within(pl).queryByText('Interest Rate')).toBeNull();
+    expect(within(pl).queryByText(/Tenure|Loan Range|Select loan/)).toBeNull();
+    expect(within(pl).getAllByText(/^6% p\.a\.$/)).toHaveLength(1);
+    // The helper under the grid stays.
+    expect(screen.getByText('Your own maximum is worked out from the payslip you attach on the next step.')).toBeInTheDocument();
+  });
+
+  it('leave out what is not configured, and show configured zeros', async () => {
+    two({ interestBps: 600, processingFeeBps: 0 });
+    const pl = await screen.findByRole('radio', { name: /Staff Personal Loan/ });
+    await within(pl).findByText('6% p.a.');
+    const labels = [...pl.querySelectorAll('dt')].map((d) => d.textContent);
+    expect(labels).toEqual(['Maximum Amount', 'Minimum Amount', 'Term (Months)', 'Processing Fee']);
+    expect(within(pl).getByText('0%')).toBeInTheDocument();
+    expect(pl.textContent).not.toMatch(/undefined|null|NaN/);
+  });
+
+  it('still show the cards when the pricing cannot be loaded, without a rate', async () => {
+    stubHttp({
+      'GET /products': () => [200, { data: [personal] }],
+      'GET /me/eligibility': () => [200, { data: { ...elig, products: [{ productId: 'p-pl', reasons: [] }] } }],
+      'GET /applications': () => [200, { data: [] }],
+      'GET /pricing': () => [404, { message: 'No pricing is in force.' }],
+    });
+    page();
+    const pl = await screen.findByRole('radio', { name: /Staff Personal Loan/ });
+    expect(within(pl).queryByText(/p\.a\./)).toBeNull();
+    expect([...pl.querySelectorAll('dt')].map((d) => d.textContent)).toEqual(['Maximum Amount', 'Minimum Amount', 'Term (Months)']);
+    expect(pl.textContent).not.toMatch(/undefined|null|NaN/);
+  });
+
+  it('one card at a time: choosing a card marks it selected and starts the application', async () => {
+    const calls = two(undefined, { hold: true });
+    const pl = await screen.findByRole('radio', { name: /Staff Personal Loan/ });
+    const car2 = screen.getByRole('radio', { name: /Car Loan/ });
+    await userEvent.click(pl);
+    expect(pl).toHaveAttribute('aria-checked', 'true');
+    expect(car2).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    expect(pl).toHaveAttribute('aria-busy', 'true');
+    expect(pl.querySelector('svg[data-icon]')).not.toBeNull();
+    // While it starts, no other card can be chosen.
+    expect(car2).toHaveAttribute('aria-disabled', 'true');
+    expect(JSON.parse(calls.find((c) => c.key === 'POST /applications').config.data)).toEqual({ productId: 'p-pl' });
+  });
+
+  it('keeps the loading, empty and error states', async () => {
+    stubHttp({
+      'GET /products': () => new Promise(() => {}),
+      'GET /me/eligibility': () => [200, { data: elig }],
+      'GET /applications': () => [200, { data: [] }],
+      'GET /pricing': () => [200, { data: { interestBps: 600 } }],
+    });
+    const { unmount } = page();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    unmount();
+
+    stubHttp({
+      'GET /products': () => [200, { data: [] }],
+      'GET /me/eligibility': () => [200, { data: { ...elig, products: [] } }],
+      'GET /applications': () => [200, { data: [] }],
+      'GET /pricing': () => [200, { data: { interestBps: 600 } }],
+    });
+    const empty = page();
+    const group = await screen.findByRole('radiogroup', { name: 'Choose a loan' });
+    expect(within(group).queryAllByRole('radio')).toHaveLength(0);
+    empty.unmount();
+
+    stubHttp({
+      'GET /products': () => [500, { message: 'The service is not available.' }],
+      'GET /me/eligibility': () => [200, { data: elig }],
+      'GET /applications': () => [200, { data: [] }],
+      'GET /pricing': () => [200, { data: { interestBps: 600 } }],
+    });
+    page();
+    expect(await screen.findByRole('alert')).toHaveTextContent('The service is not available.');
   });
 
   it('only one card is a tab stop; arrow keys move between cards and Enter chooses one', async () => {

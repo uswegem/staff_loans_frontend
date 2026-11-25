@@ -18,34 +18,43 @@
 .steps li.done { color: var(--accent-600); }
 .steps li.done::before { content: "✓"; border-color: var(--accent-600); background: var(--accent-100); color: var(--accent-600); }
 
-/* product cards: a radio group of selectable loan cards */
+/* loan facility cards (Apply, step 1): a radio group of selectable cards */
 .prods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); align-items: stretch; }
-.prod { position: relative; display: flex; flex-direction: column; text-align: left; padding: 24px; border: 1px solid var(--card-line); border-radius: 12px; background: var(--surface); cursor: pointer; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease, background-color .15s ease; }
-.prod:hover:not([aria-disabled="true"]) { border-color: var(--card-line-hover); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .06); }
+.prod { position: relative; display: flex; flex-direction: column; min-width: 0; text-align: left; padding: var(--s4); border: 1px solid var(--card-line); border-radius: var(--r-lg); background: var(--surface); cursor: pointer; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+/* Hover: border and a light shadow, no movement. */
+.prod:hover:not([aria-disabled="true"]) { border-color: var(--card-line-hover); box-shadow: 0 4px 14px rgba(0, 0, 0, .06); }
 .prod:focus-visible { outline: 3px solid var(--strong); outline-offset: 2px; box-shadow: 0 0 0 6px var(--y); }
 .prod[aria-disabled="true"] { cursor: not-allowed; }
-.prod[aria-disabled="true"]:not(.prodOn) .prodHead, .prod[aria-disabled="true"]:not(.prodOn) h3, .prod[aria-disabled="true"]:not(.prodOn) .sub, .prod[aria-disabled="true"]:not(.prodOn) .meta { opacity: .6; }
-.prodOn { border: 2px solid var(--strong); padding: 23px; background: color-mix(in srgb, var(--y) 5%, var(--surface)); }
-.prodHead { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--s3); }
-.badge { width: 36px; height: 36px; border-radius: 8px; display: inline-grid; place-items: center; background: color-mix(in srgb, var(--y) 18%, var(--surface)); color: var(--accent-600); }
-.pick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-line); display: inline-grid; place-items: center; background: var(--surface); color: var(--y); transition: border-color .15s ease; }
+.prod[aria-disabled="true"]:not(.prodOn) .prodHead, .prod[aria-disabled="true"]:not(.prodOn) .prodName, .prod[aria-disabled="true"]:not(.prodOn) .ratePill, .prod[aria-disabled="true"]:not(.prodOn) .specs { opacity: .6; }
+/* Selected: brand border (an inset ring, so the card keeps its size), tint and a filled check. */
+.prodOn, .prodOn:hover:not([aria-disabled="true"]) { border-color: var(--y-600); box-shadow: inset 0 0 0 1px var(--y-600), 0 4px 14px rgba(0, 0, 0, .06); background: var(--brand-050); }
+.prodHead { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--s2); }
+.badge { width: 72px; height: 72px; border-radius: var(--r-lg); display: inline-grid; place-items: center; flex: none; background: var(--brand-100); color: var(--accent-600); }
+.badgeIcon { width: 44px; height: 44px; }
+.pick { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--card-line); display: inline-grid; place-items: center; flex: none; background: var(--surface); color: var(--strong); transition: border-color .15s ease; }
 .prod:hover:not([aria-disabled="true"]) .pick { border-color: var(--card-line-hover); }
-.prodOn .pick { border-color: var(--strong); background: var(--strong); }
-.prod h3 { margin: 0 0 4px; }
-.sub { font-size: var(--fs-sm); color: var(--ink-3); }
-.meta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); margin: var(--s4) 0 0; padding-top: var(--s4); border-top: 1px solid var(--card-divider); }
-.meta dt { font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: 2px; }
-.meta dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
-.prodFoot { margin-top: auto; padding-top: var(--s4); display: flex; justify-content: flex-end; }
-.cue { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-3); transition: color .15s ease; }
-.prod:hover:not([aria-disabled="true"]) .cue, .prod:focus-visible .cue, .prodOn .cue { color: var(--strong); }
-.reason { font-size: var(--fs-sm); color: var(--bad); font-weight: 600; margin-right: auto; }
-.prodFoot :global(.tag) { margin-right: auto; }
+.prodOn .pick, .prodOn:hover:not([aria-disabled="true"]) .pick { border-color: var(--y); background: var(--y); color: #000; }
+.prodName { margin: 0; text-transform: uppercase; font-weight: 700; overflow-wrap: anywhere; }
+.ratePill { align-self: flex-start; max-width: 100%; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--brand-100); color: var(--accent-600); font-size: var(--fs-sm); font-weight: 500; line-height: 1.35; }
+.ratePill b { font-weight: 700; }
+.specs { margin: var(--s3) 0 0; display: grid; gap: 0; font-size: var(--fs-sm); line-height: 1.3; }
+.specs > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: var(--s1) 0; }
+.specs dt { color: var(--ink-3); flex: 0 1 auto; }
+.specs dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+.specs .specStrong dd { font-weight: 700; color: var(--ink); }
+.reason { margin-top: var(--s2); font-size: var(--fs-sm); color: var(--bad); font-weight: 600; }
+.reasonTag { margin-top: var(--s2); align-self: flex-start; }
+/* The eligibility note sits at the bottom, so notes line up across a row of cards. */
+.eligibility { margin: auto 0 0; padding-top: var(--s3); border-top: 1px solid var(--card-divider); text-align: center; font-size: var(--fs-sm); font-weight: 600; color: var(--accent-600); }
+.prod > :nth-last-child(2) { margin-bottom: var(--s3); }
 .helper { display: flex; align-items: center; gap: 8px; margin: var(--s4) 0 0; font-size: var(--fs-sm); color: var(--ink-3); }
 .helper svg { flex: none; }
+@media (max-width: 600px) {
+  .badge { width: 56px; height: 56px; }
+  .badgeIcon { width: 32px; height: 32px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .prod, .pick, .cue { transition: none; }
-  .prod:hover:not([aria-disabled="true"]) { transform: none; }
+  .prod, .pick { transition: none; }
 }
 
 /* calculator */

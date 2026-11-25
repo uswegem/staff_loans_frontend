@@ -3,16 +3,15 @@
 // application of a product blocks a new one, so it is listed here with Continue and, while it
 // can still be withdrawn, Withdraw (FR-25) without leaving the page.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Alert, AlertTitle, Button } from '@mui/material';
 import { productsApi } from '../../api/products';
 import { profileApi } from '../../api/staff';
 import { applicationsApi } from '../../api/applications';
 import { apiError } from '../../api/client';
-import { formatNumber } from '../../lib/format';
-import { pct } from '../../lib/dates';
 import { Steps } from './ApplyWizardPage';
+import LoanFacilityCards from './LoanFacilityCards';
 import s from './apply.module.css';
 import ApplyBlockers from '../../components/ApplyBlockers';
 import WithdrawDialog from '../../components/WithdrawDialog';
@@ -49,7 +48,7 @@ export default function ApplyChoosePage() {
     load();
   }, [load]);
 
-  // The interest rate on each card comes from the live pricing; the cards work without it.
+  // Rates and fees on the cards come from the live pricing; the cards work without it.
   useEffect(() => {
     productsApi.livePricing().then(setPricing).catch(() => {});
   }, []);
@@ -141,13 +140,13 @@ export default function ApplyChoosePage() {
           {statusLabel(a.status, a.statusLabel)}. {a.withdrawable ? t('Finish it, or withdraw it to start a new one.') : t('It can no longer be withdrawn.')}
         </Alert>
       ))}
-      <LoanCards
+      <LoanFacilityCards
         products={products}
+        pricing={pricing}
         reasonFor={reasonFor}
         openFor={openFor}
         selected={selected}
         busy={busy}
-        interestBps={pricing?.interestBps}
         onChoose={choose}
       />
       {withdrawing && <WithdrawDialog app={withdrawing} onClose={() => setWithdrawing(null)} onConfirm={withdraw} />}
@@ -156,88 +155,6 @@ export default function ApplyChoosePage() {
   );
 }
 
-const isCarLoan = (p) => /\b(car|vehicle|motor)\b/i.test(`${p.name} ${p.payslipLabel || ''}`);
-
-/**
- * The loan choice as a radio group (WAI-ARIA radio pattern, roving focus): arrow keys move
- * between the loans that can be chosen; Space, Enter or a click chooses one, which marks it
- * selected and starts the application.
- */
-function LoanCards({ products, reasonFor, openFor, selected, busy, interestBps, onChoose }) {
-  const t = useT();
-  const refs = useRef({});
-  const enabled = products.filter((p) => !reasonFor(p));
-  const [focusId, setFocusId] = useState(null);
-  const tabStop = selected || (enabled.some((p) => p.id === focusId) ? focusId : enabled[0]?.id);
-
-  const move = (from, step) => {
-    if (!enabled.length) return;
-    const i = enabled.findIndex((p) => p.id === from);
-    const next = enabled[(i + step + enabled.length) % enabled.length];
-    setFocusId(next.id);
-    refs.current[next.id]?.focus();
-  };
-
-  const onKeyDown = (e, p) => {
-    if (['ArrowRight', 'ArrowDown'].includes(e.key)) { e.preventDefault(); move(p.id, 1); }
-    else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) { e.preventDefault(); move(p.id, -1); }
-    else if ([' ', 'Enter'].includes(e.key)) { e.preventDefault(); if (!busy && !reasonFor(p)) onChoose(p); }
-  };
-
-  return (
-    <div role="radiogroup" aria-label={t('Choose a loan')} className={s.prods}>
-      {products.map((p) => {
-        const reason = reasonFor(p);
-        const disabled = !!reason || busy;
-        const checked = selected === p.id;
-        return (
-          <div
-            key={p.id}
-            ref={(el) => { refs.current[p.id] = el; }}
-            role="radio"
-            aria-checked={checked}
-            aria-disabled={disabled}
-            aria-describedby={reason ? `why_${p.id}` : undefined}
-            tabIndex={!reason && p.id === tabStop ? 0 : -1}
-            className={`${s.prod} ${checked ? s.prodOn : ''}`}
-            onClick={() => !disabled && onChoose(p)}
-            onKeyDown={(e) => onKeyDown(e, p)}
-            onFocus={() => setFocusId(p.id)}
-          >
-            <div className={s.prodHead}>
-              <span className={s.badge} aria-hidden="true">{isCarLoan(p) ? <CarIcon /> : <WalletIcon />}</span>
-              <span className={s.pick} aria-hidden="true">{checked && <CheckIcon />}</span>
-            </div>
-            <h3>{p.name}</h3>
-            {interestBps != null && <div className={s.sub}>{t('{rate} p.a. • Reducing balance', { rate: pct(interestBps) })}</div>}
-            <dl className={s.meta}>
-              <div><dt>{t('Loan Range')}</dt><dd>{t('TZS {min} – {max}', { min: formatNumber(p.minAmount), max: formatNumber(p.maxAmount) })}</dd></div>
-              <div><dt>{t('Tenure')}</dt><dd>{t('{min} – {max} months', { min: p.minTenor, max: p.maxTenor })}</dd></div>
-            </dl>
-            <div className={s.prodFoot}>
-              {reason
-                ? (openFor(p)
-                  ? <span id={`why_${p.id}`} className="tag">{reason}</span>
-                  : <span id={`why_${p.id}`} className={s.reason}>{reason}</span>)
-                : <span className={s.cue} aria-hidden="true">{checked && busy ? t('Starting…') : t('Select loan →')}</span>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-const svg = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', focusable: 'false' };
-const CarIcon = () => (
-  <svg {...svg}><path d="M5 17h14v-5l-2-5H7l-2 5v5z" /><path d="M5 12h14" /><circle cx="8" cy="17" r="1.6" /><circle cx="16" cy="17" r="1.6" /></svg>
-);
-const WalletIcon = () => (
-  <svg {...svg}><path d="M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" /><path d="M4 7l11-3v3" /><path d="M16 13h2" /></svg>
-);
-const CheckIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-);
 const InfoIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 7.5v.5" /></svg>
 );
