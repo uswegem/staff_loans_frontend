@@ -1575,6 +1575,11 @@ const SW = {
   "Filled-in values, dates and the schedule are written in this language.": "Thamani zinazojazwa, tarehe na jedwali huandikwa kwa lugha hii.",
   "# title, ## heading, 1. clause, - item, ~ note, [ ] declaration to tick at signing; values in {{double braces}}; {{schedule}} on its own line for the Jedwali.": "# kichwa, ## kichwa kidogo, 1. kifungu, - kipengele, ~ dokezo, [ ] tamko la kuweka alama wakati wa kusaini; thamani ndani ya {{mabano mawili}}; {{schedule}} peke yake kwenye mstari kwa Jedwali.",
   "Staff tick {n} declarations from this text when they sign.": "Wafanyakazi wataweka alama kwenye matamko {n} ya maandishi haya wanaposaini.",
+  "Pending People and Culture Review": "Linasubiri Mapitio ya Idara ya Rasilimali Watu",
+  "People and Culture (P&C Manager)": "Rasilimali Watu (Meneja wa Rasilimali Watu)",
+  "People and Culture (Head of P&C)": "Rasilimali Watu (Mkuu wa Rasilimali Watu)",
+  "People and Culture stage": "Hatua ya Rasilimali Watu",
+  "The People and Culture Manager or the Head of People and Culture decides this stage, whoever acts first. Once one of you decides, it leaves the other's queue.": "Meneja wa Rasilimali Watu au Mkuu wa Rasilimali Watu ndiye anayeamua hatua hii, yeyote atakayeanza. Mmoja wenu akishaamua, maombi yanaondoka kwenye foleni ya mwingine.",
 };
 
 export default SW;

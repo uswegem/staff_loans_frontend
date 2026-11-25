@@ -8,6 +8,8 @@ export const STATUS = {
   pending_credit: ['Pending Credit Review', 'info'],
   pending_pcm: ['Pending P&C Manager Review', 'info'],
   pending_hr: ['Pending HR Review', 'info'],
+  // D-103: the P&C Manager or the Head of P&C decides.
+  pending_pc: ['Pending People and Culture Review', 'info'],
   pending_ceo: ['Pending CEO Approval', 'info'],
   returned: ['Returned for Correction', 'warning'],
   rejected: ['Rejected', 'error'],
@@ -18,7 +20,7 @@ export const STATUS = {
   withdrawn: ['Withdrawn', 'default'],
 };
 
-export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_disbursement'];
+export const OPEN = ['draft', 'pending_credit', 'pending_pcm', 'pending_hr', 'pending_pc', 'pending_ceo', 'returned', 'pending_reaccept', 'pending_disbursement'];
 
 /** The label for a status key in the chosen language; the API's own label is the fallback. */
 export const statusLabel = (s, fallback) => translate(STATUS[s]?.[0] || fallback || s);

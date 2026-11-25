@@ -31,12 +31,13 @@ async function apply(browser, staffNo, terms) {
   return { ...out, page };
 }
 
-test('management staff: Credit Analyst (limited), Head of HR, CEO', async ({ browser }) => {
+test('management staff: Credit Analyst (limited), People and Culture (here the P&C Manager), CEO', async ({ browser }) => {
   const terms = { product: 'Personal Loan', amount: 12000000, tenor: 36, purpose: 'Solar installation at home' };
   const { ref, url, page: daniel } = await apply(browser, 'LFB0067', terms);
   await limitedCredit(browser, ref, terms);
+  // D-103: the P&C Manager may now decide the People and Culture stage of a management application.
   await approveAll(browser, ref, [
-    { staffNo: 'LFB0051', hrChecks: true, comment: 'Employment confirmed.' },
+    { staffNo: 'LFB0129', hrChecks: true, comment: 'Employment confirmed.' },
     { staffNo: 'LFB0002', comment: 'Approved.' },
   ]);
   await daniel.goto(url);
@@ -58,7 +59,7 @@ test("CEO's own application: Credit Analyst (limited), then the Head of HR gives
   await expect(joseph.getByText('Pending Disbursement').first()).toBeVisible();
 });
 
-test('Head of People and Culture: Credit Analyst (limited), P&C Manager, CEO', async ({ browser }) => {
+test('Head of People and Culture: Credit Analyst (limited), People and Culture (the P&C Manager), CEO', async ({ browser }) => {
   const terms = { product: 'Personal Loan', amount: 9000000, tenor: 24, purpose: 'Postgraduate fees' };
   const { ref, url, page: grace } = await apply(browser, 'LFB0051', terms);
   await grace.goto('/queue');
