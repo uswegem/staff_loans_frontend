@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – Credit Underwriting (D-113)
+
+- The credit stage is "Credit Underwriting" ("Tathmini ya Mikopo"); the status reads "Pending Credit Underwriting". The Credit Analyst, the Credit Manager (new role) and the Head of Credit each see it in the Review queue and decide there, with the identity-only view.
+- "Credit Analyst sees" on the profile and workflow screens now reads "Credit Underwriting sees".
+
 ## Unreleased – Disbursement queue (D-112)
 
 - The final queue is "Disbursement" ("Malipo ya Mkopo"): page title, side navigation and the loan route; review and workflow screens say "then Disbursement (People and Culture book, OPS disburse)".

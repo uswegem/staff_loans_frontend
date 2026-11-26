@@ -5,7 +5,7 @@ import { translate } from '../i18n';
 
 export const STATUS = {
   draft: ['Draft', 'default'],
-  pending_credit: ['Pending Credit Review', 'info'],
+  pending_credit: ['Pending Credit Underwriting', 'info'], // D-113
   pending_pcm: ['Pending P&C Manager Review', 'info'],
   pending_hr: ['Pending HR Review', 'info'],
   // D-103: the P&C Manager or the Head of P&C decides.

@@ -297,8 +297,6 @@ const SW = {
   'Create role': 'Unda jukumu',
   'Creates a sign-in for a staff member who already has a staff record. They get the Staff role; add others afterwards.': 'Huunda akaunti ya kuingia kwa mfanyakazi ambaye tayari ana kumbukumbu za mfanyakazi. Atapewa jukumu la Mfanyakazi; ongeza mengine baadaye.',
   'Credit Analyst': 'Mchambuzi wa Mikopo',
-  'Credit Analyst ({name}) recommended {amount} over {n} months': 'Mchambuzi wa Mikopo ({name}) amependekeza {amount} kwa miezi {n}',
-  'Credit Analyst sees': 'Mchambuzi wa Mikopo anaona',
   'Credit bureau check': 'Ukaguzi wa CRB',
   "Credit bureau check on every application; sees the applicant's name, NIDA and mobile only.": 'Ukaguzi wa CRB kwa kila ombi; huona jina, NIDA na simu ya mkononi ya mwombaji tu.',
   'Credit bureau report:': 'Ripoti ya CRB:',
@@ -1666,6 +1664,12 @@ const SW = {
   'On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then the loan goes to Disbursement (People and Culture book, OPS disburse).': 'Kwenye njia hii hatua ya Mtendaji Mkuu inarukwa. Unatoa idhini ya mwisho baada ya Mchambuzi wa Mikopo, kisha mkopo unaenda Malipo ya Mkopo (Rasilimali Watu husajili, OPS hulipa).',
   "The route comes from the applicant's role and the category on their staff record. After the last approval, the loan goes to Disbursement (People and Culture book, OPS disburse). Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.": 'Njia hutokana na jukumu la mwombaji na kundi lililo kwenye kumbukumbu zake. Baada ya idhini ya mwisho, mkopo unaenda Malipo ya Mkopo (Rasilimali Watu husajili, OPS hulipa). Wafanyakazi husaini mkataba wanapoomba na hukubali mkataba uliorekebishwa iwapo tu masharti yaliyoidhinishwa yanatofautiana.',
   'Loan summary downloaded': 'Muhtasari wa mkopo umepakuliwa',
+  // D-113: Credit Underwriting (Credit Analyst, Credit Manager, Head of Credit).
+  'Credit Underwriting': 'Tathmini ya Mikopo',
+  'Pending Credit Underwriting': 'Inasubiri Tathmini ya Mikopo',
+  'Credit Underwriting sees': 'Tathmini ya Mikopo inaona',
+  'Credit Underwriting ({name}) recommended {amount} over {n} months': 'Tathmini ya Mikopo ({name}) ilipendekeza {amount} kwa miezi {n}',
+  'Credit Manager': 'Meneja wa Mikopo',
 };
 
 export default SW;

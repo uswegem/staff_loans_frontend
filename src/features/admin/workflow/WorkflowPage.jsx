@@ -223,7 +223,7 @@ export default function WorkflowPage() {
           <div className="tablewrap">
             <Table size="small" aria-label={t('Approval routes')}>
               <TableHead>
-                <TableRow><TableCell>{t('Applicant')}</TableCell><TableCell>{t('Route')}</TableCell><TableCell>{t('Credit Analyst sees')}</TableCell></TableRow>
+                <TableRow><TableCell>{t('Applicant')}</TableCell><TableCell>{t('Route')}</TableCell><TableCell>{t('Credit Underwriting sees')}</TableCell></TableRow>
               </TableHead>
               <TableBody>
                 {data.routes.map((r) => (

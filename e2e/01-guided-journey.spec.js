@@ -59,7 +59,7 @@ test('Rehema: complete profile, apply and sign, three approvals, disbursement', 
   await startApplication(rehema, { staffNo: 'LFB0596', product: 'Personal Loan', amount: 3000000, tenor: 12, purpose: 'Furniture for a new home' });
   await expect(rehema.getByText(/below your limit/).first()).toBeVisible();
   const { ref, url } = await signAndSubmit(rehema);
-  await expect(rehema.getByText('Pending Credit Review').first()).toBeVisible();
+  await expect(rehema.getByText('Pending Credit Underwriting').first()).toBeVisible();
 
   // 3. Credit Analyst, Head of People and Culture, CEO.
   const juma = await as(browser, 'LFB0233');
