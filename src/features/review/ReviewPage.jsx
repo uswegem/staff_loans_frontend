@@ -18,15 +18,15 @@ import DueClock from '../../components/DueClock';
 import ScheduleDownload from '../../components/ScheduleDownload';
 import LoadingSkeleton from '../../components/ux/LoadingSkeleton';
 import { Breakdown, Meter } from '../apply/CalculatorPanel';
-import DecisionPanel from './DecisionPanel';
+import DecisionPanel, { CreditRecommendation } from './DecisionPanel';
 import s from '../apply/apply.module.css';
 import { translate, useT } from '../../i18n';
 import CardHeader from '../../components/CardHeader';
 import { formatPhone } from '../../lib/formats';
 import { statusLabel } from '../../lib/statuses';
 
-const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', book: 'Booked in core banking', disburse: 'Disbursement confirmed' };
-const TONE = { book: 'ok', approve: 'ok', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
+const ACTION = { create: 'Started', submit: 'Signed agreement and submitted', resubmit: 'Signed a new agreement and resubmitted', approve: 'Approved', return: 'Returned for correction', reject: 'Rejected', recommend_approval: 'Recommended approval', recommend_rejection: 'Recommended rejection', withdraw: 'Withdrawn', accept_revised: 'Accepted revised terms', decline_revised: 'Declined revised terms', expire: 'Revised terms expired', book: 'Booked in core banking', disburse: 'Disbursement confirmed' };
+const TONE = { book: 'ok', approve: 'ok', recommend_approval: 'ok', recommend_rejection: 'bad', submit: 'info', resubmit: 'info', return: 'warn', reject: 'bad', accept_revised: 'ok', decline_revised: 'bad', disburse: 'ok' };
 
 /** A titled card; collapsed starts it closed with a one-click "Show" (detail most decisions do not need). */
 function Panel({ title, action, children, collapsed = false }) {
@@ -50,7 +50,9 @@ function Side({ app, onDone }) {
   const t = useT();
   if (app.panel) return <DecisionPanel app={app} onDone={onDone} />;
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, display: 'grid', gap: 12 }}>
+      {/* D-113: the recommendation stays visible read-only. */}
+      <CreditRecommendation rec={app.creditRecommendation} />
       <Alert severity="info">
         <AlertTitle>{app.currentStage ? t('With {stage}', { stage: t(app.route.stageLabels[app.route.stages.indexOf(app.currentStage)]) }) : t('No action for you')}</AlertTitle>
         {app.currentStage ? t('This application is not in your queue.') : statusLabel(app.status, app.statusLabel)}
@@ -256,6 +258,7 @@ function FullReview({ app, onDone, onError }) {
                     {h.action === 'return' && h.returnTo && h.returnTo !== 'applicant'
                       ? t('Returned by {stage} to {to}', { stage: t(h.stageLabel), to: t(h.returnToLabel) })
                       : <>{t(ACTION[h.action])}{h.stageLabel ? ` ${t('by {stage}', { stage: t(h.stageLabel) })}` : ''}</>}
+                    {h.againstRecommendation && <span className="tag" style={{ marginLeft: 6 }}>{t("Against Credit's recommendation")}</span>}
                     {h.superseded && <span className="tag" style={{ marginLeft: 6 }}>{t('Cancelled by a later return')}</span>}
                   </div>
                   <div className={s.when}>{h.by}{h.onBehalfOf ? ` ${t('on behalf of {name}', { name: h.onBehalfOf })}` : ''}, {formatDateTime(h.at)}</div>
@@ -273,6 +276,8 @@ function FullReview({ app, onDone, onError }) {
 
 const DONE = {
   moved: (ref) => translate('{ref} approved and sent to the next stage.', { ref }),
+  // D-113: Credit Underwriting recommends.
+  recommended: (ref) => translate('{ref}: recommendation recorded and sent to the next stage.', { ref }),
   approved: (ref) => translate('{ref} approved. The signed agreement is in force and People and Culture have been notified to book the loan.', { ref }),
   revised: (ref) => translate('{ref} approved at revised terms. The applicant has been asked to accept the revised agreement.', { ref }),
   returned: (ref) => translate('{ref} returned to the applicant.', { ref }),
@@ -308,7 +313,7 @@ export default function ReviewPage() {
   if (!app) return <div className="page"><LoadingSkeleton label={t('Loading…')} rows={4} /></div>;
   // After a decision: straight on to the next application waiting, or back to an empty queue.
   const onDone = async (res) => {
-    const toast = DONE[res.outcome]?.(app.ref);
+    const toast = DONE[res.outcome === 'moved' && app.currentStage === 'credit' ? 'recommended' : res.outcome]?.(app.ref);
     let next = null;
     try {
       next = (await reviewApi.queue('waiting')).items.find((i) => i.id !== app.id) || null;

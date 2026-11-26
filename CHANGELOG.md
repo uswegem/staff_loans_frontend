@@ -4,6 +4,7 @@
 
 - The credit stage is "Credit Underwriting" ("Tathmini ya Mikopo"); the status reads "Pending Credit Underwriting". The Credit Analyst, the Credit Manager (new role) and the Head of Credit each see it in the Review queue and decide there, with the identity-only view.
 - "Credit Analyst sees" on the profile and workflow screens now reads "Credit Underwriting sees".
+- Credit Underwriting recommends, People and Culture or the CEO decides: at the credit stage the choices are "Return to applicant", "Recommend approval" and "Recommend rejection" (reason of 10 to 1000 characters). The deciding stages see "Credit recommends: Approve/Reject" with who, when, the reason and the bureau result; approving or rejecting against it asks for a reason (at least 10 characters). The history marks decisions against the recommendation; the applicant sees only "Reviewed by Credit Underwriting". Swahili for every new string.
 
 ## Unreleased – one Disbursement queue (D-112)
 

@@ -23,6 +23,8 @@ const ACTIONS = {
   submit: ['Signed agreement and submitted', 'info'],
   resubmit: ['Signed a new agreement and resubmitted', 'info'],
   approve: ['Approved', 'ok'],
+  // D-113: Credit Underwriting's recommendation is not shown to the applicant.
+  reviewed: ['Reviewed by Credit Underwriting', 'info'],
   return: ['Returned for correction', 'warn'],
   reject: ['Rejected', 'bad'],
   withdraw: ['Withdrawn', ''],
