@@ -19,7 +19,7 @@ test('returned for correction, corrected and resubmitted with a new agreement', 
   await salma.getByLabel('Amount').fill('4000000');
   const again = await signAndSubmit(salma, { resubmit: true });
   expect(again.ref).toBe(ref);
-  await expect(salma.getByText('Pending Credit Review').first()).toBeVisible();
+  await expect(salma.getByText('Pending Credit Underwriting').first()).toBeVisible();
   // The first agreement is void; the new one is signed.
   await expect(salma.getByText(/void/).first()).toBeVisible();
 

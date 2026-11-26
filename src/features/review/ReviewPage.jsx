@@ -162,7 +162,7 @@ function FullReview({ app, onDone, onError }) {
               {app.topUp?.on && (<><dt>{t('Top-up of')}</dt><dd>{[app.topUp.payslipLine?.label && `${app.topUp.payslipLine.label}, ${t('{amount} a month', { amount: formatTzs(app.topUp.payslipLine.amount) })}`, app.topUp.loanRef].filter(Boolean).join('; ') || '—'}</dd></>)}
               {app.probation.onProbation && (<><dt>{t('Probation reason')}</dt><dd>{app.probation.reason}</dd></>)}
             </dl>
-            {app.recommended && <Alert severity="warning" sx={{ mt: 2 }}>{t('Credit Analyst ({name}) recommended {amount} over {n} months', { name: app.recommended.by, amount: formatTzs(app.recommended.amount), n: app.recommended.tenor })}{app.recommended.reason ? `: ${app.recommended.reason}` : ''}.</Alert>}
+            {app.recommended && <Alert severity="warning" sx={{ mt: 2 }}>{t('Credit Underwriting ({name}) recommended {amount} over {n} months', { name: app.recommended.by, amount: formatTzs(app.recommended.amount), n: app.recommended.tenor })}{app.recommended.reason ? `: ${app.recommended.reason}` : ''}.</Alert>}
           </Panel>
           {current && (
             <Panel title={t('Signed agreement')} action={<Link component={RouterLink} to={`/agreement/${current.id}`}>{t('Read agreement')}</Link>}>

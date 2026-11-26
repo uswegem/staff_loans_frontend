@@ -192,7 +192,7 @@ function EmploymentTab({ profile, roles, onSave }) {
         {e.contractEndDate && (<><dt>{t('Contract ends')}</dt><dd>{formatDate(e.contractEndDate)}</dd></>)}
         <dt>{t('Retirement date')}</dt><dd>{e.retirementDate ? formatDate(e.retirementDate) : <span className="muted">{t('Worked out once your date of birth is verified')}</span>}</dd>
         <dt>{t('Approval route')}</dt><dd>{t(profile.route.description)}</dd>
-        {profile.route.limitedCredit && (<><dt>{t('Credit Analyst sees')}</dt><dd>{t('Only your name, mobile number and NIDA number')}</dd></>)}
+        {profile.route.limitedCredit && (<><dt>{t('Credit Underwriting sees')}</dt><dd>{t('Only your name, mobile number and NIDA number')}</dd></>)}
       </dl>
       <h4 style={{ marginTop: 24 }}>{t('Your access in Staff Loans')}</h4>
       <p className="small muted">{t('Roles are assigned by a system administrator.')}</p>

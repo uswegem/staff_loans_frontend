@@ -32,7 +32,7 @@ describe('Apply: open application of the same product', () => {
     stubs([open]);
     page();
     const alert = (await screen.findByText('Open Car Loan application SL-2026-00011')).closest('[role="alert"]');
-    expect(within(alert).getByText(/Pending Credit Review/)).toBeInTheDocument();
+    expect(within(alert).getByText(/Pending Credit Underwriting/)).toBeInTheDocument(); // D-113
     expect(within(alert).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/applications/a11');
     expect(within(alert).getByRole('button', { name: 'Withdraw' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Car Loan/ })).toHaveAttribute('aria-disabled', 'true');
