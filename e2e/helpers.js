@@ -222,18 +222,19 @@ export async function book(browser, ref, { staffNo = 'LFB0129', loanAccount = 'L
   await page.context().close();
 }
 
-/** Books the loan (People and Culture), then OPS confirm the disbursement. */
+/** Books the loan (People and Culture), then OPS mark it as disbursed (D-112). */
 export async function disburse(browser, ref, transactionRef) {
   await book(browser, ref);
   const page = await as(browser, 'LFB0318');
   await page.goto('/disburse');
   const row = page.getByRole('row').filter({ hasText: ref });
-  await row.getByRole('button', { name: 'Confirm disbursement' }).click();
+  await row.getByRole('button', { name: 'Mark as disbursed' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(ref)).toBeVisible();
   for (const box of await dialog.getByRole('checkbox').all()) await box.check();
   await dialog.getByLabel('Transaction reference').fill(transactionRef);
-  await dialog.getByRole('button', { name: 'Confirm disbursement' }).click();
+  await dialog.getByLabel('Comment').fill('Paid to the staff account.');
+  await dialog.getByRole('button', { name: 'Mark as disbursed' }).click();
   await expect(page.getByText(`${ref} disbursed. Journey complete.`)).toBeVisible();
   await page.context().close();
 }

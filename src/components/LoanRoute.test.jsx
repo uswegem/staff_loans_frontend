@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { routeSteps } from './LoanRoute';
+import { screen } from '@testing-library/react';
+import LoanRoute, { routeSteps } from './LoanRoute';
+import { renderAt } from '../test/render';
 import { statusLabel } from '../lib/statuses';
 
 // D-103: the People and Culture stage, decided by the P&C Manager or the Head of P&C.
@@ -25,5 +27,14 @@ describe('loan route with the People and Culture stage', () => {
   it('still shows an application on the old route at the Head of HR', () => {
     const old = { key: 'nonmgmt', stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] };
     expect(routeSteps({ route: old, status: 'pending_hr' }).find((s) => s.cls === 'now').label).toBe('Head of HR');
+  });
+});
+
+// D-112: after final approval the loan is in the Disbursement queue.
+describe('loan route after final approval', () => {
+  it.each(['pending_booking', 'pending_disbursement'])('%s shows "Disbursement" under the current step', (status) => {
+    renderAt('/x', '/x', <LoanRoute app={{ route, status }} />);
+    expect(screen.getByText('Disbursement')).toBeInTheDocument();
+    expect(screen.queryByText('With OPS')).toBeNull();
   });
 });

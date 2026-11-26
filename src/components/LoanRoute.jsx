@@ -52,7 +52,8 @@ export default function LoanRoute({ app, compact }) {
   const steps = routeSteps(app);
   const sub = (st) => {
     if (st.cls === 'now') {
-      if (st.key === 'disburse') return t('With OPS');
+      // D-112: booking and disbursement both happen in the Disbursement queue.
+      if (st.key === 'disburse' || st.key === 'book') return t('Disbursement');
       if (st.key === 'reaccept') return t('Your action');
       if (st.key === 'submit') return t('Draft');
       return hoursLeft(app.stageDueAt) || t('In progress');

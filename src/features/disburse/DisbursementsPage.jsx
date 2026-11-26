@@ -1,11 +1,12 @@
-// The final approval queue (prototype #/disburse; FR-20 to FR-22, FR-26; Q3; D-107).
+// The Disbursement queue (prototype #/disburse; FR-20 to FR-22, FR-26; Q3; D-107, D-112).
 // Loans with final approval are first booked in core banking by People and Culture
-// (loan account number, booking date, note), then disbursed by OPS and confirmed here.
-// Both teams see every step; each acts only on its own (the API says what each may do).
+// (loan account number, booking date, note), then disbursed by OPS and marked as disbursed
+// here. Both teams see every step and download the Agreement and the Loan Summary; each acts
+// only on its own step (the API says what each may do). The applicant never sees the papers here.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Alert, AlertTitle, Button, Card, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, SvgIcon, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Tooltip, useMediaQuery } from '@mui/material';
 import { disbursementsApi } from '../../api/disbursements';
 import SupportingDocuments from '../../components/SupportingDocuments';
 import SuccessScreen from '../../components/ux/SuccessScreen';
@@ -18,7 +19,35 @@ import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
 import ScheduleDownload from '../../components/ScheduleDownload';
 
-const DEFAULT_COMMENT = 'Loan disbursed to staff account.';
+const COMMENT_MIN = 5;
+const COMMENT_MAX = 1000;
+
+const AgreementIcon = (props) => <SvgIcon {...props}><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" /></SvgIcon>;
+const SummaryIcon = (props) => <SvgIcon {...props}><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z" /></SvgIcon>;
+
+/**
+ * D-112: the Agreement and the Loan Summary PDFs, next to each other; icons with labels on a
+ * phone. Hidden on the person's own loan (the API refuses it too).
+ */
+export function LoanPapers({ item, onError, size = 'small' }) {
+  const t = useT();
+  const phone = useMediaQuery('(max-width:600px)');
+  if (!item || !item.canDownload) return null;
+  const agreementId = item.agreementId || item.agreement?.id;
+  const number = item.agreementNumber || item.agreement?.number;
+  const fail = (e) => onError?.(apiError(e).message);
+  const papers = [
+    agreementId && { key: 'agreement', label: t('Agreement'), aria: t('Download the agreement for {ref}', { ref: item.ref }), Icon: AgreementIcon, go: () => disbursementsApi.agreementPdf(agreementId, number).catch(fail) },
+    { key: 'summary', label: t('Loan summary'), aria: t('Download the loan summary for {ref}', { ref: item.ref }), Icon: SummaryIcon, go: () => disbursementsApi.summaryPdf(item.id, item.ref).catch(fail) },
+  ].filter(Boolean);
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+      {papers.map((p) => (phone
+        ? <Tooltip key={p.key} title={p.label}><IconButton size={size} aria-label={p.aria} onClick={p.go}><p.Icon fontSize="small" /></IconButton></Tooltip>
+        : <Button key={p.key} size={size} variant="outlined" startIcon={<p.Icon fontSize="small" />} aria-label={p.aria} onClick={p.go}>{p.label}</Button>))}
+    </span>
+  );
+}
 
 
 /** The loan a top-up settles (D-101): its Staff Loans reference, or the payslip deduction when it has none. */
@@ -92,6 +121,7 @@ function BookDialog({ id, onClose, onDone }) {
           {!d && !error && <p className="muted" role="status">{t('Loading…')}</p>}
           {d && (
             <>
+              <LoanPapers item={d} onError={setError} />
               <Summary d={d} />
               {d.bookBlockedReason && <Alert severity="warning">{d.bookBlockedReason}</Alert>}
               <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
@@ -118,7 +148,7 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
   const [topUp, setTopUp] = useState(false);
   const [date, setDate] = useState(todayEat());
   const [ref, setRef] = useState('');
-  const [comment, setComment] = useState(DEFAULT_COMMENT);
+  const [comment, setComment] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -129,9 +159,12 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
   /** What still stops the confirmation, from the current entries (null when it can be sent). */
   const blocker = () => {
     if (d?.topUp && !topUp) return t('Confirm the old loan balance has been settled.');
-    if (!ref.trim()) return t('Enter the core banking transaction reference.');
-    if (!comment.trim()) return t('Add a comment confirming the disbursement.');
     if (!date) return t('Enter the disbursement date.');
+    if (d && date > d.today) return t('The disbursement date cannot be in the future.');
+    if (d && date < d.earliestDate) return t('The disbursement date cannot be before the booking date.');
+    if (!ref.trim()) return t('Enter the core banking transaction reference.');
+    if (comment.trim().length < COMMENT_MIN) return t('Add a comment for the disbursement record.');
+    if (comment.trim().length > COMMENT_MAX) return t('The comment can be at most {n} characters.', { n: COMMENT_MAX });
     return null;
   };
   const [tried, setTried] = useState(false);
@@ -147,7 +180,7 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
     setBusy(true);
     try {
       const res = await disbursementsApi.confirm(id, { date, transactionRef: ref.trim(), comment: comment.trim(), ...(d.topUp ? { topUpSettled: topUp } : {}) });
-      onDone(res.message, { reference: d.ref, amount: d.amount, date, transactionRef: ref.trim() });
+      onDone(res.message, { reference: d.ref, amount: d.amount, date, transactionRef: ref.trim(), comment: comment.trim() });
     } catch (err) {
       setError(apiError(err).message);
       setBusy(false);
@@ -159,18 +192,19 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
     <Dialog open onClose={onClose} maxWidth="md" fullWidth>
       <form onSubmit={submit} noValidate>
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>
-          {t('Confirm disbursement')}
-          <div className="small muted" style={{ fontWeight: 400, marginTop: 6 }}>{t("Disburse in core banking first. This confirmation closes the loan's journey in Staff Loans.")}</div>
+          {t('Mark as disbursed')}
+          <div className="small muted" style={{ fontWeight: 400, marginTop: 6 }}>{t("Disburse in core banking first. Marking it as disbursed closes the loan's journey in Staff Loans.")}</div>
         </DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2 }}>
           {!d && !error && <p className="muted" role="status">{t('Loading…')}</p>}
           {d && (
             <>
               <Summary d={d} />
-              {d.booking && <Booking b={d.booking} />}
+              {d.booking && <><h4 style={{ margin: 0 }}>{t('Booking')}</h4><Booking b={d.booking} /></>}
               <h4>{t('Supporting documents')}</h4>
               <SupportingDocuments documents={d.documents} documentChecklist={d.documentChecklist} />
               {d.blockedReason && <Alert severity="warning">{d.blockedReason}</Alert>}
+              <LoanPapers item={d} onError={setError} />
               {d.topUp && (
                 <div>
                   <h4 style={{ margin: '0 0 4px' }}>{t('Before you confirm')}</h4>
@@ -181,14 +215,14 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
                 <DateField label={t('Disbursement date')} required value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: d.earliestDate, max: d.today }} />
                 <TextField label={t('Transaction reference')} required value={ref} onChange={(e) => setRef(e.target.value)} placeholder={t('e.g. FT26294AB12')} inputProps={{ maxLength: 40 }} />
               </div>
-              <TextField label={t('Comment')} required multiline minRows={2} value={comment} onChange={(e) => setComment(e.target.value)} helperText={t('Required. Confirms the loan has been disbursed.')} />
+              <TextField label={t('Comment')} required multiline minRows={2} value={comment} onChange={(e) => setComment(e.target.value)} inputProps={{ maxLength: COMMENT_MAX }} helperText={t('Required, {min} to {max} characters. Kept with the disbursement record.', { min: COMMENT_MIN, max: COMMENT_MAX })} />
             </>
           )}
           {problem && <Alert severity="error" role="alert">{problem}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained" disabled={!d || busy || !!d.blockedReason}>{t('Confirm disbursement')}</Button>
+          <Button type="submit" variant="contained" disabled={!d || busy || !!d.blockedReason}>{t('Mark as disbursed')}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -220,16 +254,17 @@ function ViewDialog({ id, onClose }) {
         {error && <Alert severity="error">{error}</Alert>}
         {d && (
           <>
+            <LoanPapers item={d} onError={setError} />
             <Summary d={d} />
             <h4>{t('Supporting documents')}</h4>
             <SupportingDocuments documents={d.documents} documentChecklist={d.documentChecklist} />
             {d.booking && <><hr className="rule" style={{ width: '100%' }} /><Booking b={d.booking} /></>}
             {d.disbursement && <hr className="rule" style={{ width: '100%' }} />}
             {d.disbursement && <dl className={s.kv}>
-              <dt>{t('Disbursed')}</dt><dd>{formatDate(d.disbursement.date)}</dd>
-              <dt>{t('Reference')}</dt><dd>{d.disbursement.transactionRef || '—'}</dd>
-              <dt>{t('Confirmed by')}</dt><dd>{d.disbursement.by}</dd>
-              <dt>{t('Comment')}</dt><dd>{d.disbursement.comment}</dd>
+              <dt>{t('Disbursement date')}</dt><dd>{formatDate(d.disbursement.date)}</dd>
+              <dt>{t('Transaction reference')}</dt><dd>{d.disbursement.transactionRef || '—'}</dd>
+              <dt>{t('Comment')}</dt><dd>{d.disbursement.comment || '—'}</dd>
+              <dt>{t('Confirmed by')}</dt><dd>{d.disbursement.by || '—'}</dd>
               <dt>{t('First instalment')}</dt><dd>{formatDate(d.firstDueDate)}</dd>
             </dl>}
           </>
@@ -264,7 +299,7 @@ function RowAction({ r, tab, onBook, onConfirm, onView }) {
     return note(r.bookBlockedReason || t('Waiting for People and Culture to book it.'));
   }
   if (tab === 'ready') {
-    if (r.canConfirm) return <Button size="small" variant="contained" onClick={onConfirm}>{t('Confirm disbursement')}</Button>;
+    if (r.canConfirm) return <Button size="small" variant="contained" onClick={onConfirm}>{t('Mark as disbursed')}</Button>;
     return note(r.blockedReason || t('Waiting for OPS to disburse it.'));
   }
   return <Button size="small" onClick={onView}>{t('View')}</Button>;
@@ -300,20 +335,21 @@ export default function DisbursementsPage() {
     <div className="page">
       <div className="pagehead">
         <div>
-          <h1>{t('Final approval queue')}</h1>
-          <p>{t('People and Culture book each loan in core banking; OPS then disburse it and confirm it here.')}</p>
+          <h1>{t('Disbursement')}</h1>
+          <p>{t('People and Culture book each loan in core banking; OPS then disburse it and mark it as disbursed here.')}</p>
         </div>
         <Button onClick={() => disbursementsApi.exportRegister().catch((e) => setError(apiError(e).message))}>{t('Export disbursed register')}</Button>
       </div>
       {confirmed && (
         <SuccessScreen
-          title={t('Disbursement confirmation recorded')}
+          title={t('Marked as disbursed')}
           message={toast}
           details={[
             { label: t('Reference'), value: confirmed.reference },
             { label: t('Amount'), value: confirmed.amount != null ? formatNumber(confirmed.amount) + ' TZS' : '—' },
             { label: t('Disbursement date'), value: formatDate(confirmed.date) },
             ...(confirmed.transactionRef ? [{ label: t('Transaction reference'), value: confirmed.transactionRef }] : []),
+            ...(confirmed.comment ? [{ label: t('Comment'), value: confirmed.comment }] : []),
           ]}
           primaryAction={{ label: t('Continue'), onClick: () => { setConfirmed(null); setToast(null); } }}
         />
@@ -327,7 +363,7 @@ export default function DisbursementsPage() {
         </Alert>
       )}
       <Card>
-        <Tabs value={shown || false} onChange={(_, v) => { setTab(v); setData(null); }} sx={{ px: 2 }} aria-label={t('Final approval queue')}>
+        <Tabs value={shown || false} onChange={(_, v) => { setTab(v); setData(null); }} sx={{ px: 2 }} aria-label={t('Disbursement')}>
           <Tab value="booking" label={`${t('To book')}${data ? ` (${data.counts.booking})` : ''}`} />
           <Tab value="ready" label={`${t('Ready to disburse')}${data ? ` (${data.counts.ready})` : ''}`} />
           <Tab value="done" label={`${t('Disbursed')}${data ? ` (${data.counts.done})` : ''}`} />
@@ -335,7 +371,7 @@ export default function DisbursementsPage() {
         {!data && !error ? <div style={{ padding: 16 }}><LoadingSkeleton variant="table" rows={4} label={t('Loading…')} /></div> : data && data.items.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center' }}>
             <h3>{shown === 'booking' ? t('Nothing to book') : shown === 'ready' ? t('Nothing to disburse') : t('No disbursements yet')}</h3>
-            <p className="muted">{shown === 'booking' ? t('Loans appear here once they have final approval.') : shown === 'ready' ? t('Loans appear here once People and Culture have booked them.') : t('Confirmed disbursements appear here.')}</p>
+            <p className="muted">{shown === 'booking' ? t('Loans appear here once they have final approval.') : shown === 'ready' ? t('Loans appear here once People and Culture have booked them.') : t('Loans marked as disbursed appear here.')}</p>
           </div>
         ) : (
           <div className="tablewrap">
@@ -363,9 +399,12 @@ export default function DisbursementsPage() {
                     <TableCell align="right" className="num">{formatNumber(r.fees)}</TableCell>
                     <TableCell align="right" className="num">{formatNumber(r.instalment)}</TableCell>
                     <TableCell>{t('Salary deduction')}</TableCell>
-                    <TableCell>{shown !== 'done' ? <><Waiting r={r} />{r.booking && <div className="xs muted">{t('Loan account {n}', { n: r.booking.loanAccountNumber })}</div>}</> : <>{formatDate(r.disbursement.date)}{r.disbursement.transactionRef && <div className="xs muted">{r.disbursement.transactionRef}</div>}</>}</TableCell>
+                    <TableCell>{shown !== 'done' ? <><Waiting r={r} />{r.booking && <div className="xs muted">{t('Loan account {n}', { n: r.booking.loanAccountNumber })}</div>}</> : <>{formatDate(r.disbursement.date)}{r.disbursement.transactionRef && <div className="xs muted">{r.disbursement.transactionRef}</div>}{r.disbursement.comment && <div className="xs muted" style={{ maxWidth: 220 }}>{r.disbursement.comment}</div>}{r.disbursement.by && <div className="xs muted">{t('by {name}', { name: r.disbursement.by })}</div>}</>}</TableCell>
                     <TableCell align="right">
-                      <RowAction r={r} tab={shown} onBook={() => setBooking(r.id)} onConfirm={() => setConfirming(r.id)} onView={() => setViewing(r.id)} />
+                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <LoanPapers item={r} onError={setError} />
+                        <RowAction r={r} tab={shown} onBook={() => setBooking(r.id)} onConfirm={() => setConfirming(r.id)} onView={() => setViewing(r.id)} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
