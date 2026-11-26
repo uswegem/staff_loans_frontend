@@ -43,7 +43,7 @@ const app = (over = {}) => ({
   pricing: PRICING,
   payInputs: { basic: 1850000 },
   payslip: { fileId: 'f1', originalName: 'payslip.pdf', payDate: '2026-10-31', basic: 1850000, lfbDeductions: 320000, lfbLines: lines.map(({ label, amount }) => ({ label, amount })) },
-  payslipMaxAgeDays: 45,
+  payslipMaxAgeDays: 30,
   firstDueDay: 25,
   amount: 1000000,
   tenor: 12,

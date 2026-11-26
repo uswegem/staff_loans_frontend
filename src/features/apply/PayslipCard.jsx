@@ -36,7 +36,7 @@ export default function PayslipCard({ app, error, onChanged }) {
     }
   };
 
-  const drop = <FileDrop accept=".pdf" label={t('Your payslip')} inputLabel={t('Choose payslip PDF')} buttonLabel={slip ? t('Attach a newer payslip') : t('Choose payslip PDF')} hint={t(PAYSLIP_HINT, { n: app.payslipMaxAgeDays || 45 })} busy={busy} error={shown} onFile={upload} />;
+  const drop = <FileDrop accept=".pdf" label={t('Your payslip')} inputLabel={t('Choose payslip PDF')} buttonLabel={slip ? t('Attach a newer payslip') : t('Choose payslip PDF')} hint={t(PAYSLIP_HINT, { n: app.payslipMaxAgeDays || 30 })} busy={busy} error={shown} onFile={upload} />;
 
   return (
     <section className={s.payslip} aria-labelledby="payslip-h" data-invalid={shown ? 'true' : undefined} tabIndex={-1}>

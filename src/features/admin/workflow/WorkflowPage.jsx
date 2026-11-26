@@ -26,7 +26,7 @@ const NUMBERS = [
   ['approvalSlaDays', 'Outside SLA after (days pending disbursement)'],
   ['probationMonths', 'Probation (months after joining)'],
   ['firstDueDay', 'First instalment day of the month'],
-  ['payslipMaxAgeDays', 'Payslip must not be older than (days)'],
+  ['payslipMaxAgeDays', 'Payslip must not be older than (days)', { max: 30, hint: 'At most 30 days (policy).' }],
   ['retirementAge', 'Retirement age (years)'],
   ['retirementBufferDays', 'Last instalment at least this many days before it'],
   ['dobMinAge', 'Youngest age a date of birth may give'],
@@ -64,8 +64,8 @@ function EditDialog({ settings, onClose, onSaved }) {
       <form onSubmit={save} noValidate>
         <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>{t('Targets and working time')}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', pt: '8px !important' }}>
-          {NUMBERS.map(([k, label]) => (
-            <TextField key={k} type="number" label={t(label)} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} error={!!fieldErrors[k]} helperText={fieldErrors[k]?.[0] && t(fieldErrors[k][0])} inputProps={{ min: 0 }} />
+          {NUMBERS.map(([k, label, limit]) => (
+            <TextField key={k} type="number" label={t(label)} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} error={!!fieldErrors[k]} helperText={(fieldErrors[k]?.[0] && t(fieldErrors[k][0])) || (limit?.hint && t(limit.hint))} inputProps={{ min: 0, ...(limit?.max ? { max: limit.max } : {}) }} />
           ))}
           <TextField type="time" label={t('Day starts')} value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} InputLabelProps={{ shrink: true }} />
           <TextField type="time" label={t('Day ends')} value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} InputLabelProps={{ shrink: true }} error={!!fieldErrors.dayEndMinutes} helperText={fieldErrors.dayEndMinutes?.[0]} />
