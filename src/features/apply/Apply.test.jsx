@@ -62,7 +62,7 @@ const app = {
   pricing: PRICING,
   payInputs: { basic: 1850000, lfbDeductions: 0 },
   payslip: { fileId: 'f1', originalName: 'payslip-oct.pdf', payDate: '2026-10-25', basic: 1850000, lfbDeductions: 0, lfbLines: [] },
-  payslipMaxAgeDays: 45,
+  payslipMaxAgeDays: 30,
   firstDueDay: 25,
   amount: 4500000,
   tenor: 36,
@@ -183,7 +183,7 @@ describe('apply wizard', () => {
     renderAt('/apply/a1', '/apply/:id', <ApplyWizardPage />, { permissions: ['loan.apply'] });
     expect(await screen.findByText('Attach your latest payslip to see your limit.')).toBeInTheDocument();
     expect(screen.getByText('Upload your latest payslip to calculate your eligible loan amount.')).toBeInTheDocument();
-    expect(screen.getByText('PDF · From the Seamless HR System · Not older than 45 days')).toBeInTheDocument();
+    expect(screen.getByText('PDF · From the Seamless HR System · Not older than 30 days')).toBeInTheDocument();
     // A missing payslip is not an error until Continue is pressed.
     expect(screen.queryByText('Attach your latest payslip. Basic Pay and LFB deductions are read from it.')).not.toBeInTheDocument();
     const file = new File(['%PDF-1.7'], 'payslip.pdf', { type: 'application/pdf' });

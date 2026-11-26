@@ -1650,6 +1650,7 @@ const SW = {
   "Choose logo image": "Chagua picha ya nembo",
   "Use the default logo": "Tumia nembo ya kawaida",
   "We couldn't sign you out. Check your connection and try again.": "Hatukuweza kukutoa. Kagua mtandao wako kisha ujaribu tena.",
+  'At most 30 days (policy).': 'Siku 30 au chini (sera).',
 };
 
 export default SW;

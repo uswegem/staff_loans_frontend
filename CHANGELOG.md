@@ -3,6 +3,10 @@
 
 
 
+
+## Unreleased – payslip at most 30 days old
+
+- The payslip hint and the workflow settings follow the 30-day limit: the settings field allows at most 30 days and says it is the policy maximum (D-111).
 ## Unreleased – sign-out fix
 
 - Sign-out now really ends the session: the request body was the JSON `null`, which the API refused (400), so the session kept running and reloading the page signed the person back in. The body is now `{}`; a server error is retried once; if sign-out still fails the person stays signed in and is told so, instead of seeing the sign-in page while the session runs on.
