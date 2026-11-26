@@ -15,7 +15,6 @@ describe('loan route with the People and Culture stage', () => {
       ['Credit Analyst', 'done'],
       ['People and Culture', 'now'],
       ['CEO', ''],
-      ['Booked', ''],
       ['Disbursed', ''],
     ]);
   });
@@ -32,7 +31,7 @@ describe('loan route with the People and Culture stage', () => {
 
 // D-112: after final approval the loan is in the Disbursement queue.
 describe('loan route after final approval', () => {
-  it.each(['pending_booking', 'pending_disbursement'])('%s shows "Disbursement" under the current step', (status) => {
+  it.each(['pending_disbursement', 'pending_booking'])('%s shows "Disbursement" under the current step', (status) => {
     renderAt('/x', '/x', <LoanRoute app={{ route, status }} />);
     expect(screen.getByText('Disbursement')).toBeInTheDocument();
     expect(screen.queryByText('With OPS')).toBeNull();

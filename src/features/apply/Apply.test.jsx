@@ -35,19 +35,19 @@ describe('loan route', () => {
   const route = { stages: ['credit', 'hr', 'ceo'], stageLabels: ['Credit Analyst', 'Head of HR', 'CEO'] };
   const cls = (status) => routeSteps({ route, status }).map((s) => s.cls);
   it.each([
-    ['draft', ['now', '', '', '', '', '']],
-    ['pending_credit', ['done', 'now', '', '', '', '']],
-    ['pending_ceo', ['done', 'done', 'done', 'now', '', '']],
-    ['returned', ['back', '', '', '', '', '']],
-    // D-107: booked by People and Culture, then disbursed by OPS.
-    ['pending_booking', ['done', 'done', 'done', 'done', 'now', '']],
-    ['pending_disbursement', ['done', 'done', 'done', 'done', 'done', 'now']],
-    ['disbursed', ['done', 'done', 'done', 'done', 'done', 'done']],
+    ['draft', ['now', '', '', '', '']],
+    ['pending_credit', ['done', 'now', '', '', '']],
+    ['pending_ceo', ['done', 'done', 'done', 'now', '']],
+    ['returned', ['back', '', '', '', '']],
+    // D-112: after final approval, one Disbursement step (no booking in SLAS).
+    ['pending_disbursement', ['done', 'done', 'done', 'done', 'now']],
+    ['pending_booking', ['done', 'done', 'done', 'done', 'now']], // old data only
+    ['disbursed', ['done', 'done', 'done', 'done', 'done']],
   ])('%s', (status, expected) => {
     expect(cls(status)).toEqual(expected);
   });
   it('adds the revised-terms step when terms changed', () => {
-    expect(routeSteps({ route, status: 'pending_reaccept' }).map((s) => s.key)).toEqual(['submit', 'credit', 'hr', 'ceo', 'reaccept', 'book', 'disburse']);
+    expect(routeSteps({ route, status: 'pending_reaccept' }).map((s) => s.key)).toEqual(['submit', 'credit', 'hr', 'ceo', 'reaccept', 'disburse']);
   });
 });
 

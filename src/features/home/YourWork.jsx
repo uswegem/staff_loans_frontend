@@ -31,13 +31,6 @@ const SOURCES = [
     line: (t, n) => (n ? { to: '/disburse', text: t(plural(n, '{n} loan ready to disburse', '{n} loans ready to disburse'), { n }) } : null),
   },
   {
-    // D-107: People and Culture book finally approved loans before OPS disburse them.
-    key: 'book',
-    any: ['loan.book'],
-    load: async () => (await disbursementsApi.list('booking')).counts.booking,
-    line: (t, n) => (n ? { to: '/disburse', text: t(plural(n, '{n} loan to book in core banking', '{n} loans to book in core banking'), { n }) } : null),
-  },
-  {
     key: 'dob',
     any: ['staff.verifyDob'],
     load: async () => (await dobApi.queue('pending')).items.length,

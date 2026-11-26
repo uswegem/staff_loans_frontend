@@ -6,7 +6,7 @@ import { renderAt } from '../test/render';
 // D-110: Operations and Credit give the repayment schedule on request; nobody else sees the button.
 describe('repayment schedule on request', () => {
   it.each([['disb.confirm'], ['review.credit'], ['products.approveCredit']])('%s sees it for an approved or disbursed loan', (perm) => {
-    for (const status of ['pending_booking', 'pending_disbursement', 'disbursed']) {
+    for (const status of ['pending_disbursement', 'disbursed']) {
       const { unmount } = renderAt('/x', '/x', <ScheduleDownload id="a1" reference="SL-1" status={status} />, { permissions: [perm] });
       expect(screen.getByRole('button', { name: 'Download repayment schedule' })).toBeInTheDocument();
       unmount();

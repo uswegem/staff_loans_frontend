@@ -37,8 +37,8 @@ export default function DecisionPanel({ app, onDone }) {
 
   const finalText = p.isFinal
     ? app.recommended
-      ? t('Final approval at the recommended terms. The applicant accepts the revised agreement, then the loan goes to Disbursement (People and Culture book, OPS disburse).')
-      : t('Final approval. The signed agreement takes effect, then the loan goes to Disbursement (People and Culture book, OPS disburse).')
+      ? t('Final approval at the recommended terms. The applicant accepts the revised agreement, then Disbursement (People and Culture or OPS).')
+      : t('Final approval. The signed agreement takes effect, then Disbursement (People and Culture or OPS).')
     : t('Moves to {stage}.', { stage: t(p.nextStageLabel) });
 
   // The button says what will happen: where an approval goes, whom a return goes to.
@@ -115,7 +115,7 @@ export default function DecisionPanel({ app, onDone }) {
       <div className={s.decisionBody} style={{ padding: 24, display: 'grid', gap: 12, alignContent: 'start' }}>
         {p.stage === 'pc' && app.route?.key !== 'hrhead' && <Alert severity="info"><AlertTitle>{t('People and Culture stage')}</AlertTitle>{t('The People and Culture Manager or the Head of People and Culture decides this stage, whoever acts first. Once one of you decides, it leaves the other\'s queue.')}</Alert>}
         {(p.stage === 'pcm' || (p.stage === 'pc' && app.route?.key === 'hrhead')) && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('You review in place of the Head of HR. After you approve, the CEO gives final approval.')}</Alert>}
-        {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then the loan goes to Disbursement (People and Culture book, OPS disburse).')}</Alert>}
+        {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then Disbursement (People and Culture or OPS).')}</Alert>}
         {p.stage === 'ceo' && app.route?.key === 'hrhead' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('The People and Culture Manager reviewed in place of the Head of HR. You give final approval.')}</Alert>}
         {app.recommended && !p.needsCrb && (
           <Alert severity="warning">

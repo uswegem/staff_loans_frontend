@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased – Disbursement queue (D-112)
+## Unreleased – one Disbursement queue (D-112)
 
-- The final queue is "Disbursement" ("Malipo ya Mkopo"): page title, side navigation and the loan route; review and workflow screens say "then Disbursement (People and Culture book, OPS disburse)".
-- Agreement and Loan summary downloads on every row of To book, Ready to disburse and Disbursed, and in the dialogs; icons with labels on a phone; not shown on the person's own loan.
-- "Mark as disbursed" replaces "Confirm disbursement": the comment is required (5 to 1000 characters) and no longer filled in; the booking is shown above the form; the Disbursed tab and record show date, reference, comment and who confirmed.
-
+- After final approval a loan goes to one queue, "Disbursement" ("Malipo ya Mkopo"), with two tabs: Ready to disburse and Disbursed. The booking tab, form and home-page line are gone; the loan route has no Booked step. Open to `disb.confirm` (OPS, Head of People and Culture, P&C Manager).
+- Review and workflow screens say "then Disbursement (People and Culture or OPS)".
+- Agreement and Loan summary downloads on every row of both tabs and in the dialogs; icons with labels on a phone; not shown on the person's own loan.
+- "Mark as disbursed" replaces "Confirm disbursement": the comment is required (5 to 1000 characters) and no longer filled in; the date cannot be before final approval; a booking recorded before D-112 is shown read-only. The Disbursed tab and record show date, reference, comment and who marked it.
 
 ## Unreleased – payslip at most 30 days old
 

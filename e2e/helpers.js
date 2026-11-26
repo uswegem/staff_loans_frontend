@@ -207,25 +207,9 @@ export async function approveAll(browser, ref, people) {
 
 // ---------- OPS ----------
 
-/** D-107: People and Culture (default the P&C Manager) book the finally approved loan. */
-export async function book(browser, ref, { staffNo = 'LFB0129', loanAccount = 'LN2026000123' } = {}) {
+/** D-112: OPS (or People and Culture) mark the finally approved loan as disbursed. */
+export async function disburse(browser, ref, transactionRef, { staffNo = 'LFB0318' } = {}) {
   const page = await as(browser, staffNo);
-  await page.goto('/disburse');
-  await page.getByRole('tab', { name: /^To book/ }).click();
-  const row = page.getByRole('row').filter({ hasText: ref });
-  await row.getByRole('button', { name: 'Book loan' }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByText(ref)).toBeVisible();
-  await dialog.getByLabel('Loan account number').fill(loanAccount);
-  await dialog.getByRole('button', { name: 'Book loan' }).click();
-  await expect(page.getByText(`${ref} booked. OPS can now disburse it.`)).toBeVisible();
-  await page.context().close();
-}
-
-/** Books the loan (People and Culture), then OPS mark it as disbursed (D-112). */
-export async function disburse(browser, ref, transactionRef) {
-  await book(browser, ref);
-  const page = await as(browser, 'LFB0318');
   await page.goto('/disburse');
   const row = page.getByRole('row').filter({ hasText: ref });
   await row.getByRole('button', { name: 'Mark as disbursed' }).click();
