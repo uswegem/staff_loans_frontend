@@ -1,5 +1,7 @@
 // "Your decision" (prototype decisionPanel; FR-15 to FR-18, FR-42, NS-01). The server
 // enforces every check; the panel shows the same messages before sending.
+// D-113: Credit Underwriting returns or recommends (approval or rejection); People and Culture
+// and the CEO approve, return or reject, and give a reason to go against the recommendation.
 
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -7,7 +9,7 @@ import { Alert, AlertTitle, Button, Checkbox, FormControlLabel, Link, MenuItem, 
 import { downloadFile } from '../../api/staff';
 import { reviewApi } from '../../api/review';
 import { apiError } from '../../api/client';
-import { formatTzs } from '../../lib/format';
+import { formatDateTime, formatTzs } from '../../lib/format';
 import { todayEat } from '../../lib/dates';
 import FileDrop from '../../components/FileDrop';
 import s from '../apply/apply.module.css';
@@ -15,9 +17,30 @@ import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
 
 
+const AGAINST_MIN = 10;
+const RECOMMEND_REJECTION_MIN = 10;
+
+/** D-113: Credit Underwriting's recommendation, shown to the deciding stages. */
+export function CreditRecommendation({ rec }) {
+  const t = useT();
+  if (!rec) return null;
+  const approve = rec.outcome === 'approve';
+  return (
+    <Alert severity={approve ? 'success' : 'error'} role="note" aria-label={t('Credit recommendation')}>
+      <AlertTitle>{approve ? t('Credit recommends: Approve') : t('Credit recommends: Reject')}</AlertTitle>
+      <div className="small">{rec.onBehalfOf ? t('{name} on behalf of {holder}, {date}', { name: rec.by || '—', holder: rec.onBehalfOf, date: formatDateTime(rec.at) }) : t('{name}, {date}', { name: rec.by || '—', date: formatDateTime(rec.at) })}</div>
+      {rec.crbOutcome && <div className="small">{t('Credit bureau:')} <b>{t(rec.crbOutcome)}</b></div>}
+      {rec.reason && <div className="small" style={{ marginTop: 4 }}>{rec.reason}</div>}
+    </Alert>
+  );
+}
+
 export default function DecisionPanel({ app, onDone }) {
   const t = useT();
   const p = app.panel;
+  // D-113: the stage's actions come from the API; Credit Underwriting recommends.
+  const recommends = (p.actions || []).includes('recommend_approval');
+  const rec = !recommends ? app.creditRecommendation : null;
   const [action, setAction] = useState('');
   const [comment, setComment] = useState('');
   // An outcome recorded before D-99 (Clear, Adverse: …) is shown on the review, not offered again.
@@ -41,9 +64,15 @@ export default function DecisionPanel({ app, onDone }) {
       : t('Final approval. The signed agreement takes effect, then Disbursement (People and Culture or OPS).')
     : t('Moves to {stage}.', { stage: t(p.nextStageLabel) });
 
+  // D-113: deciding against Credit Underwriting's recommendation needs a reason.
+  const against = !!rec && ((action === 'approve' && rec.outcome === 'reject') || (action === 'reject' && rec.outcome === 'approve'));
+  const commentRequired = ['return', 'reject', 'recommend_rejection'].includes(action) || against;
+
   // The button says what will happen: where an approval goes, whom a return goes to.
   const applicantFirst = app.applicant?.firstName || (app.applicant?.fullName || '').split(' ')[0];
-  const buttonLabel = action === 'approve'
+  const buttonLabel = action === 'recommend_approval' ? t('Recommend approval and send to {stage}', { stage: t(p.nextStageLabel) })
+    : action === 'recommend_rejection' ? t('Recommend rejection and send to {stage}', { stage: t(p.nextStageLabel) })
+    : action === 'approve'
     ? p.isFinal ? t('Approve (final approval)') : t('Approve and send to {stage}', { stage: t(p.nextStageLabel) })
     : action === 'return' && returnTo !== 'applicant' ? t('Return to {stage}', { stage: t(targets.find((x) => x.key === returnTo)?.label) })
     : action === 'return' ? (applicantFirst ? t('Return to {name}', { name: applicantFirst }) : t('Return to applicant'))
@@ -51,11 +80,14 @@ export default function DecisionPanel({ app, onDone }) {
 
   /** What still stops this decision, from the current choices (null when it can be sent). */
   const blocker = () => {
-    if (!action) return t('Choose approve, return or reject.');
-    if (action !== 'approve' && !comment.trim()) return t('Add a comment so the applicant knows what to do.');
-    if (p.needsCrb && action === 'approve' && !crb.outcome) return t('Record the credit bureau outcome before approving.');
-    if (p.needsCrb && action === 'approve' && !crb.reportDate) return t('Enter the credit bureau report date before approving.');
-    if (p.needsCrb && action === 'approve' && !crbFiles.length) return t('Attach at least one credit bureau report before approving.');
+    if (!action) return recommends ? t('Choose return, recommend approval or recommend rejection.') : t('Choose approve, return or reject.');
+    const recommending = action === 'recommend_approval' || action === 'recommend_rejection';
+    if (recommending && !crb.outcome) return t('Record the credit bureau outcome before making a recommendation.');
+    if (recommending && !crb.reportDate) return t('Enter the credit bureau report date before making a recommendation.');
+    if (recommending && !crbFiles.length) return t('Attach at least one credit bureau report before making a recommendation.');
+    if (action === 'recommend_rejection' && comment.trim().length < RECOMMEND_REJECTION_MIN) return t('Give the reason for recommending rejection.');
+    if (against && comment.trim().length < AGAINST_MIN) return action === 'approve' ? t("Give the reason for approving against Credit's recommendation.") : t("Give the reason for rejecting against Credit's recommendation.");
+    if ((action === 'return' || action === 'reject') && !comment.trim()) return t('Add a comment so the applicant knows what to do.');
     if (p.needsHrChecks && action === 'approve' && !(checks.employment && checks.category && checks.salary)) return t('Confirm all three staff record checks before approving.');
     if (p.needsProbationCheck && action === 'approve' && !checks.probationReasonVerified) return t('Verify the probation reason before approving.');
     return null;
@@ -73,7 +105,7 @@ export default function DecisionPanel({ app, onDone }) {
     try {
       const body = { action, comment };
       if (action === 'return') body.returnTo = returnTo;
-      if (p.needsCrb && crb.outcome) body.crb = { outcome: crb.outcome, reportDate: crb.reportDate };
+      if (p.needsCrb && crb.outcome && action !== 'return') body.crb = { outcome: crb.outcome, reportDate: crb.reportDate };
       if (p.needsHrChecks) body.hrChecks = checks;
       const res = await reviewApi.decide(app.id, body);
       onDone(res);
@@ -113,9 +145,10 @@ export default function DecisionPanel({ app, onDone }) {
         {p.onBehalfOf && <span className="tag">{t('On behalf of {name}', { name: p.onBehalfOf })}</span>}
       </div>
       <div className={s.decisionBody} style={{ padding: 24, display: 'grid', gap: 12, alignContent: 'start' }}>
+        <CreditRecommendation rec={rec} />
         {p.stage === 'pc' && app.route?.key !== 'hrhead' && <Alert severity="info"><AlertTitle>{t('People and Culture stage')}</AlertTitle>{t('The People and Culture Manager or the Head of People and Culture decides this stage, whoever acts first. Once one of you decides, it leaves the other\'s queue.')}</Alert>}
         {(p.stage === 'pcm' || (p.stage === 'pc' && app.route?.key === 'hrhead')) && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('You review in place of the Head of HR. After you approve, the CEO gives final approval.')}</Alert>}
-        {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. You give final approval after the Credit Analyst, then Disbursement (People and Culture or OPS).')}</Alert>}
+        {p.stage === 'hr' && app.route?.key === 'ceo' && <Alert severity="info"><AlertTitle>{t('The CEO is the applicant')}</AlertTitle>{t('On this route the CEO stage is skipped. Credit Underwriting recommends, then you give final approval, then Disbursement (People and Culture or OPS).')}</Alert>}
         {p.stage === 'ceo' && app.route?.key === 'hrhead' && <Alert severity="info"><AlertTitle>{t('The Head of People and Culture is the applicant')}</AlertTitle>{t('The People and Culture Manager reviewed in place of the Head of HR. You give final approval.')}</Alert>}
         {app.recommended && !p.needsCrb && (
           <Alert severity="warning">
@@ -185,11 +218,15 @@ export default function DecisionPanel({ app, onDone }) {
         )}
 
         <div className={s.radios} role="radiogroup" aria-label={t('Decision')}>
-          {[
+          {(recommends ? [
+            ['return', t('Return to applicant'), t('Goes back to the applicant, then restarts at the first stage.')],
+            ['recommend_approval', t('Recommend approval'), t('Moves to {stage}, which decides.', { stage: t(p.nextStageLabel) })],
+            ['recommend_rejection', t('Recommend rejection'), t('Moves to {stage}, which decides. It does not close the application.', { stage: t(p.nextStageLabel) })],
+          ] : [
             ['approve', t('Approve'), finalText],
             ['return', targets.length > 1 ? t('Return') : t('Return for correction'), targets.length > 1 ? t('Back to an earlier stage, or to the applicant for correction.') : t('Goes back to the applicant, then restarts at the first stage.')],
             ['reject', t('Reject'), t('Closes the application.')],
-          ].map(([k, label, hint]) => (
+          ]).map(([k, label, hint]) => (
             <label key={k} className={s.radioCard}>
               <input type="radio" name="decision" value={k} checked={action === k} onChange={() => setAction(k)} />
               <span><b>{label}</b><span className="small muted">{hint}</span></span>
@@ -201,7 +238,17 @@ export default function DecisionPanel({ app, onDone }) {
             {targets.map((x) => <MenuItem key={x.key} value={x.key}>{t(x.label)}</MenuItem>)}
           </TextField>
         )}
-        <TextField label={t('Comment')} required={!!action && action !== 'approve'} multiline minRows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('Visible to the applicant and later approvers')} helperText={t('Required to return or reject.')} />
+        <TextField
+          label={against ? (action === 'approve' ? t("Reason for approving against Credit's recommendation") : t("Reason for rejecting against Credit's recommendation")) : action === 'recommend_rejection' ? t('Reason for recommending rejection') : t('Comment')}
+          required={commentRequired}
+          multiline
+          minRows={3}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          inputProps={{ maxLength: action === 'recommend_rejection' ? 1000 : 2000 }}
+          placeholder={recommends && action !== 'return' ? t('Visible to later approvers, not to the applicant') : t('Visible to the applicant and later approvers')}
+          helperText={against ? t('Required, at least {n} characters.', { n: AGAINST_MIN }) : action === 'recommend_rejection' ? t('Required, {min} to {max} characters.', { min: RECOMMEND_REJECTION_MIN, max: 1000 }) : recommends ? t('Required to return.') : t('Required to return or reject.')}
+        />
       </div>
       <div className={s.decisionFoot}>
         {problem && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '0 0 8px' }}>{problem}</p>}

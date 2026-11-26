@@ -67,6 +67,12 @@ describe('application page: terms, history and withdrawing', () => {
     expect(screen.getByText('Approved by Head of HR')).toBeInTheDocument();
   });
 
+  it("shows Credit Underwriting's review without its recommendation (D-113)", async () => {
+    await open(submitted({ route, history: [{ action: 'reviewed', stage: 'credit', comment: null, at: '2026-11-20T07:00:00Z' }] }));
+    expect(screen.getByText('Reviewed by Credit Underwriting')).toBeInTheDocument();
+    expect(screen.queryByText(/recommend/i)).toBeNull();
+  });
+
   it('keeps Withdraw one step away, under More', async () => {
     await open(submitted({ withdrawable: true, route }));
     expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();

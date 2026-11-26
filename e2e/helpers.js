@@ -170,12 +170,14 @@ export async function openFromQueue(page, ref) {
  * opts: { action: 'approve'|'return'|'reject', comment, crb: true, hrChecks: true }
  */
 export async function decide(page, { action = 'approve', comment, crb, hrChecks } = {}) {
+  // D-113: Credit Underwriting recommends; "approve" with a bureau check means recommend approval.
+  if (crb && action === 'approve') action = 'recommend_approval';
   if (crb) {
     await page.getByRole('combobox', { name: /Outcome/ }).click();
     await page.getByRole('option', { name: 'Low Risk' }).click();
     await page.getByLabel(/Report date/).fill(new Date().toISOString().slice(0, 10));
     // D-105: at least one bureau report file is needed to approve; each upload adds one.
-    if (action === 'approve') {
+    if (action === 'recommend_approval' || action === 'recommend_rejection') {
       await page.getByLabel('Choose bureau report').setInputFiles({ name: 'creditinfo-report.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n') });
       await expect(page.getByRole('list', { name: 'Bureau reports attached' }).getByText('creditinfo-report.pdf')).toBeVisible();
     }
@@ -184,11 +186,11 @@ export async function decide(page, { action = 'approve', comment, crb, hrChecks 
   if (hrChecks) {
     for (const box of await page.getByRole('checkbox', { name: /^(Employment status is|Employment is active|Category is|Basic Pay of|I have verified the probation reason)/ }).all()) await box.check();
   }
-  const radio = { approve: /^Approve/, return: /^Return for correction/, reject: /^Reject/ }[action];
+  const radio = { approve: /^Approve/, return: /^Return (for correction|to applicant)/, reject: /^Reject/, recommend_approval: /^Recommend approval/, recommend_rejection: /^Recommend rejection/ }[action];
   await page.getByRole('radio', { name: radio }).check();
-  if (comment) await page.getByLabel('Comment').fill(comment);
+  if (comment) await page.getByRole('textbox', { name: /^(Comment|Reason)/ }).fill(comment);
   // The button names the outcome ("Approve and send to Head of HR", "Return to Rehema").
-  const button = { approve: /^Approve (and send to|\(final approval\))/, return: /^Return to /, reject: 'Reject application' }[action];
+  const button = { approve: /^Approve (and send to|\(final approval\))/, return: /^Return to /, reject: 'Reject application', recommend_approval: /^Recommend approval and send to/, recommend_rejection: /^Recommend rejection and send to/ }[action];
   const before = page.url();
   await page.getByRole('button', { name: button }).click();
   // Recorded: the next application waiting opens, or the queue when there is none.

@@ -229,14 +229,14 @@ export default function WorkflowPage() {
                 {data.routes.map((r) => (
                   <TableRow key={r.key}>
                     <TableCell sx={{ fontWeight: 600 }}>{t(r.label)}</TableCell>
-                    <TableCell>{[...r.stages, 'OPS'].map((x) => t(x)).join(' → ')}</TableCell>
+                    <TableCell>{[...r.stages, 'Disbursement'].map((x) => t(x)).join(' → ')}</TableCell>
                     <TableCell>{r.limitedCredit ? <Chip size="small" color="warning" label={t('Name, mobile, NIDA only')} /> : t('Full application')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-          <p className="small muted" style={{ marginTop: 12 }}>{t("Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Every reviewer can approve, return or reject. No amount thresholds.")}</p>
+          <p className="small muted" style={{ marginTop: 12 }}>{t("Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Credit Underwriting recommends approval or rejection, or returns the application; every later reviewer can approve, return or reject. No amount thresholds.")}</p>
         </CardContent>
       </Card>
       <Card component="section" aria-labelledby="wf-calendar" sx={{ mt: 3 }}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ReviewPage from './ReviewPage';
 import QueuePage from './QueuePage';
@@ -23,7 +23,7 @@ const limited = {
   affordability: { instalment: 236200, room: 812400, remaining: 576200, fits: true, maxAmount: 17200000, maxTenor: 60 },
   crb: null,
   myDecisions: [],
-  panel: { stage: 'credit', stageLabel: 'Credit Analyst', isFinal: false, nextStageLabel: 'Head of HR', needsCrb: true, canRecommend: false, needsHrChecks: false, needsProbationCheck: false, crbOutcomes: ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found'] },
+  panel: { stage: 'credit', stageLabel: 'Credit Underwriting', actions: ['return', 'recommend_approval', 'recommend_rejection'], isFinal: false, nextStageLabel: 'Head of HR', needsCrb: true, canRecommend: false, needsHrChecks: false, needsProbationCheck: false, crbOutcomes: ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found'] },
 };
 
 // An application at the Head of HR, decided by Credit before D-99: an old outcome and both notes.
@@ -59,7 +59,7 @@ const full = {
   crbReport: null,
   agreements: [],
   history: [],
-  panel: { stage: 'hr', stageLabel: 'Head of HR', isFinal: false, nextStageLabel: 'CEO', needsCrb: false, canRecommend: false, needsHrChecks: true, needsProbationCheck: false, crbOutcomes: ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found'] },
+  panel: { stage: 'hr', stageLabel: 'Head of HR', actions: ['approve', 'return', 'reject'], isFinal: false, nextStageLabel: 'CEO', needsCrb: false, canRecommend: false, needsHrChecks: true, needsProbationCheck: false, crbOutcomes: ['Low Risk', 'Average Risk', 'High Risk', 'No Record Found'] },
 };
 
 describe('review screen', () => {
@@ -128,7 +128,7 @@ describe('review screen', () => {
     expect(screen.queryByText(/Basic Pay/)).toBeNull();
   });
 
-  it('the Credit Analyst must record the bureau outcome to approve, and comment to return', async () => {
+  it('Credit Underwriting sees exactly three choices; a recommendation needs the bureau outcome and a report (D-113)', async () => {
     const calls = stubHttp({
       'GET /review/r1': () => [200, { data: limited }],
       'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
@@ -136,42 +136,103 @@ describe('review screen', () => {
     });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
-    await userEvent.click(screen.getByRole('radio', { name: /Return for correction/ }));
+    const radios = within(screen.getByRole('radiogroup', { name: 'Decision' })).getAllByRole('radio');
+    expect(radios.map((r) => r.closest('label').querySelector('b').textContent)).toEqual(['Return to applicant', 'Recommend approval', 'Recommend rejection']);
+    expect(screen.queryByRole('radio', { name: /^Approve/ })).toBeNull();
+    expect(screen.queryByRole('radio', { name: /^Reject/ })).toBeNull();
+    await userEvent.click(screen.getByRole('radio', { name: /Return to applicant/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Return to Daniel' }));
     expect(screen.getByText('Add a comment so the applicant knows what to do.')).toHaveAttribute('role', 'alert');
-    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
-    expect(screen.getByText('Record the credit bureau outcome before approving.')).toHaveAttribute('role', 'alert');
+    await userEvent.click(screen.getByRole('radio', { name: /^Recommend approval/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend approval and send to Head of HR' }));
+    expect(screen.getByText('Record the credit bureau outcome before making a recommendation.')).toHaveAttribute('role', 'alert');
     await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
-    // D-105: at least one bureau report file is needed to approve.
-    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
-    expect(screen.getByText('Attach at least one credit bureau report before approving.')).toHaveAttribute('role', 'alert');
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend approval and send to Head of HR' }));
+    expect(screen.getByText('Attach at least one credit bureau report before making a recommendation.')).toHaveAttribute('role', 'alert');
     await userEvent.upload(screen.getByLabelText('Choose bureau report'), new File(['%PDF-1.4'], 'creditinfo.pdf', { type: 'application/pdf' }));
     expect(await screen.findByText('creditinfo.pdf')).toBeInTheDocument();
-    expect(screen.queryByText('Attach at least one credit bureau report before approving.')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend approval and send to Head of HR' }));
     expect(await screen.findByText('Elsewhere')).toBeInTheDocument();
     const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
-    expect(body).toMatchObject({ action: 'approve', crb: { outcome: 'Low Risk' } });
-    expect(body.recommended).toBeUndefined();
+    expect(body).toMatchObject({ action: 'recommend_approval', crb: { outcome: 'Low Risk' } });
+  });
+
+  it('recommending rejection needs a reason of at least 10 characters (D-113)', async () => {
+    const calls = stubHttp({
+      'GET /review/r1': () => [200, { data: { ...limited, crbReports: [{ id: 'c1', originalName: 'creditinfo.pdf', uploadedBy: 'Juma Kassim', uploadedById: 'u-juma' }] } }],
+      'POST /review/r1/decision': () => [200, { data: { outcome: 'moved', application: limited } }],
+    });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    await userEvent.click(await screen.findByRole('combobox', { name: /Outcome/ }));
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('High Risk'));
+    await userEvent.click(screen.getByRole('radio', { name: /^Recommend rejection/ }));
+    expect(screen.getByLabelText(/Reason for recommending rejection/)).toBeRequired();
+    await userEvent.type(screen.getByLabelText(/Reason for recommending rejection/), 'Defaults');
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend rejection and send to Head of HR' }));
+    expect(screen.getByText('Give the reason for recommending rejection.')).toHaveAttribute('role', 'alert');
+    await userEvent.type(screen.getByLabelText(/Reason for recommending rejection/), ' on two other loans.');
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend rejection and send to Head of HR' }));
+    await screen.findByText('Elsewhere');
+    const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
+    expect(body).toMatchObject({ action: 'recommend_rejection', comment: 'Defaults on two other loans.', crb: { outcome: 'High Risk' } });
+  });
+
+  it('a deciding stage sees the recommendation; approving against it needs a reason (D-113)', async () => {
+    const rec = { outcome: 'reject', reason: 'Bureau shows recent defaults.', crbOutcome: 'High Risk', by: 'Juma Kassim', onBehalfOf: null, at: '2026-10-30T09:00:00Z' };
+    const calls = stubHttp({
+      'GET /review/r2': () => [200, { data: { ...full, creditRecommendation: rec } }],
+      'POST /review/r2/decision': () => [200, { data: { outcome: 'moved', application: full } }],
+    });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
+    const box = await screen.findByRole('note', { name: 'Credit recommendation' });
+    expect(within(box).getByText('Credit recommends: Reject')).toBeInTheDocument();
+    expect(within(box).getByText('Bureau shows recent defaults.')).toBeInTheDocument();
+    expect(within(box).getByText(/Juma Kassim/)).toBeInTheDocument();
+    expect(within(box).getByText('High Risk')).toBeInTheDocument();
+    for (const name of ['Employment is active', 'Category is Non-management', /Basic Pay of/]) {
+      // eslint-disable-next-line no-await-in-loop
+      await userEvent.click(screen.getByRole('checkbox', { name }));
+    }
+    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
+    const reason = screen.getByLabelText(/Reason for approving against Credit's recommendation/);
+    expect(reason).toBeRequired();
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to CEO' }));
+    expect(screen.getByText("Give the reason for approving against Credit's recommendation.")).toHaveAttribute('role', 'alert');
+    await userEvent.type(reason, 'Defaults were settled; letters attached.');
+    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to CEO' }));
+    await waitFor(() => expect(calls.some((c) => c.key === 'POST /review/r2/decision')).toBe(true));
+    const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r2/decision').config.data);
+    expect(body).toMatchObject({ action: 'approve', comment: 'Defaults were settled; letters attached.' });
+  });
+
+  it('following the recommendation needs no extra reason; the history marks a decision against it (D-113)', async () => {
+    const rec = { outcome: 'approve', reason: null, crbOutcome: 'Low Risk', by: 'Juma Kassim', onBehalfOf: null, at: '2026-10-30T09:00:00Z' };
+    stubHttp({ 'GET /review/r2': () => [200, { data: { ...full, creditRecommendation: rec, history: [...(full.history || []), { action: 'reject', stage: 'pc', stageLabel: 'People and Culture', againstRecommendation: true, by: 'Grace Mollel', at: '2026-10-31T09:00:00Z', comment: 'Probation not complete.' }] } }] });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
+    expect(await screen.findByText('Credit recommends: Approve')).toBeInTheDocument();
+    expect(screen.getByText("Against Credit's recommendation")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
+    expect(screen.getByLabelText(/^Comment/)).not.toBeRequired();
+    await userEvent.click(screen.getByRole('radio', { name: /^Reject/ }));
+    expect(screen.getByLabelText(/Reason for rejecting against Credit's recommendation/)).toBeRequired();
   });
 
   it('a decision message follows the choices: it goes once what it asks for is done (reactive)', async () => {
     stubHttp({ 'GET /review/r1': () => [200, { data: limited }] });
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await screen.findByText('Your decision');
-    await userEvent.click(screen.getByRole('radio', { name: /Return for correction/ }));
+    await userEvent.click(screen.getByRole('radio', { name: /Return to applicant/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Return to Daniel' }));
     expect(screen.getByText('Add a comment so the applicant knows what to do.')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Comment/), 'Attach a newer payslip.');
     expect(screen.queryByText('Add a comment so the applicant knows what to do.')).toBeNull();
     // A different choice brings up its own requirement straight away.
-    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    expect(screen.getByText('Record the credit bureau outcome before approving.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /^Recommend approval/ }));
+    expect(screen.getByText('Record the credit bureau outcome before making a recommendation.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
-    expect(screen.queryByText('Record the credit bureau outcome before approving.')).toBeNull();
+    expect(screen.queryByText('Record the credit bureau outcome before making a recommendation.')).toBeNull();
   });
 
   it('offers exactly the four outcomes and no appraisal or arrears note, and sends neither (D-99)', async () => {
@@ -191,8 +252,8 @@ describe('review screen', () => {
     await userEvent.click(screen.getByRole('combobox', { name: /Outcome/ }));
     expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Low Risk', 'Average Risk', 'High Risk', 'No Record Found']);
     await userEvent.click(within(screen.getByRole('listbox')).getByText('High Risk'));
-    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
+    await userEvent.click(screen.getByRole('radio', { name: /^Recommend approval/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend approval and send to Head of HR' }));
     await screen.findByText('Elsewhere');
     const body = JSON.parse(calls.find((c) => c.key === 'POST /review/r1/decision').config.data);
     expect(body.crb.outcome).toBe('High Risk');
@@ -291,9 +352,9 @@ describe('review flow and reviewer wording', () => {
     renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
     await userEvent.click(await screen.findByRole('combobox', { name: /Outcome/ }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Low Risk'));
-    await userEvent.click(screen.getByRole('radio', { name: /^Approve/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Approve and send to Head of HR' }));
-    expect(await screen.findByText(/SL-2026-00028 approved and sent to the next stage\. This is the next application waiting for you\./)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /^Recommend approval/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recommend approval and send to Head of HR' }));
+    expect(await screen.findByText(/SL-2026-00028: recommendation recorded and sent to the next stage\. This is the next application waiting for you\./)).toBeInTheDocument();
     expect((await screen.findAllByText(/SL-2026-00041/)).length).toBeGreaterThan(0);
   });
 
