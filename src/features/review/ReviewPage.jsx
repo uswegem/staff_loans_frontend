@@ -204,7 +204,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>{t('Position')}</dt><dd>{a.title}, {a.department}</dd>
               <dt>{t('Work station')}</dt><dd>{a.station}</dd>
               <dt>{t('Category')}</dt><dd>{a.category}</dd>
-              <dt>{t('Route')}</dt><dd>{t(app.route.label)}: {app.route.stageLabels.map((l) => t(l)).join(', ')}, {t('then OPS')}</dd>
+              <dt>{t('Route')}</dt><dd>{t(app.route.label)}: {app.route.stageLabels.map((l) => t(l)).join(', ')}, {t('then Disbursement (People and Culture book, OPS disburse)')}</dd>
               <dt>{t('NIDA number')}</dt><dd>{a.nida || '—'}</dd>
               <dt>{t('Employment')}</dt><dd>{t('{type}, joined {date}', { type: t(a.employmentType), date: formatDate(a.dateJoined) })}</dd>
               <dt>{t('Retirement')}</dt><dd>{a.retirementDate ? formatDate(a.retirementDate) : t('No verified date of birth')}</dd>
