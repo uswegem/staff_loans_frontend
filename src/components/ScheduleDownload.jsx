@@ -9,7 +9,7 @@ import { apiError } from '../api/client';
 import { useT } from '../i18n';
 
 const ROLES = ['disb.confirm', 'review.credit', 'products.approveCredit'];
-const APPROVED = ['pending_booking', 'pending_disbursement', 'disbursed'];
+const APPROVED = ['pending_disbursement', 'disbursed'];
 
 export default function ScheduleDownload({ id, reference, status, applicantUserId, onError, size = 'medium' }) {
   const t = useT();

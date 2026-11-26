@@ -20,7 +20,7 @@ export const NAV = [
   },
   {
     group: 'Operations',
-    items: [{ to: '/disburse', label: 'Disbursement', any: ['disb.confirm', 'loan.book'] }],
+    items: [{ to: '/disburse', label: 'Disbursement', any: ['disb.confirm'] }],
   },
   {
     group: 'Reports',

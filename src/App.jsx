@@ -85,7 +85,7 @@ export default function App() {
           <Route path="queue" element={<QueuePage />} />
           <Route path="review/:id" element={<ReviewPage />} />
           <Route path="delegation" element={<RequirePermission any={['review.delegate']}><DelegationPage /></RequirePermission>} />
-          <Route path="disburse" element={<RequirePermission any={['disb.confirm', 'loan.book']}><DisbursementsPage /></RequirePermission>} />
+          <Route path="disburse" element={<RequirePermission any={['disb.confirm']}><DisbursementsPage /></RequirePermission>} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<RequirePermission any={['reports.view', 'admin.users', 'admin.roles', 'audit.view']}><ReportsPage /></RequirePermission>} />
           <Route path="admin/workflow" element={<RequirePermission any={['admin.workflow']}><WorkflowPage /></RequirePermission>} />

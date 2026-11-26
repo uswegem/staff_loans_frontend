@@ -1,8 +1,9 @@
-// The Disbursement queue (prototype #/disburse; FR-20 to FR-22, FR-26; Q3; D-107, D-112).
-// Loans with final approval are first booked in core banking by People and Culture
-// (loan account number, booking date, note), then disbursed by OPS and marked as disbursed
-// here. Both teams see every step and download the Agreement and the Loan Summary; each acts
-// only on its own step (the API says what each may do). The applicant never sees the papers here.
+// The Disbursement queue (prototype #/disburse; FR-20 to FR-22, FR-26; Q3; D-112).
+// After final approval a loan waits here for OPS or People and Culture (disb.confirm). They
+// book it in the loan management system outside SLAS, download the Agreement and the Loan
+// Summary, and mark it as disbursed. Nobody marks their own loan, or one they approved (the
+// API gives the reason). The applicant never sees the papers here. A booking recorded
+// before D-112 is still shown, read-only.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -71,77 +72,6 @@ function Summary({ d }) {
   );
 }
 
-function BookDialog({ id, onClose, onDone }) {
-  const t = useT();
-  const [d, setD] = useState(null);
-  const [account, setAccount] = useState('');
-  const [date, setDate] = useState(todayEat());
-  const [note, setNote] = useState('');
-  const [error, setError] = useState(null);
-  const [tried, setTried] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    disbursementsApi.get(id).then((x) => { setD(x); setDate(x.today); }).catch((e) => setError(apiError(e).message));
-  }, [id]);
-
-  const blocker = () => {
-    if (!account.trim()) return t('Enter the core banking loan account number.');
-    if (!date) return t('Enter the booking date.');
-    if (d && date > d.today) return t('The booking date cannot be in the future.');
-    return null;
-  };
-  const problem = (tried && d && blocker()) || error;
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (busy) return undefined;
-    setTried(true);
-    setError(null);
-    if (blocker()) return undefined;
-    setBusy(true);
-    try {
-      const res = await disbursementsApi.book(id, { loanAccountNumber: account.trim(), date, ...(note.trim() ? { note: note.trim() } : {}) });
-      onDone(res.message);
-    } catch (err) {
-      setError(apiError(err).message);
-      setBusy(false);
-    }
-    return undefined;
-  };
-
-  return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
-      <form onSubmit={submit} noValidate>
-        <DialogTitle sx={{ fontSize: 22, fontWeight: 700 }}>
-          {t('Book loan')}
-          <div className="small muted" style={{ fontWeight: 400, marginTop: 6 }}>{t('Book the loan in core banking first, then record it here. OPS then disburse it.')}</div>
-        </DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2 }}>
-          {!d && !error && <p className="muted" role="status">{t('Loading…')}</p>}
-          {d && (
-            <>
-              <LoanPapers item={d} onError={setError} />
-              <Summary d={d} />
-              {d.bookBlockedReason && <Alert severity="warning">{d.bookBlockedReason}</Alert>}
-              <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-                <TextField label={t('Loan account number')} required value={account} onChange={(e) => setAccount(e.target.value)} inputProps={{ maxLength: 40 }} />
-                <DateField label={t('Booking date')} required value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: d.earliestDate, max: d.today }} />
-              </div>
-              <TextField label={t('Note (optional)')} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-            </>
-          )}
-          {problem && <Alert severity="error" role="alert">{problem}</Alert>}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained" disabled={!d || busy || !d.canBook}>{t('Book loan')}</Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-}
-
 function ConfirmDisbursementDialog({ id, onClose, onDone }) {
   const t = useT();
   const [d, setD] = useState(null);
@@ -161,7 +91,7 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
     if (d?.topUp && !topUp) return t('Confirm the old loan balance has been settled.');
     if (!date) return t('Enter the disbursement date.');
     if (d && date > d.today) return t('The disbursement date cannot be in the future.');
-    if (d && date < d.earliestDate) return t('The disbursement date cannot be before the booking date.');
+    if (d && date < d.earliestDate) return t('The disbursement date cannot be before the final approval.');
     if (!ref.trim()) return t('Enter the core banking transaction reference.');
     if (comment.trim().length < COMMENT_MIN) return t('Add a comment for the disbursement record.');
     if (comment.trim().length > COMMENT_MAX) return t('The comment can be at most {n} characters.', { n: COMMENT_MAX });
@@ -290,31 +220,26 @@ function Waiting({ r }) {
   );
 }
 
-/** What this person can do on a row: their own step, or a read-only view (D-107). */
-function RowAction({ r, tab, onBook, onConfirm, onView }) {
+/** What this person can do on a row: mark it as disbursed, or a read-only view with the reason. */
+function RowAction({ r, tab, onConfirm, onView }) {
   const t = useT();
   const note = (text) => <><span className="xs muted" style={{ display: 'inline-block', maxWidth: 200, marginRight: 8 }}>{text}</span><Button size="small" onClick={onView}>{t('View')}</Button></>;
-  if (tab === 'booking') {
-    if (r.canBook) return <Button size="small" variant="contained" onClick={onBook}>{t('Book loan')}</Button>;
-    return note(r.bookBlockedReason || t('Waiting for People and Culture to book it.'));
-  }
   if (tab === 'ready') {
     if (r.canConfirm) return <Button size="small" variant="contained" onClick={onConfirm}>{t('Mark as disbursed')}</Button>;
-    return note(r.blockedReason || t('Waiting for OPS to disburse it.'));
+    return note(r.blockedReason || t('Waiting for another officer to mark it as disbursed.'));
   }
   return <Button size="small" onClick={onView}>{t('View')}</Button>;
 }
 
 export default function DisbursementsPage() {
   const t = useT();
-  // null: the API opens the step this person acts on (booking for People and Culture, ready for OPS).
+  // null until the API answers (it opens Ready to disburse).
   const [tab, setTab] = useState(null);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmed, setConfirmed] = useState(null);
   const [confirming, setConfirming] = useState(null);
-  const [booking, setBooking] = useState(null);
   const [viewing, setViewing] = useState(null);
 
   // Only the answer for the tab now chosen is shown: a slower answer for an earlier tab is dropped.
@@ -336,7 +261,7 @@ export default function DisbursementsPage() {
       <div className="pagehead">
         <div>
           <h1>{t('Disbursement')}</h1>
-          <p>{t('People and Culture book each loan in core banking; OPS then disburse it and mark it as disbursed here.')}</p>
+          <p>{t('Loans with final approval. People and Culture or OPS download the papers and mark each loan as disbursed once the money is paid out.')}</p>
         </div>
         <Button onClick={() => disbursementsApi.exportRegister().catch((e) => setError(apiError(e).message))}>{t('Export disbursed register')}</Button>
       </div>
@@ -364,18 +289,17 @@ export default function DisbursementsPage() {
       )}
       <Card>
         <Tabs value={shown || false} onChange={(_, v) => { setTab(v); setData(null); }} sx={{ px: 2 }} aria-label={t('Disbursement')}>
-          <Tab value="booking" label={`${t('To book')}${data ? ` (${data.counts.booking})` : ''}`} />
           <Tab value="ready" label={`${t('Ready to disburse')}${data ? ` (${data.counts.ready})` : ''}`} />
           <Tab value="done" label={`${t('Disbursed')}${data ? ` (${data.counts.done})` : ''}`} />
         </Tabs>
         {!data && !error ? <div style={{ padding: 16 }}><LoadingSkeleton variant="table" rows={4} label={t('Loading…')} /></div> : data && data.items.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center' }}>
-            <h3>{shown === 'booking' ? t('Nothing to book') : shown === 'ready' ? t('Nothing to disburse') : t('No disbursements yet')}</h3>
-            <p className="muted">{shown === 'booking' ? t('Loans appear here once they have final approval.') : shown === 'ready' ? t('Loans appear here once People and Culture have booked them.') : t('Loans marked as disbursed appear here.')}</p>
+            <h3>{shown === 'ready' ? t('Nothing to disburse') : t('No disbursements yet')}</h3>
+            <p className="muted">{shown === 'ready' ? t('Loans appear here once they have final approval.') : t('Loans marked as disbursed appear here.')}</p>
           </div>
         ) : (
           <div className="tablewrap">
-            <Table aria-label={shown === 'booking' ? t('To book') : shown === 'ready' ? t('Ready to disburse') : t('Disbursed')}>
+            <Table aria-label={shown === 'ready' ? t('Ready to disburse') : t('Disbursed')}>
               <TableHead>
                 <TableRow>
                   <TableCell>{t('Reference')}</TableCell>
@@ -403,7 +327,7 @@ export default function DisbursementsPage() {
                     <TableCell align="right">
                       <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <LoanPapers item={r} onError={setError} />
-                        <RowAction r={r} tab={shown} onBook={() => setBooking(r.id)} onConfirm={() => setConfirming(r.id)} onView={() => setViewing(r.id)} />
+                        <RowAction r={r} tab={shown} onConfirm={() => setConfirming(r.id)} onView={() => setViewing(r.id)} />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -421,17 +345,6 @@ export default function DisbursementsPage() {
             setConfirming(null);
             setToast(message);
             setConfirmed(summary);
-            load();
-          }}
-        />
-      )}
-      {booking && (
-        <BookDialog
-          id={booking}
-          onClose={() => setBooking(null)}
-          onDone={(message) => {
-            setBooking(null);
-            setToast(message);
             load();
           }}
         />

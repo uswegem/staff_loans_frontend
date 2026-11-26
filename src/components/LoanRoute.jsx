@@ -21,13 +21,12 @@ export function routeSteps({ route, status, closedAtStage }) {
     { key: 'submit', label: translate('Signed and submitted') },
     ...route.stages.map((k, i) => ({ key: k, label: translate(route.stageLabels[i]) })),
     ...(revised ? [{ key: 'reaccept', label: translate('Accept revised terms') }] : []),
-    { key: 'book', label: translate('Booked') },
     { key: 'disburse', label: translate('Disbursed') },
   ];
   const idxOf = (k) => steps.findIndex((x) => x.key === k);
   const nowIdx = {
     pending_reaccept: idxOf('reaccept'),
-    pending_booking: idxOf('book'),
+    pending_booking: idxOf('disburse'), // D-107, retired by D-112: shown as Disbursement
     pending_disbursement: idxOf('disburse'),
     disbursed: steps.length,
     ...Object.fromEntries(Object.entries(STAGE_STATUS).map(([k, st]) => [st, idxOf(k)])),
@@ -52,8 +51,8 @@ export default function LoanRoute({ app, compact }) {
   const steps = routeSteps(app);
   const sub = (st) => {
     if (st.cls === 'now') {
-      // D-112: booking and disbursement both happen in the Disbursement queue.
-      if (st.key === 'disburse' || st.key === 'book') return t('Disbursement');
+      // D-112: after final approval the loan is in the Disbursement queue.
+      if (st.key === 'disburse') return t('Disbursement');
       if (st.key === 'reaccept') return t('Your action');
       if (st.key === 'submit') return t('Draft');
       return hoursLeft(app.stageDueAt) || t('In progress');

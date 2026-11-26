@@ -219,7 +219,7 @@ export default function WorkflowPage() {
       <Card component="section" aria-labelledby="wf-routes">
         <CardContent sx={{ p: 3 }}>
           <h2 id="wf-routes" style={{ marginTop: 0, marginBottom: 8 }}>{t('Approval routes')}</h2>
-          <p className="small" style={{ marginTop: 0 }}>{t("The route comes from the applicant's role and the category on their staff record. After the last approval, the loan goes to Disbursement (People and Culture book, OPS disburse). Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.")}</p>
+          <p className="small" style={{ marginTop: 0 }}>{t("The route comes from the applicant's role and the category on their staff record. After the last approval, the loan goes to Disbursement (People and Culture or OPS). Staff sign the agreement when applying and accept a revised agreement only if the approved terms differ.")}</p>
           <div className="tablewrap">
             <Table size="small" aria-label={t('Approval routes')}>
               <TableHead>
