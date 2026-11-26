@@ -23,7 +23,6 @@ const row = {
   outsideSla: true,
   blockedReason: null,
   canConfirm: true,
-  canBook: false,
   canDownload: true,
   ownLoan: false,
   agreementId: 'g1',
@@ -46,7 +45,7 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
 });
 
-const list = (items, counts = { booking: 0, ready: items.length, done: 0, outsideSla: 1 }, tab = 'ready') => () => [200, { data: { tab, counts, slaDays: 30, items } }];
+const list = (items, counts = { ready: items.length, done: 0, outsideSla: 1 }, tab = 'ready') => () => [200, { data: { tab, counts, slaDays: 30, items } }];
 
 describe('disbursements', () => {
   it('flags loans outside SLA and checks the confirmation before sending it', async () => {
@@ -102,19 +101,19 @@ describe('disbursements', () => {
     expect(calls.some((c) => c.key === 'POST /disbursements/a1/confirm')).toBe(false);
   });
 
-  it('the Agreement and Loan summary on every tab; downloads use the agreement number and reference (D-112)', async () => {
+  it('the Agreement and Loan summary on both tabs; downloads use the agreement number and reference (D-112)', async () => {
     const done = { ...row, canConfirm: false, disbursement: { date: '2026-10-30', transactionRef: 'FT26294AB12', comment: 'Paid to the staff account.', by: 'Halima Said' } };
     const calls = stubHttp({
       'GET /disbursements': (config) => {
         const tab = config.params?.tab || 'ready';
-        const items = tab === 'done' ? [done] : tab === 'booking' ? [{ ...row, booking: null, canConfirm: false }] : [row];
-        return [200, { data: { tab, counts: { booking: 1, ready: 1, done: 1, outsideSla: 0 }, slaDays: 30, items } }];
+        const items = tab === 'done' ? [done] : [row];
+        return [200, { data: { tab, counts: { ready: 1, done: 1, outsideSla: 0 }, slaDays: 30, items } }];
       },
       'GET /agreements/g1/pdf': () => [200, new Blob(['%PDF'])],
       'GET /disbursements/a1/summary.pdf': () => [200, new Blob(['%PDF'])],
     });
     renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
-    for (const tab of [null, 'To book', 'Disbursed']) {
+    for (const tab of [null, 'Disbursed']) {
       if (tab) await userEvent.click(screen.getByRole('tab', { name: new RegExp(tab) }));
       // eslint-disable-next-line no-await-in-loop
       const r = (await screen.findByText('SL-2026-00019')).closest('tr');
@@ -136,7 +135,7 @@ describe('disbursements', () => {
   it('the disbursed record shows date, reference, comment and who confirmed it, read-only (D-112)', async () => {
     const done = { ...row, canConfirm: false, status: 'disbursed', disbursement: { date: '2026-10-30', transactionRef: 'FT26294AB12', comment: 'Paid to the staff account.', by: 'Halima Said' } };
     stubHttp({
-      'GET /disbursements': list([done], { booking: 0, ready: 0, done: 1, outsideSla: 0 }, 'done'),
+      'GET /disbursements': list([done], { ready: 0, done: 1, outsideSla: 0 }, 'done'),
       'GET /disbursements/a1': () => [200, { data: { ...detail, ...done, documents: [], documentChecklist: [] } }],
     });
     renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
@@ -151,17 +150,17 @@ describe('disbursements', () => {
   });
 
   it("no papers on the person's own loan (D-112)", async () => {
-    stubHttp({ 'GET /disbursements': list([{ ...row, canConfirm: false, canDownload: false, ownLoan: true, blockedReason: 'This is your own loan. Another OPS officer confirms it.' }], { booking: 0, ready: 1, done: 0, outsideSla: 0 }) });
+    stubHttp({ 'GET /disbursements': list([{ ...row, canConfirm: false, canDownload: false, ownLoan: true, blockedReason: 'This is your own loan. Another People and Culture or OPS officer marks it as disbursed.' }], { ready: 1, done: 0, outsideSla: 0 }) });
     renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
     const r = (await screen.findByText('SL-2026-00019')).closest('tr');
     expect(within(r).queryByRole('button', { name: /Download the/ })).toBeNull();
-    expect(within(r).getByText('This is your own loan. Another OPS officer confirms it.')).toBeInTheDocument();
+    expect(within(r).getByText('This is your own loan. Another People and Culture or OPS officer marks it as disbursed.')).toBeInTheDocument();
   });
 
   it('shows why OPS cannot confirm their own or an approved loan', async () => {
-    stubHttp({ 'GET /disbursements': list([{ ...row, outsideSla: false, canConfirm: false, blockedReason: 'You approved this loan, so another OPS officer confirms it.' }], { ready: 1, done: 0, outsideSla: 0 }) });
+    stubHttp({ 'GET /disbursements': list([{ ...row, outsideSla: false, canConfirm: false, blockedReason: 'You approved this loan. Another People and Culture or OPS officer marks it as disbursed.' }], { ready: 1, done: 0, outsideSla: 0 }) });
     renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
-    expect(await screen.findByText('You approved this loan, so another OPS officer confirms it.')).toBeInTheDocument();
+    expect(await screen.findByText('You approved this loan. Another People and Culture or OPS officer marks it as disbursed.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mark as disbursed' })).toBeNull();
   });
 });
@@ -179,46 +178,39 @@ describe('notifications inbox', () => {
     expect(calls.some((c) => c.key === 'POST /notifications/n1/read')).toBe(true);
   });
 
-  it('People and Culture book a loan: account number and date, then it goes to OPS (D-107)', async () => {
-    const toBook = { ...row, booking: null, canBook: true, canConfirm: false, bookBlockedReason: null };
+  it('one queue, two tabs, no booking form; People and Culture mark a loan as disbursed (D-112)', async () => {
     const calls = stubHttp({
-      'GET /disbursements': list([toBook], { booking: 1, ready: 0, done: 0, outsideSla: 0 }, 'booking'),
-      'GET /disbursements/a1': () => [200, { data: { ...detail, ...toBook } }],
-      'POST /disbursements/a1/book': () => [200, { message: 'SL-2026-00019 booked. OPS can now disburse it.', data: {} }],
+      'GET /disbursements': list([row], { ready: 1, done: 0, outsideSla: 0 }),
+      'GET /disbursements/a1': () => [200, { data: { ...detail, booking: null } }],
+      'POST /disbursements/a1/confirm': () => [200, { message: 'SL-2026-00019 disbursed. Journey complete.', data: {} }],
     });
-    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['loan.book'] });
+    // The P&C Manager holds disb.confirm since D-112.
+    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['review.pcm', 'disb.confirm'] });
     expect(await screen.findByRole('heading', { name: 'Disbursement' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((x) => x.textContent)).toEqual(['Ready to disburse (1)', 'Disbursed (0)']);
+    expect(screen.queryByRole('button', { name: 'Book loan' })).toBeNull();
     const r = (await screen.findByText('SL-2026-00019')).closest('tr');
-    expect(within(r).queryByRole('button', { name: 'Mark as disbursed' })).toBeNull();
-    await userEvent.click(within(r).getByRole('button', { name: 'Book loan' }));
+    await userEvent.click(within(r).getByRole('button', { name: 'Mark as disbursed' }));
     const dialog = await screen.findByRole('dialog');
     await within(dialog).findByText('Letshego Faidika Bank, 0150123456');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Book loan' }));
-    expect(within(dialog).getByText('Enter the core banking loan account number.')).toBeInTheDocument();
-    await userEvent.type(within(dialog).getByRole('textbox', { name: /Loan account number/i }), 'LN2026000123');
-    await userEvent.type(within(dialog).getByRole('textbox', { name: /Note/i }), 'Staff loan product.');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Book loan' }));
-    expect(await screen.findByText('SL-2026-00019 booked. OPS can now disburse it.')).toBeInTheDocument();
-    const body = JSON.parse(calls.find((c) => c.key === 'POST /disbursements/a1/book').config.data);
-    expect(body).toEqual({ loanAccountNumber: 'LN2026000123', date: '2026-10-30', note: 'Staff loan product.' });
+    expect(within(dialog).queryByRole('textbox', { name: /Loan account number/i })).toBeNull();
+    expect(within(dialog).queryByText('Booking')).toBeNull();
+    await userEvent.type(within(dialog).getByRole('textbox', { name: /Transaction reference/i }), 'FT26294AB12');
+    await userEvent.type(within(dialog).getByRole('textbox', { name: /Comment/i }), 'Paid to the staff account.');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Mark as disbursed' }));
+    expect(await screen.findByText('SL-2026-00019 disbursed. Journey complete.')).toBeInTheDocument();
+    expect(calls.some((c) => c.key === 'POST /disbursements/a1/confirm')).toBe(true);
   });
 
-  it('a step this person cannot act on is read-only, with the reason', async () => {
-    const waiting = { ...row, booking: null, canBook: false, canConfirm: false, bookBlockedReason: null };
-    stubHttp({ 'GET /disbursements': list([waiting], { booking: 1, ready: 0, done: 0, outsideSla: 0 }, 'booking') });
-    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm'] });
+  it('a loan this person approved is read-only, with the reason', async () => {
+    const approvedByMe = { ...row, canConfirm: false, blockedReason: 'You approved this loan. Another People and Culture or OPS officer marks it as disbursed.' };
+    stubHttp({ 'GET /disbursements': list([approvedByMe]) });
+    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['review.hr', 'disb.confirm'] });
     const r = (await screen.findByText('SL-2026-00019')).closest('tr');
-    expect(within(r).getByText('Waiting for People and Culture to book it.')).toBeInTheDocument();
-    expect(within(r).queryByRole('button', { name: 'Book loan' })).toBeNull();
-    expect(within(r).getByRole('button', { name: 'View' })).toBeInTheDocument();
-  });
-
-  it('the person who booked a loan sees why they cannot confirm it', async () => {
-    const mine = { ...row, canConfirm: false, blockedReason: 'You booked this loan, so an OPS officer confirms its disbursement.' };
-    stubHttp({ 'GET /disbursements': list([mine]) });
-    renderAt('/disburse', '/disburse', <DisbursementsPage />, { permissions: ['disb.confirm', 'loan.book'] });
-    const r = (await screen.findByText('SL-2026-00019')).closest('tr');
-    expect(within(r).getByText('You booked this loan, so an OPS officer confirms its disbursement.')).toBeInTheDocument();
+    expect(within(r).getByText('You approved this loan. Another People and Culture or OPS officer marks it as disbursed.')).toBeInTheDocument();
     expect(within(r).queryByRole('button', { name: 'Mark as disbursed' })).toBeNull();
+    expect(within(r).getByRole('button', { name: 'View' })).toBeInTheDocument();
+    // The papers are still there.
+    expect(within(r).getByRole('button', { name: 'Download the loan summary for SL-2026-00019' })).toBeInTheDocument();
   });
 });
