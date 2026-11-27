@@ -22,7 +22,7 @@ describe('Upload staff records (FR-02)', () => {
   it('shows the checked rows and applies only the valid ones', async () => {
     const calls = stubHttp({
       'POST /staff/import': () => [201, { data: preview }],
-      'POST /staff/import/imp1/commit': () => [200, { data: { ...preview, status: 'committed', result: { created: 1, updated: 1, skipped: 2 } } }],
+      'POST /staff/import/imp1/commit': () => [200, { data: { ...preview, status: 'committed', result: { created: 1, updated: 1, skipped: 2, datesOfBirth: 1 } } }],
     });
     renderAt('/staff/import', '/staff/import', <StaffImportPage />, { permissions: ['staff.manage'] });
     const file = new File(['x'], 'Staff_records_Nov_2026.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -33,6 +33,8 @@ describe('Upload staff records (FR-02)', () => {
     expect(screen.getByRole('button', { name: 'Download them with the reasons' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Apply 2 valid rows' }));
     expect(await screen.findByText(/1 new staff added, 1 records updated, 2 rows skipped/)).toBeInTheDocument();
+    // D-114: uploaded dates of birth need no verification.
+    expect(screen.getByText(/1 dates of birth set as verified\./)).toBeInTheDocument();
     expect(calls.find((c) => c.key === 'POST /staff/import').config.data).toBeInstanceOf(FormData);
   });
 
