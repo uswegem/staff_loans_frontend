@@ -76,7 +76,7 @@ export default function StaffImportPage() {
           <Alert severity="success" action={<Button size="small" onClick={() => navigate('/staff')}>{t('Back to staff records')}</Button>}>
             <AlertTitle>{t('Upload applied')}</AlertTitle>
             {t('{created} new staff added, {updated} records updated', { created: imp.result.created, updated: imp.result.updated })}{imp.result.skipped ? `, ${t('{n} rows skipped', { n: imp.result.skipped })}` : ''}.
-            {imp.result.datesOfBirth ? ` ${t('{n} dates of birth wait for another verifier in Date of birth checks.', { n: imp.result.datesOfBirth })}` : ''}
+            {imp.result.datesOfBirth ? ` ${t('{n} dates of birth set as verified.', { n: imp.result.datesOfBirth })}` : ''}
           </Alert>
         )}
         <Card>
@@ -89,7 +89,7 @@ export default function StaffImportPage() {
                   <Link component="button" type="button" onClick={() => downloadFile('/staff/import/template', 'LFB_staff_records_template.xlsx').catch((e) => setError(apiError(e).message))}>{t('Download the Excel template')}</Link>
                   {t('. It has an Instructions sheet.')}
                 </p>
-                <p className="small muted" style={{ margin: 0 }}>{t('Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth go to Date of birth checks for another verifier; titles never give anyone a role.')}</p>
+                <p className="small muted" style={{ margin: 0 }}>{t('Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth are stored as verified, with no verification step, so check them before uploading; titles never give anyone a role.')}</p>
               </>
             ) : (
               <>

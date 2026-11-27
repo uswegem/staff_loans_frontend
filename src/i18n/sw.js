@@ -1259,8 +1259,6 @@ const SW = {
   'Verified date of birth + {n} years': 'Tarehe ya kuzaliwa iliyothibitishwa + miaka {n}',
   'Employment details that Staff Loans uses for routing and eligibility. Affordability comes from the payslip attached to each application. Staff complete the rest of their profile.': 'Taarifa za ajira ambazo Mikopo ya Wafanyakazi inatumia kwa njia ya idhini na ustahiki. Uwezo wa kulipa unatoka kwenye hati ya mshahara iliyoambatishwa kwenye kila ombi. Wafanyakazi wanakamilisha sehemu nyingine ya wasifu wao.',
   'Rows are checked first. Nothing changes until you confirm. Staff are matched by Staff Number/Code; a blank cell keeps what is on file.': 'Mistari inakaguliwa kwanza. Hakuna kinachobadilika hadi uthibitishe. Wafanyakazi wanalinganishwa kwa Namba ya Mfanyakazi; kisanduku kitupu kinabaki na kilichorekodiwa.',
-  '{n} dates of birth wait for another verifier in Date of birth checks.': 'Tarehe {n} za kuzaliwa zinasubiri mthibitishaji mwingine katika Ukaguzi wa tarehe za kuzaliwa.',
-  'Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth go to Date of birth checks for another verifier; titles never give anyone a role.': 'Safu: Jina la kwanza, Jina la ukoo, NIDA, Cheo, Namba ya Mfanyakazi, Tarehe ya Kuzaliwa, Tarehe ya Kujiunga na Kundi. Tarehe za kuzaliwa zinaenda kwenye Ukaguzi wa tarehe za kuzaliwa kwa mthibitishaji mwingine; cheo hakimpi mtu jukumu lolote.',
   'Remaining after this loan': 'Kinachobaki baada ya mkopo huu',
   'Less payslip deductions': 'Toa makato ya hati ya mshahara',
   'Less payslip deductions other than the product being topped up': 'Toa makato ya hati ya mshahara isipokuwa ya bidhaa inayoongezewa',
@@ -1696,6 +1694,9 @@ const SW = {
   'You recommended approval on {date}.': 'Ulipendekeza kuidhinishwa tarehe {date}.',
   'You recommended rejection on {date}.': 'Ulipendekeza kukataliwa tarehe {date}.',
   'It is now with {stage}.': 'Sasa liko kwa {stage}.',
+  // D-114: an uploaded date of birth needs no verification.
+  '{n} dates of birth set as verified.': 'Tarehe {n} za kuzaliwa zimehifadhiwa kama zilizothibitishwa.',
+  'Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth are stored as verified, with no verification step, so check them before uploading; titles never give anyone a role.': 'Safu: Jina la kwanza, Jina la ukoo, NIDA, Cheo, Namba ya mfanyakazi, Tarehe ya kuzaliwa, Tarehe ya kuajiriwa na Kundi. Tarehe za kuzaliwa huhifadhiwa kama zilizothibitishwa bila hatua ya uthibitisho, kwa hiyo zikague kabla ya kupakia; cheo hakimpi mtu yeyote jukumu.',
 };
 
 export default SW;
