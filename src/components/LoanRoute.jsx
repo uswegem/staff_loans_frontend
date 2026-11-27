@@ -19,7 +19,7 @@ export function routeSteps({ route, status, closedAtStage }) {
   const revised = ['pending_reaccept', 'declined'].includes(status);
   const steps = [
     { key: 'submit', label: translate('Signed and submitted') },
-    ...route.stages.map((k, i) => ({ key: k, label: translate(route.stageLabels[i]) })),
+    ...(route?.stages || []).map((k, i) => ({ key: k, label: translate(route.stageLabels?.[i] || k) })),
     ...(revised ? [{ key: 'reaccept', label: translate('Accept revised terms') }] : []),
     { key: 'disburse', label: translate('Disbursed') },
   ];

@@ -46,17 +46,34 @@ function Panel({ title, action, children, collapsed = false }) {
 /** Whether a documents card has anything to show: required documents, files, or the bureau report. */
 const hasDocuments = (app) => (app.documentChecklist || []).length > 0 || (app.documents || []).length > 0 || (app.crbReports || []).length > 0;
 
+/** The current stage's name: from the API, else from the route when the view has one. */
+function stageLabelOf(app) {
+  if (app.currentStageLabel) return app.currentStageLabel;
+  const i = app.route?.stages?.indexOf(app.currentStage);
+  return i >= 0 ? app.route?.stageLabels?.[i] || null : null;
+}
+
 function Side({ app, onDone }) {
   const t = useT();
   if (app.panel) return <DecisionPanel app={app} onDone={onDone} />;
+  const stage = app.currentStage ? stageLabelOf(app) : null;
+  // D-113: Credit Underwriting reopens an application it has recommended and passed on.
+  const mine = [...(app.myDecisions || [])].reverse().find((d) => d.action === 'recommend_approval' || d.action === 'recommend_rejection');
   return (
     <div style={{ padding: 24, display: 'grid', gap: 12 }}>
       {/* D-113: the recommendation stays visible read-only. */}
       <CreditRecommendation rec={app.creditRecommendation} />
-      <Alert severity="info">
-        <AlertTitle>{app.currentStage ? t('With {stage}', { stage: t(app.route.stageLabels[app.route.stages.indexOf(app.currentStage)]) }) : t('No action for you')}</AlertTitle>
-        {app.currentStage ? t('This application is not in your queue.') : statusLabel(app.status, app.statusLabel)}
-      </Alert>
+      {mine ? (
+        <Alert severity="info">
+          <AlertTitle>{mine.action === 'recommend_approval' ? t('You recommended approval on {date}.', { date: formatDateTime(mine.at) }) : t('You recommended rejection on {date}.', { date: formatDateTime(mine.at) })}</AlertTitle>
+          {stage ? t('It is now with {stage}.', { stage: t(stage) }) : statusLabel(app.status, app.statusLabel)}
+        </Alert>
+      ) : (
+        <Alert severity="info">
+          <AlertTitle>{app.currentStage && stage ? t('With {stage}', { stage: t(stage) }) : t('No action for you')}</AlertTitle>
+          {app.currentStage ? t('This application is not in your queue.') : statusLabel(app.status, app.statusLabel)}
+        </Alert>
+      )}
     </div>
   );
 }
@@ -206,7 +223,7 @@ function FullReview({ app, onDone, onError }) {
               <dt>{t('Position')}</dt><dd>{a.title}, {a.department}</dd>
               <dt>{t('Work station')}</dt><dd>{a.station}</dd>
               <dt>{t('Category')}</dt><dd>{a.category}</dd>
-              <dt>{t('Route')}</dt><dd>{t(app.route.label)}: {app.route.stageLabels.map((l) => t(l)).join(', ')}, {t('then Disbursement (People and Culture or OPS)')}</dd>
+              {app.route && <><dt>{t('Route')}</dt><dd>{t(app.route.label)}: {(app.route.stageLabels || []).map((l) => t(l)).join(', ')}, {t('then Disbursement (People and Culture or OPS)')}</dd></>}
               <dt>{t('NIDA number')}</dt><dd>{a.nida || '—'}</dd>
               <dt>{t('Employment')}</dt><dd>{t('{type}, joined {date}', { type: t(a.employmentType), date: formatDate(a.dateJoined) })}</dd>
               <dt>{t('Retirement')}</dt><dd>{a.retirementDate ? formatDate(a.retirementDate) : t('No verified date of birth')}</dd>

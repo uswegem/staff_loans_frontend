@@ -168,7 +168,7 @@ export default function ApplicationPage() {
                       <span className={`${s.mk} ${tone ? s[tone] : ''}`} />
                       <div style={{ fontWeight: 600 }}>
                         {h.action === 'return' && h.returnTo && h.returnTo !== 'applicant'
-                          ? t('Returned by {stage} to {to}', { stage: t(stageLabel), to: t(app.route?.stageLabels?.[app.route.stages.indexOf(h.returnTo)]) })
+                          ? t('Returned by {stage} to {to}', { stage: t(stageLabel), to: t(app.route?.stageLabels?.[app.route?.stages?.indexOf(h.returnTo) ?? -1]) })
                           : <>{t(label)}{stageLabel && ['approve', 'return', 'reject'].includes(h.action) ? ` ${t('by {stage}', { stage: t(stageLabel) })}` : ''}</>}
                       </div>
                       <div className={s.when}>{formatDateTime(h.at)}</div>
