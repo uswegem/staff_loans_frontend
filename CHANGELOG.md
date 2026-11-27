@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – uploaded dates of birth need no verification (D-114)
+
+- Staff upload: dates of birth in the file are stored as verified straight away; the screen says so and the result reports how many were set. Dates entered in a profile or on one staff record still go to Date of birth checks.
+
 ## Unreleased – Credit Underwriting (D-113)
 
 - The credit stage is "Credit Underwriting" ("Tathmini ya Mikopo"); the status reads "Pending Credit Underwriting". The Credit Analyst, the Credit Manager (new role) and the Head of Credit each see it in the Review queue and decide there, with the identity-only view.

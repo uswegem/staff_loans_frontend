@@ -1259,8 +1259,6 @@ const SW = {
   'Verified date of birth + {n} years': 'Tarehe ya kuzaliwa iliyothibitishwa + miaka {n}',
   'Employment details that Staff Loans uses for routing and eligibility. Affordability comes from the payslip attached to each application. Staff complete the rest of their profile.': 'Taarifa za ajira ambazo Mikopo ya Wafanyakazi inatumia kwa njia ya idhini na ustahiki. Uwezo wa kulipa unatoka kwenye hati ya mshahara iliyoambatishwa kwenye kila ombi. Wafanyakazi wanakamilisha sehemu nyingine ya wasifu wao.',
   'Rows are checked first. Nothing changes until you confirm. Staff are matched by Staff Number/Code; a blank cell keeps what is on file.': 'Mistari inakaguliwa kwanza. Hakuna kinachobadilika hadi uthibitishe. Wafanyakazi wanalinganishwa kwa Namba ya Mfanyakazi; kisanduku kitupu kinabaki na kilichorekodiwa.',
-  '{n} dates of birth wait for another verifier in Date of birth checks.': 'Tarehe {n} za kuzaliwa zinasubiri mthibitishaji mwingine katika Ukaguzi wa tarehe za kuzaliwa.',
-  'Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth go to Date of birth checks for another verifier; titles never give anyone a role.': 'Safu: Jina la kwanza, Jina la ukoo, NIDA, Cheo, Namba ya Mfanyakazi, Tarehe ya Kuzaliwa, Tarehe ya Kujiunga na Kundi. Tarehe za kuzaliwa zinaenda kwenye Ukaguzi wa tarehe za kuzaliwa kwa mthibitishaji mwingine; cheo hakimpi mtu jukumu lolote.',
   'Remaining after this loan': 'Kinachobaki baada ya mkopo huu',
   'Less payslip deductions': 'Toa makato ya hati ya mshahara',
   'Less payslip deductions other than the product being topped up': 'Toa makato ya hati ya mshahara isipokuwa ya bidhaa inayoongezewa',
@@ -1688,6 +1686,9 @@ const SW = {
   'Reviewed by Credit Underwriting': 'Imekaguliwa na Tathmini ya Mikopo',
   "Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Credit Underwriting recommends approval or rejection, or returns the application; every later reviewer can approve, return or reject. No amount thresholds.": 'Menejimenti: Mtendaji Mkuu na Wakuu wa Uendeshaji, Mikopo, Rasilimali Watu, Fedha, Hatari, Sheria, Ukaguzi na Biashara. Ombi la Mtendaji Mkuu mwenyewe linaishia kwa Mkuu wa Rasilimali Watu; la Mkuu wa Rasilimali Watu linakwenda kwa Meneja wa Rasilimali Watu, kisha kwa Mtendaji Mkuu. Tathmini ya Mikopo hupendekeza kuidhinishwa au kukataliwa, au hurudisha ombi; kila mkaguzi anayefuata anaweza kuidhinisha, kurudisha au kukataa. Hakuna viwango vya kiasi.',
   '{ref}: recommendation recorded and sent to the next stage.': '{ref}: pendekezo limehifadhiwa na kutumwa kwa hatua inayofuata.',
+  // D-114: an uploaded date of birth needs no verification.
+  '{n} dates of birth set as verified.': 'Tarehe {n} za kuzaliwa zimehifadhiwa kama zilizothibitishwa.',
+  'Columns: First name, Surname, NIDA, Title, Staff Number/Code, Date of Birth, Date Joined and Category. Dates of birth are stored as verified, with no verification step, so check them before uploading; titles never give anyone a role.': 'Safu: Jina la kwanza, Jina la ukoo, NIDA, Cheo, Namba ya mfanyakazi, Tarehe ya kuzaliwa, Tarehe ya kuajiriwa na Kundi. Tarehe za kuzaliwa huhifadhiwa kama zilizothibitishwa bila hatua ya uthibitisho, kwa hiyo zikague kabla ya kupakia; cheo hakimpi mtu yeyote jukumu.',
 };
 
 export default SW;
