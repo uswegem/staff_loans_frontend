@@ -195,4 +195,4 @@
   .decisionCard > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
   .decisionBody { overflow-y: auto; min-height: 0; flex: 1; }
 }
-.decisionFoot { padding: 12px 24px 20px; border-top: 1px solid var(--line-2); background: var(--surface); }
+.decisionFoot { padding: 12px 24px 20px; border-top: 1px solid var(--line-2); background: var(--surface); flex-shrink: 0; }

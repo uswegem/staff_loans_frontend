@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – long button labels wrap
+
+- The decision button ("Recommend approval and send to People and Culture", longer in Swahili) and other long action buttons (Mark as disbursed, accept or decline revised terms, Save delegation, the apply wizard's continue and sign buttons) wrap inside the button instead of spilling out. The decision panel's footer keeps its full height. Other buttons stay on one line.
+
 ## Unreleased – uploaded dates of birth need no verification (D-114)
 
 - Staff upload: dates of birth in the file are stored as verified straight away; the screen says so and the result reports how many were set. Dates entered in a profile or on one staff record still go to Date of birth checks.

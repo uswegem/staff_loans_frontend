@@ -12,6 +12,7 @@ import AgreementDoc, { ACCEPT_LINE, DeclarationChecks, declarationsOf } from '..
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import PasswordField from '../../components/PasswordField';
+import WrapButton from '../../components/WrapButton';
 
 export default function AcceptRevisedPage() {
   const t = useT();
@@ -126,8 +127,8 @@ export default function AcceptRevisedPage() {
               <PasswordField label={t('Enter your password to sign')} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </fieldset>
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !agree || !declaredAll || !password || busy}>{t('Accept and sign')}</Button>
-            <Button fullWidth sx={{ mt: 1 }} onClick={() => setDeclining(true)}>{t('Decline the revised terms')}</Button>
+            <WrapButton type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={!read || !agree || !declaredAll || !password || busy}>{t('Accept and sign')}</WrapButton>
+            <WrapButton fullWidth sx={{ mt: 1 }} onClick={() => setDeclining(true)}>{t('Decline the revised terms')}</WrapButton>
             <p className="xs muted" style={{ marginTop: 12 }}>{t('Accepting replaces the agreement you signed when you applied. Declining closes the application and voids the agreement.')}</p>
           </CardContent>
         </Card>
@@ -139,7 +140,7 @@ export default function AcceptRevisedPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeclining(false)}>{t('Keep it')}</Button>
-          <Button variant="contained" onClick={decline}>{t('Decline')}</Button>
+          <WrapButton variant="contained" onClick={decline}>{t('Decline')}</WrapButton>
         </DialogActions>
       </Dialog>
     </div>

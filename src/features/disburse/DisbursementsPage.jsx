@@ -19,6 +19,7 @@ import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
 import ScheduleDownload from '../../components/ScheduleDownload';
+import WrapButton from '../../components/WrapButton';
 
 const COMMENT_MIN = 5;
 const COMMENT_MAX = 1000;
@@ -152,7 +153,7 @@ function ConfirmDisbursementDialog({ id, onClose, onDone }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button type="submit" variant="contained" disabled={!d || busy || !!d.blockedReason}>{t('Mark as disbursed')}</Button>
+          <WrapButton type="submit" variant="contained" disabled={!d || busy || !!d.blockedReason}>{t('Mark as disbursed')}</WrapButton>
         </DialogActions>
       </form>
     </Dialog>

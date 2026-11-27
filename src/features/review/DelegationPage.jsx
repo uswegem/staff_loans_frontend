@@ -10,6 +10,7 @@ import { todayEat } from '../../lib/dates';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
+import WrapButton from '../../components/WrapButton';
 
 const STATUS = { active: ['Active', 'success'], scheduled: ['Scheduled', 'default'], ended: ['Ended', 'default'] };
 
@@ -94,7 +95,7 @@ export default function DelegationPage() {
               <DateField label={t('Until')} required value={until} onChange={(e) => setUntil(e.target.value)} inputProps={{ min: from }} />
             </div>
             <TextField label={t('Reason')} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('For example, annual leave')} />
-            <div className="row"><Button type="submit" variant="contained" disabled={busy}>{t('Save delegation')}</Button></div>
+            <div className="row"><WrapButton type="submit" variant="contained" disabled={busy}>{t('Save delegation')}</WrapButton></div>
           </CardContent>
         </Card>
         <Card>

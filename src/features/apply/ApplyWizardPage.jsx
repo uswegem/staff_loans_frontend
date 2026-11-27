@@ -27,6 +27,7 @@ import { needsDocuments } from '../../lib/products';
 import { plural } from '../../lib/plural';
 import DateField from '../../components/fields/DateField';
 import { statusLabel } from '../../lib/statuses';
+import WrapButton from '../../components/WrapButton';
 
 const STEPS = ['Choose a loan', 'Loan details', 'Documents', 'Review', 'Sign and submit'];
 
@@ -341,7 +342,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
 
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 24 }}>
             <Button onClick={onBack}>{t('Back')}</Button>
-            {!phone && <Button type="submit" variant="contained" disabled={busy}>{continueLabel}</Button>}
+            {!phone && <WrapButton type="submit" variant="contained" disabled={busy}>{continueLabel}</WrapButton>}
           </div>
           {/* Phones: the instalment and Continue stay in view; the full estimate follows the form. */}
           {/* In a portal: the step transition's transform would otherwise pin it inside the card. */}
@@ -349,7 +350,7 @@ function DetailsStep({ app, form, setForm, errors, checks, checked, saveFailure,
             <Portal>
               <div className={s.mobileBar}>
                 <span className="small">{form.amount && form.tenor && app.payslip ? <>{t('Instalment')} <b>{formatTzs(q.instalment)}</b></> : null}</span>
-                <Button variant="contained" disabled={busy} onClick={() => formRef.current?.requestSubmit()}>{continueLabel}</Button>
+                <WrapButton variant="contained" disabled={busy} onClick={() => formRef.current?.requestSubmit()}>{continueLabel}</WrapButton>
               </div>
             </Portal>
           )}
@@ -441,7 +442,7 @@ function DocumentsStep({ app, onChanged, onBack, onNext }) {
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 24, alignItems: 'flex-start' }}>
           <Button onClick={onBack}>{t('Back')}</Button>
           <div style={{ textAlign: 'right' }}>
-            <Button variant="contained" disabled={busy} onClick={next}>{t('Review application')}</Button>
+            <WrapButton variant="contained" disabled={busy} onClick={next}>{t('Review application')}</WrapButton>
             {needed && <p className="xs" style={{ margin: '6px 0 0', color: tried ? 'var(--bad)' : 'var(--ink-3)' }}>{needed}</p>}
           </div>
         </div>
@@ -517,7 +518,7 @@ function ReviewStep({ app, form, onBack, onNext, onEdit }) {
           <p className="small muted" style={{ margin: '0 0 12px' }}>{t('Next you read the loan agreement for these terms and sign it. Signing submits the application.')}</p>
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <Button onClick={onBack}>{t('Back')}</Button>
-            <Button variant="contained" onClick={onNext}>{t('Continue to agreement')}</Button>
+            <WrapButton variant="contained" onClick={onNext}>{t('Continue to agreement')}</WrapButton>
           </div>
         </div>
       </Card>
@@ -656,9 +657,9 @@ function SignStep({ app, onBack, onSigned }) {
             {error && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '10px 0 0' }}>{error}</p>}
             <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
               <Button onClick={onBack}>{t('Back')}</Button>
-              <Button type="submit" variant="contained" disabled={!read || !allTicked || busy}>
+              <WrapButton type="submit" variant="contained" disabled={!read || !allTicked || busy}>
                 {resubmit ? t('Sign and resubmit') : t('Sign agreement and submit')}
-              </Button>
+              </WrapButton>
             </div>
             <p className="xs muted" style={{ marginTop: 12 }}>
               {t('Signing records your name, time, IP address and a fingerprint of this exact text. The agreement takes effect when the application gets final approval on these terms. If a reviewer changes the amount or tenor, you accept a revised agreement before the loan is paid. If the application is rejected or withdrawn it becomes void; if it is returned, you sign a new one when you resubmit.')}

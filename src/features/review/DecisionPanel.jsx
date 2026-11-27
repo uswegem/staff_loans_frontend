@@ -15,6 +15,7 @@ import FileDrop from '../../components/FileDrop';
 import s from '../apply/apply.module.css';
 import { useT } from '../../i18n';
 import DateField from '../../components/fields/DateField';
+import WrapButton from '../../components/WrapButton';
 
 
 const AGAINST_MIN = 10;
@@ -252,7 +253,8 @@ export default function DecisionPanel({ app, onDone }) {
       </div>
       <div className={s.decisionFoot}>
         {problem && <p className="small" role="alert" style={{ color: 'var(--bad)', fontWeight: 600, margin: '0 0 8px' }}>{problem}</p>}
-        <Button type="submit" variant="contained" fullWidth disabled={busy}>{buttonLabel}</Button>
+        {/* The label can be longer than the panel (D-113 labels, Swahili): it wraps. */}
+        <WrapButton type="submit" variant="contained" fullWidth disabled={busy}>{buttonLabel}</WrapButton>
       </div>
     </form>
   );
