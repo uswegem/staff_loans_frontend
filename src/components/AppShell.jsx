@@ -9,6 +9,7 @@ import useSessionKeeper from '../lib/useSessionKeeper';
 import SessionTimeoutDialog from './SessionTimeoutDialog';
 import ActionFeedback from './ux/ActionFeedback';
 import LoadingSkeleton from './ux/LoadingSkeleton';
+import PageErrorBoundary from './PageErrorBoundary';
 import { visibleNav } from './nav';
 import logo from '../assets/lfb-logo.png';
 import s from './AppShell.module.css';
@@ -62,7 +63,10 @@ export default function AppShell() {
           <div key={language} style={{ display: 'contents' }}>
             {/* Pages split out of the main bundle (App.jsx) show a placeholder while they load. */}
             <Suspense fallback={<div className="page"><LoadingSkeleton label={t('Loading…')} /></div>}>
-              <Outlet />
+              {/* A crash on one page shows a message, never a blank app; a new address starts afresh. */}
+              <PageErrorBoundary key={location.pathname}>
+                <Outlet />
+              </PageErrorBoundary>
             </Suspense>
           </div>
         </main>

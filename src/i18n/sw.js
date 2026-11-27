@@ -1688,6 +1688,14 @@ const SW = {
   'Reviewed by Credit Underwriting': 'Imekaguliwa na Tathmini ya Mikopo',
   "Management: CEO and Heads of Operations, Credit, People and Culture, Finance, Risk, Legal, Audit and Business. The CEO's own application ends with the Head of People and Culture; the Head of People and Culture's goes to the People and Culture Manager, then the CEO. Credit Underwriting recommends approval or rejection, or returns the application; every later reviewer can approve, return or reject. No amount thresholds.": 'Menejimenti: Mtendaji Mkuu na Wakuu wa Uendeshaji, Mikopo, Rasilimali Watu, Fedha, Hatari, Sheria, Ukaguzi na Biashara. Ombi la Mtendaji Mkuu mwenyewe linaishia kwa Mkuu wa Rasilimali Watu; la Mkuu wa Rasilimali Watu linakwenda kwa Meneja wa Rasilimali Watu, kisha kwa Mtendaji Mkuu. Tathmini ya Mikopo hupendekeza kuidhinishwa au kukataliwa, au hurudisha ombi; kila mkaguzi anayefuata anaweza kuidhinisha, kurudisha au kukataa. Hakuna viwango vya kiasi.',
   '{ref}: recommendation recorded and sent to the next stage.': '{ref}: pendekezo limehifadhiwa na kutumwa kwa hatua inayofuata.',
+  // A crash on one page, and Credit Underwriting reopening an application it passed on.
+  'Something went wrong on this page.': 'Kuna hitilafu kwenye ukurasa huu.',
+  'Reload, or go back to your queue.': 'Pakia upya, au rudi kwenye foleni yako.',
+  'Reload': 'Pakia upya',
+  'Go to my queue': 'Nenda kwenye foleni yangu',
+  'You recommended approval on {date}.': 'Ulipendekeza kuidhinishwa tarehe {date}.',
+  'You recommended rejection on {date}.': 'Ulipendekeza kukataliwa tarehe {date}.',
+  'It is now with {stage}.': 'Sasa liko kwa {stage}.',
 };
 
 export default SW;

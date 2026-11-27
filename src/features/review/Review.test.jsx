@@ -308,6 +308,27 @@ describe('review screen', () => {
   });
 });
 
+describe('reopening an application that has moved on (D-113 fix)', () => {
+  it('Credit Underwriting sees where it is now and its own recommendation, without crashing (no route, no panel)', async () => {
+    const moved = { ...limited, status: 'pending_pc', statusLabel: 'Pending People and Culture Review', currentStage: 'pc', currentStageLabel: 'People and Culture', panel: null, myDecisions: [{ action: 'recommend_rejection', stage: 'credit', comment: 'Bureau shows recent defaults.', at: '2026-11-26T09:00:00Z' }], creditRecommendation: { outcome: 'reject', reason: 'Bureau shows recent defaults.', crbOutcome: 'High Risk', by: 'Juma Kassim', onBehalfOf: null, at: '2026-11-26T09:00:00Z' } };
+    delete moved.route;
+    stubHttp({ 'GET /review/r1': () => [200, { data: moved }] });
+    renderAt('/review/r1', '/review/:id', <ReviewPage />, { permissions: ['review.credit'] });
+    expect(await screen.findByText('It is now with People and Culture.')).toBeInTheDocument();
+    expect(screen.getByText(/^You recommended rejection on /)).toBeInTheDocument();
+    expect(screen.getByText('Credit recommends: Reject')).toBeInTheDocument();
+    expect(screen.queryByText('Your decision')).toBeNull();
+  });
+
+  it('a full view with no panel names the current stage from the API', async () => {
+    const elsewhere = { ...full, panel: null, currentStage: 'ceo', currentStageLabel: 'CEO', route: undefined };
+    stubHttp({ 'GET /review/r2': () => [200, { data: elsewhere }] });
+    renderAt('/review/r2', '/review/:id', <ReviewPage />, { permissions: ['review.hr'] });
+    expect(await screen.findByText('With CEO')).toBeInTheDocument();
+    expect(screen.getByText('This application is not in your queue.')).toBeInTheDocument();
+  });
+});
+
 describe('review queue', () => {
   it("the Credit Analyst's rows show the product and requested terms (D-102)", async () => {
     stubHttp({
